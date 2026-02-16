@@ -1,0 +1,76 @@
+# -----------------------------
+# ZVAKHO .gitignore
+# -----------------------------
+
+# Node modules
+node_modules/
+
+# Package lock files (optional — remove if you want them tracked)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build / dist folders
+dist/
+build/
+.out/
+coverage/
+
+# Vite / Next / modern frontend outputs
+.vite/
+.next/
+.vercel/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Mac system files
+.AppleDouble
+.LSOverride
+
+# Windows system files
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Netlify
+.netlify/
+
+# Vercel
+.vercel/
+
+# Optional: Ignore large media files (uncomment if needed)
+# *.mp4
+# *.mov
+# *.psd
+# *.ai
+
+# Optional: Ignore local config
+config/local.config.js
