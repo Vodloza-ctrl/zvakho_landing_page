@@ -1,0 +1,189 @@
+/* =========================
+   ZVAKHO — POWER CSS ADD-ON
+   Drop this AFTER your current <style> block
+   ========================= */
+
+:root{
+  /* Extra tokens */
+  --glass: rgba(255,255,255,.72);
+  --glass-strong: rgba(255,255,255,.88);
+  --ring: 0 0 0 4px rgba(193,122,62,.16);
+}
+
+/* Smoother motion + better text rendering */
+html{ scroll-behavior:smooth; }
+body{
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+/* Subtle grain overlay for “premium” feel */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  opacity:.06;
+  mix-blend-mode:multiply;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+}
+
+/* Make nav feel more “product” */
+.nav{
+  box-shadow: 0 8px 24px rgba(26,22,18,.06);
+}
+.brand{
+  transform: translateZ(0);
+}
+.brand:hover .mark{
+  border-color: var(--accent);
+  box-shadow: 0 10px 26px rgba(193,122,62,.18);
+  transform: translateY(-1px);
+}
+.mark{
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+/* Better primary button vibe */
+.btn.primary{
+  position:relative;
+}
+.btn.primary::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,0));
+  pointer-events:none;
+  opacity:.65;
+}
+.btn.primary:focus-visible{
+  outline:none;
+  box-shadow: var(--shadow), var(--ring);
+}
+
+/* Micro interaction: click ripple */
+.btn{
+  position:relative;
+  overflow:hidden;
+}
+.btn .ripple{
+  position:absolute;
+  border-radius:999px;
+  transform: translate(-50%, -50%);
+  pointer-events:none;
+  width: 14px;
+  height: 14px;
+  opacity:.35;
+  background: currentColor;
+  animation: ripple .55s ease-out forwards;
+}
+@keyframes ripple{
+  from{ transform: translate(-50%, -50%) scale(1); opacity:.30; }
+  to{ transform: translate(-50%, -50%) scale(22); opacity:0; }
+}
+
+/* Hero: stronger depth */
+.hero{
+  isolation:isolate;
+}
+.hero::after{
+  content:"";
+  position:absolute;
+  inset: -120px -40px auto -40px;
+  height: 520px;
+  z-index:-1;
+  background:
+    radial-gradient(circle at 18% 25%, rgba(193,122,62,.14), transparent 55%),
+    radial-gradient(circle at 65% 10%, rgba(184,92,59,.10), transparent 55%),
+    radial-gradient(circle at 80% 65%, rgba(212,165,116,.12), transparent 60%);
+  filter: blur(2px);
+}
+
+/* Logo lockup: make it crisp */
+.logo-lockup{
+  filter: drop-shadow(0 14px 28px rgba(26,22,18,.10));
+}
+
+/* Right card: glassy + more “app” */
+.video-container{
+  background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.85), rgba(249,247,244,.92));
+}
+.card-visual{
+  background:
+    radial-gradient(circle at 20% 10%, rgba(193,122,62,.18), transparent 55%),
+    radial-gradient(circle at 80% 30%, rgba(184,92,59,.12), transparent 55%),
+    linear-gradient(180deg, rgba(255,255,255,.85), rgba(253,252,251,.92));
+}
+.announce-step{
+  backdrop-filter: blur(10px);
+  background: var(--glass);
+}
+.announce-badge{
+  background: var(--glass-strong);
+}
+
+/* Stats: punchier typography */
+.stat-number{
+  letter-spacing:-.02em;
+}
+.stat-item{
+  filter: drop-shadow(0 10px 30px rgba(0,0,0,.12));
+}
+
+/* Cards: icon accent */
+.how-card{
+  position:relative;
+  overflow:hidden;
+}
+.how-card::before{
+  content:"";
+  position:absolute;
+  inset:auto -60px -60px auto;
+  width:180px;
+  height:180px;
+  border-radius:999px;
+  background: radial-gradient(circle, rgba(193,122,62,.16), transparent 60%);
+}
+.step-number{
+  box-shadow: 0 6px 18px rgba(26,22,18,.06);
+}
+
+/* Details: nicer open state */
+details[open]{
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lg);
+}
+summary:focus-visible{
+  outline:none;
+  box-shadow: var(--ring);
+  border-radius: 10px;
+}
+
+/* Modal: better scale-in */
+.modal{
+  transform: translate(-50%, -50%) scale(.96);
+  opacity: 0;
+  transition: transform .18s ease, opacity .18s ease;
+}
+.modal.is-open{
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+.overlay{
+  opacity:0;
+  transition: opacity .18s ease;
+}
+.overlay.is-open{ opacity:1; }
+
+/* Sticky bar: more premium */
+.sticky-apply-inner{
+  background: rgba(253,252,251,.86);
+  border-color: rgba(212,200,184,.85);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce){
+  *{ animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+}
