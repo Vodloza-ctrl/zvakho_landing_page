@@ -1,0 +1,2131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zvakho Music by Yasibo Media — Own Your Audience</title>
+  <meta name="description" content="Zvakho Music by Yasibo Media is a curated WhatsApp-native platform helping select African artists build direct, sustainable income from their communities." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+
+  <style>
+    :root{
+      --bg-white:#FDFCFB;
+      --bg-cream:#F7F3EE;
+      --surface:#FFFFFF;
+
+      --text-dark:#1a1410;
+      --text-body:#3d342c;
+      --text-muted:#6b5e52;
+      --text-light:#9a8272;
+
+      --accent:#C17A3E;
+      --accent-dark:#A96534;
+      --accent-light:#D99862;
+      --rust:#B85C3B;
+      --ochre:#D4A574;
+      --sand:#EAD8C4;
+      --gold:#E2A84B;
+
+      --border:#E2D8CE;
+      --border-strong:#CEC0B0;
+
+      --radius: 14px;
+      --radius-sm: 10px;
+      --radius-xs: 6px;
+
+      --shadow-sm: 0 2px 8px rgba(26,20,16,.06);
+      --shadow: 0 8px 32px rgba(26,20,16,.10);
+      --shadow-lg: 0 20px 60px rgba(26,20,16,.16);
+      --shadow-xl: 0 32px 80px rgba(26,20,16,.22);
+      --max: 1200px;
+    }
+
+    *{ box-sizing:border-box; margin:0; padding:0; }
+
+    html { scroll-behavior: smooth; }
+
+    body{
+      background: var(--bg-white);
+      color:var(--text-body);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      line-height:1.65;
+      font-weight:400;
+      overflow-x: hidden;
+    }
+
+    /* Subtle grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.4;
+    }
+
+    a{ color:inherit; text-decoration:none; transition:.25s ease; }
+    .wrap{ max-width:var(--max); margin:0 auto; padding: 0 28px; }
+    img{ max-width:100%; height:auto; display:block; }
+
+    :focus-visible{
+      outline: 2px solid rgba(193,122,62,.5);
+      outline-offset: 3px;
+    }
+
+    /* ─── Scroll Progress ─── */
+    .scroll-progress{
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 2px;
+      width: 0%;
+      z-index: 1000;
+      background: linear-gradient(90deg, var(--rust), var(--gold), var(--ochre));
+    }
+
+    /* ─── Navigation ─── */
+    .nav{
+      position:sticky;
+      top:0;
+      z-index:30;
+      backdrop-filter: blur(20px) saturate(180%);
+      background: rgba(253,252,251,.92);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 0;
+      gap:20px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-weight:800;
+      font-size:14px;
+      font-family: 'Syne', sans-serif;
+      color:var(--text-dark);
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+    .mark{
+      width:44px;
+      height:44px;
+      border-radius:var(--radius-sm);
+      background: var(--surface);
+      border: 1.5px solid var(--border-strong);
+      box-shadow: var(--shadow-sm);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      padding: 5px;
+    }
+    .logo-icon{
+      width:100%;
+      height:100%;
+      object-fit: contain;
+    }
+    .nav-links{
+      display:flex;
+      gap:4px;
+      align-items:center;
+    }
+    .nav-links a{
+      color:var(--text-muted);
+      font-size:14px;
+      font-weight:500;
+      padding:9px 16px;
+      border-radius:var(--radius-xs);
+      letter-spacing:.02em;
+      font-family: 'Syne', sans-serif;
+    }
+    .nav-links a:hover{
+      color:var(--text-dark);
+      background: var(--sand);
+    }
+    .cta{ display:flex; gap:10px; align-items:center; }
+
+    /* ─── Buttons ─── */
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:11px 22px;
+      border-radius:var(--radius-sm);
+      border:1.5px solid var(--border-strong);
+      background: var(--surface);
+      color:var(--text-dark);
+      font-weight:600;
+      font-size:14px;
+      letter-spacing:.02em;
+      box-shadow: var(--shadow-sm);
+      cursor:pointer;
+      transition: all .2s ease;
+      font-family: 'Syne', sans-serif;
+      white-space: nowrap;
+    }
+    .btn:hover{
+      transform: translateY(-2px);
+      background: var(--bg-cream);
+      border-color:var(--accent);
+      box-shadow: var(--shadow);
+    }
+    .btn:active{ transform: translateY(0px); }
+
+    .btn.primary{
+      border: none;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--rust) 100%);
+      color:#fff;
+      box-shadow: 0 4px 20px rgba(193,122,62,.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn.primary::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(135deg, rgba(255,255,255,.18) 0%, transparent 60%);
+    }
+    .btn.primary:hover{
+      background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
+      box-shadow: 0 8px 28px rgba(193,122,62,.4);
+      border: none;
+    }
+
+    /* ─── Hero ─── */
+    .hero{
+      padding: 80px 0 64px;
+      position:relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      right: -200px;
+      width: 700px;
+      height: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(193,122,62,.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-grid{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:72px;
+      align-items:center;
+    }
+
+    /* ── Hero Logo ── */
+    .hero-logo-wrap {
+      margin-bottom: 28px;
+    }
+    .hero-logo-wrap img {
+      width: 220px;
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .kicker{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:7px 14px;
+      border:1.5px solid var(--border-strong);
+      background: var(--surface);
+      border-radius:999px;
+      color:var(--text-muted);
+      font-size:12px;
+      font-weight:600;
+      letter-spacing:.06em;
+      text-transform: uppercase;
+      margin-bottom:22px;
+      box-shadow: var(--shadow-sm);
+    }
+    .dot{
+      width:7px;
+      height:7px;
+      border-radius:999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(193,122,62,.2);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse{
+      0%,100%{ opacity:1; transform:scale(1); }
+      50%{ opacity:.7; transform:scale(.9); }
+    }
+
+    h1{
+      font-family: 'Playfair Display', serif;
+      font-weight:800;
+      letter-spacing:-.025em;
+      font-size: clamp(38px, 5vw, 62px);
+      margin: 0 0 18px;
+      line-height:1.1;
+      color:var(--text-dark);
+    }
+    h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    h2{ font-family: 'Playfair Display', serif; font-weight:700; }
+    h3{ font-family: 'Syne', sans-serif; font-weight:700; }
+
+    .lead{
+      color:var(--text-body);
+      font-size: 17px;
+      max-width: 58ch;
+      margin: 0 0 28px;
+      line-height:1.8;
+    }
+    .hero-actions{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:20px;
+    }
+    .trust-badges{
+      display:flex;
+      gap:18px;
+      margin-top:8px;
+      flex-wrap:wrap;
+    }
+    .trust-badge{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      color:var(--text-muted);
+      font-weight:500;
+      font-family: 'Syne', sans-serif;
+      letter-spacing:.02em;
+    }
+    .trust-badge::before{
+      content:'✓';
+      color:var(--accent);
+      font-weight:700;
+    }
+
+    /* ─── Video ─── */
+    .video-container{
+      position:relative;
+      border-radius:var(--radius);
+      overflow:hidden;
+      box-shadow: var(--shadow-xl);
+      border:1.5px solid var(--border-strong);
+      background:var(--bg-cream);
+    }
+    .video-player{
+      position:relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: linear-gradient(145deg, #1a1410 0%, #2e1e0f 60%, #1a1410 100%);
+      overflow:hidden;
+    }
+    .video-thumbnail{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition: opacity .3s ease;
+    }
+    .video-thumbnail.hidden{ opacity:0; pointer-events:none; }
+    .video-bg-pattern{
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(ellipse at 25% 35%, rgba(193,122,62,.25) 0%, transparent 55%),
+        radial-gradient(ellipse at 75% 65%, rgba(184,92,59,.2) 0%, transparent 55%),
+        repeating-linear-gradient(
+          -55deg,
+          transparent,
+          transparent 40px,
+          rgba(193,122,62,.03) 40px,
+          rgba(193,122,62,.03) 42px
+        );
+      z-index:0;
+    }
+    .video-overlay{
+      position:relative;
+      z-index:1;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:22px;
+      padding:28px;
+      text-align:center;
+      width:100%;
+      height:100%;
+    }
+    .play-button{
+      width:80px;
+      height:80px;
+      border-radius:50%;
+      border:none;
+      background: linear-gradient(135deg, var(--accent), var(--rust));
+      box-shadow: 0 8px 32px rgba(193,122,62,.4);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition: all .3s ease;
+      animation: pulse-ring 2.5s ease-in-out infinite;
+    }
+    .play-button:hover{
+      transform: scale(1.1);
+      box-shadow: 0 12px 48px rgba(193,122,62,.5);
+    }
+    @keyframes pulse-ring{
+      0%,100%{ box-shadow: 0 8px 32px rgba(193,122,62,.4), 0 0 0 0 rgba(193,122,62,.35); }
+      50%{ box-shadow: 0 8px 32px rgba(193,122,62,.3), 0 0 0 18px rgba(193,122,62,.0); }
+    }
+    .play-icon{ width:28px; height:28px; color:#fff; margin-left:4px; }
+    .video-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      padding:5px 12px;
+      border:1.5px solid rgba(255,255,255,.2);
+      border-radius:999px;
+      background: rgba(255,255,255,.1);
+      backdrop-filter: blur(8px);
+      color:rgba(255,255,255,.85);
+      font-weight:700;
+      font-size:10px;
+      letter-spacing:.1em;
+      text-transform:uppercase;
+      font-family: 'Syne', sans-serif;
+    }
+    .mini-dot{
+      width:7px; height:7px; border-radius:50%;
+      background: var(--gold);
+      box-shadow: 0 0 6px rgba(226,168,75,.5);
+    }
+    .video-title{
+      font-family:'Playfair Display', serif;
+      font-size:26px;
+      line-height:1.2;
+      color:#fff;
+      font-weight:700;
+    }
+    .video-description{
+      color:rgba(255,255,255,.75);
+      font-size:14px;
+      line-height:1.6;
+    }
+    .video-element{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      display:none; background:#000; border:none;
+    }
+    .video-element.playing{ display:block; }
+    .video-caption{
+      background: var(--surface);
+      border-top:1.5px solid var(--border);
+      padding:18px 22px;
+    }
+    .caption-content{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:14px; flex-wrap:wrap;
+    }
+    .caption-text{ color:var(--text-body); font-size:13.5px; flex:1; min-width:180px; }
+    .caption-text strong{ color:var(--text-dark); font-weight:600; }
+    .caption-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+    .btn-sm{ padding:9px 18px; font-size:13px; }
+
+    /* ─── Stats Bar ─── */
+    .stats-bar{
+      background: linear-gradient(135deg, #1a1410 0%, #2e1e0f 50%, #1a1410 100%);
+      padding:40px 0;
+      margin-top:80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stats-bar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 60px,
+        rgba(193,122,62,.04) 60px,
+        rgba(193,122,62,.04) 62px
+      );
+    }
+    .stats-grid{
+      display:grid;
+      grid-template-columns: repeat(3,1fr);
+      gap:48px;
+      text-align:center;
+      position: relative;
+      z-index: 1;
+    }
+    .stat-item{ color:white; }
+    .stat-number{
+      font-family:'Playfair Display', serif;
+      font-size:44px;
+      font-weight:800;
+      margin-bottom:8px;
+      display:block;
+      color: var(--gold);
+    }
+    .stat-label{
+      font-size:14px;
+      opacity:.75;
+      font-family: 'Syne', sans-serif;
+      letter-spacing:.03em;
+    }
+
+    /* ─── Sections ─── */
+    section{ padding: 80px 0; position:relative; }
+    .section-header{
+      text-align:center;
+      max-width:700px;
+      margin:0 auto 52px;
+    }
+    .section-kicker {
+      display: inline-block;
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .section-header h2{
+      font-size: clamp(32px, 4vw, 46px);
+      margin:0 0 14px;
+      letter-spacing:-.02em;
+      color:var(--text-dark);
+    }
+    .section-header p{
+      color:var(--text-muted);
+      font-size:16px;
+      line-height:1.75;
+    }
+
+    /* ─── How Grid ─── */
+    .how-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:22px;
+    }
+    .how-card{
+      background: var(--surface);
+      border:1.5px solid var(--border);
+      border-radius:var(--radius);
+      padding:30px;
+      transition: all .25s ease;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+    }
+    .how-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--rust));
+      opacity: 0;
+      transition: opacity .25s ease;
+    }
+    .how-card:hover{
+      transform: translateY(-6px);
+      border-color:var(--accent);
+      box-shadow: var(--shadow-lg);
+    }
+    .how-card:hover::after { opacity: 1; }
+    .step-number{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      border:1.5px solid var(--border);
+      background: var(--bg-cream);
+      border-radius:999px;
+      padding:5px 12px;
+      color:var(--accent);
+      font-size:11px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-bottom:16px;
+      font-family: 'Syne', sans-serif;
+    }
+    .how-card h3{ margin:0 0 10px; font-size:19px; color:var(--text-dark); line-height:1.3; }
+    .how-card p{ margin:0; color:var(--text-body); font-size:15px; line-height:1.75; }
+
+    /* ═══════════════════════════════════════════
+       ─── FEATURED ARTISTS SECTION ───
+    ═══════════════════════════════════════════ */
+    .artists-section {
+      background: linear-gradient(180deg, var(--bg-white) 0%, var(--bg-cream) 100%);
+      padding: 96px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .artists-section::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      left: -120px;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(193,122,62,.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .artists-section::after {
+      content: '';
+      position: absolute;
+      bottom: -100px;
+      right: -100px;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(184,92,59,.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .artists-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Artist Card ── */
+    .artist-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: all .3s cubic-bezier(.22, .68, 0, 1.2);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .artist-card:hover {
+      transform: translateY(-8px) scale(1.01);
+      box-shadow: var(--shadow-xl);
+      border-color: var(--accent);
+    }
+
+    /* Photo area */
+    .artist-photo-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      background: linear-gradient(145deg, #1a1410, #2e1e0f);
+    }
+    .artist-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform .5s ease;
+    }
+    .artist-card:hover .artist-photo {
+      transform: scale(1.05);
+    }
+    /* Placeholder avatar when no photo */
+    .artist-avatar-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, #1a1410 0%, #3a2415 50%, #1a1410 100%);
+      gap: 12px;
+    }
+    .artist-avatar-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(193,122,62,.2);
+      border: 2px solid rgba(193,122,62,.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .artist-avatar-icon svg {
+      width: 40px;
+      height: 40px;
+      color: var(--ochre);
+    }
+    .artist-avatar-initials {
+      font-family: 'Playfair Display', serif;
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--gold);
+      opacity: .9;
+    }
+
+    /* Gradient overlay on photo */
+    .artist-photo-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        transparent 30%,
+        rgba(26,20,16,.7) 100%
+      );
+    }
+    /* Badge on photo */
+    .artist-live-badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      background: rgba(26,20,16,.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(193,122,62,.4);
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-family: 'Syne', sans-serif;
+    }
+    .artist-live-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* Genre tag on photo (bottom) */
+    .artist-genre-tag {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(193,122,62,.85);
+      backdrop-filter: blur(6px);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+    }
+
+    /* Card body */
+    .artist-body {
+      padding: 24px 24px 28px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .artist-name-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .artist-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-dark);
+      line-height: 1.15;
+      letter-spacing: -.02em;
+    }
+    .artist-verified {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--rust));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 4px;
+    }
+    .artist-verified svg {
+      width: 14px; height: 14px; color: #fff;
+    }
+    .artist-bio {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.7;
+      margin: 0;
+    }
+
+    /* Divider */
+    .artist-divider {
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* CTA row */
+    .artist-cta-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn-artist-primary {
+      flex: 1;
+      background: linear-gradient(135deg, #25D366, #1ebe5d);
+      border: none;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(37,211,102,.25);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: .02em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all .2s ease;
+      font-family: 'Syne', sans-serif;
+      text-decoration: none;
+    }
+    .btn-artist-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(37,211,102,.35);
+    }
+    .btn-artist-primary:active { transform: translateY(0); }
+    .wa-icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+    /* Bottom accent strip */
+    .artist-card-accent {
+      height: 3px;
+      background: linear-gradient(90deg, var(--rust), var(--gold), var(--ochre));
+    }
+
+    /* ─── FAQ ─── */
+    .faq-section { background: var(--bg-cream); }
+    details{
+      border:1.5px solid var(--border);
+      background:var(--surface);
+      border-radius:var(--radius-sm);
+      padding:20px 24px;
+      transition:.2s ease;
+      box-shadow:var(--shadow-sm);
+    }
+    details:hover{ border-color:var(--accent); }
+    details + details{ margin-top:12px; }
+    summary{
+      cursor:pointer;
+      font-weight:600;
+      color:var(--text-dark);
+      font-size:15px;
+      list-style:none;
+      font-family: 'Syne', sans-serif;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    summary::before{
+      content:'→';
+      display:inline-block;
+      margin-right:12px;
+      color:var(--accent);
+      transition:.2s ease;
+    }
+    details[open] summary::before{ transform:rotate(90deg); }
+    details p{
+      color:var(--text-body);
+      margin:16px 0 0 26px;
+      font-size:14.5px;
+      line-height:1.75;
+    }
+
+    /* ─── CTA Section ─── */
+    .cta-section{
+      background: linear-gradient(145deg, #1a1410 0%, #2e1e0f 50%, #1a1410 100%);
+      padding:96px 0;
+      text-align:center;
+      position:relative;
+      overflow:hidden;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px;
+      height: 800px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(193,122,62,.12) 0%, transparent 70%);
+    }
+    .cta-section::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 60px,
+        rgba(193,122,62,.03) 60px,
+        rgba(193,122,62,.03) 62px
+      );
+    }
+    .cta-content{
+      position:relative; z-index:1;
+      max-width:680px; margin:0 auto;
+    }
+    .cta-section .section-kicker { color: var(--gold); }
+    .cta-section h2{
+      font-size: clamp(34px, 5vw, 54px);
+      margin:0 0 18px;
+      color:#fff;
+      letter-spacing:-.025em;
+      line-height: 1.15;
+    }
+    .cta-section h2 em { color: var(--gold); }
+    .cta-section p{
+      font-size:17px;
+      color:rgba(255,255,255,.75);
+      margin:0 0 36px;
+      line-height:1.8;
+    }
+    .cta-buttons { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-cta-light{
+      background: rgba(255,255,255,.95);
+      color: var(--text-dark);
+      border: none;
+      font-size: 15px;
+      padding: 14px 32px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.2);
+    }
+    .btn-cta-light:hover {
+      background: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 36px rgba(0,0,0,.25);
+    }
+    .btn-cta-outline{
+      background: transparent;
+      color: rgba(255,255,255,.85);
+      border: 1.5px solid rgba(255,255,255,.25);
+      font-size: 15px;
+      padding: 14px 32px;
+    }
+    .btn-cta-outline:hover {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.5);
+      color: #fff;
+      transform: translateY(-2px);
+    }
+
+    /* ─── Footer ─── */
+    footer{
+      background: #1a1410;
+      border-top:1px solid rgba(255,255,255,.07);
+      padding:64px 0 40px;
+      color:rgba(255,255,255,.5);
+      font-size:14px;
+    }
+    .footer-grid{
+      display:grid;
+      grid-template-columns:1.6fr 1fr 1fr;
+      gap:48px;
+      margin-bottom: 48px;
+    }
+    .footer-brand p{
+      color:rgba(255,255,255,.5);
+      line-height:1.7;
+      margin:16px 0 0;
+      max-width:38ch;
+      font-size: 14px;
+    }
+    .footer-logo {
+      width: 200px;
+      max-width: 100%;
+      /* Invert for dark background */
+      filter: brightness(0) invert(1);
+      opacity: 0.8;
+    }
+    .footer-links h4{
+      font-weight:700;
+      color:rgba(255,255,255,.85);
+      margin-bottom:16px;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.1em;
+      font-family:'Syne', sans-serif;
+    }
+    .footer-links ul{ list-style:none; }
+    .footer-links li{ margin-bottom:10px; }
+    .footer-links a{ color:rgba(255,255,255,.45); font-size:14px; }
+    .footer-links a:hover{ color:var(--gold); }
+    .footer-bottom{
+      border-top:1px solid rgba(255,255,255,.08);
+      padding-top:28px;
+      text-align:center;
+      color:rgba(255,255,255,.3);
+      font-size:12px;
+      font-family: 'Syne', sans-serif;
+      letter-spacing:.04em;
+    }
+
+    /* ─── Sticky Join ─── */
+    .sticky-apply{
+      position:fixed; left:0; right:0; bottom:16px;
+      z-index:60; display:none; pointer-events:none;
+    }
+    .sticky-apply.is-on{ display:block; }
+    .sticky-apply-inner{
+      max-width: min(var(--max), 960px);
+      margin:0 auto; padding:14px 16px;
+      background:rgba(253,252,251,.94);
+      border:1.5px solid var(--border-strong);
+      border-radius:16px;
+      box-shadow: var(--shadow-xl);
+      display:flex; gap:14px; align-items:center; justify-content:space-between;
+      pointer-events:auto;
+      backdrop-filter:blur(16px) saturate(180%);
+    }
+    .sticky-apply-text{ color:var(--text-dark); font-size:13.5px; line-height:1.35; }
+    .sticky-apply-sub{ display:inline-block; margin-left:8px; color:var(--text-muted); font-weight:500; }
+
+    /* ─── Responsive ─── */
+    @media (max-width:940px){
+      .hero-grid{ grid-template-columns:1fr; gap:44px; }
+      .nav-links{ display:none; }
+      .how-grid{ grid-template-columns:1fr; }
+      .stats-grid{ grid-template-columns:1fr; gap:28px; }
+      .artists-grid{ grid-template-columns:1fr; }
+    }
+    @media (max-width:768px){
+      .footer-grid{ grid-template-columns:1fr; gap:32px; }
+    }
+    @media (max-width:640px){
+      .hero{ padding:56px 0 40px; }
+      h1{ font-size:36px; }
+      .section-header h2{ font-size:30px; }
+      .btn{ width:100%; justify-content:center; }
+      .hero-actions{ flex-direction:column; }
+      .sticky-apply-sub{ display:none; }
+      .caption-content{ flex-direction:column; align-items:stretch; text-align:center; }
+      .caption-actions{ justify-content:center; }
+      .cta-buttons{ flex-direction: column; align-items: center; }
+      .play-button{ width:68px; height:68px; }
+      .play-icon{ width:26px; height:26px; }
+      .video-title{ font-size:22px; }
+    }
+
+    /* ─── Entrance Animations ─── */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in {
+      animation: fadeInUp .6s cubic-bezier(.22, .68, 0, 1) both;
+    }
+    .delay-1 { animation-delay: .1s; }
+    .delay-2 { animation-delay: .2s; }
+    .delay-3 { animation-delay: .3s; }
+    .delay-4 { animation-delay: .4s; }
+
+    /* ═══════════════════════════════════════════
+       ─── ARTIST APPLICATION MODAL ───
+    ═══════════════════════════════════════════ */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(26, 20, 16, 0.72);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s ease;
+    }
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(32px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0)    scale(1);   }
+    }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 18px;
+      border: 1.5px solid var(--border-strong);
+      box-shadow: var(--shadow-xl);
+      width: 100%;
+      max-width: 560px;
+      max-height: 92vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transform: translateY(32px) scale(.97);
+      opacity: 0;
+      transition: transform .35s cubic-bezier(.22,.68,0,1.1), opacity .3s ease;
+    }
+    .modal-backdrop.open .modal {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    /* Modal scrollbar */
+    .modal::-webkit-scrollbar { width: 5px; }
+    .modal::-webkit-scrollbar-track { background: transparent; }
+    .modal::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+
+    /* Top accent bar */
+    .modal-accent-bar {
+      height: 4px;
+      background: linear-gradient(90deg, var(--rust), var(--gold), var(--ochre));
+      border-radius: 18px 18px 0 0;
+      flex-shrink: 0;
+    }
+
+    .modal-header {
+      padding: 28px 32px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .modal-header-text {}
+    .modal-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: 'Syne', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .modal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-dark);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin: 0 0 6px;
+    }
+    .modal-subtitle {
+      color: var(--text-muted);
+      font-size: 13.5px;
+      line-height: 1.65;
+      margin: 0;
+    }
+
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--bg-cream);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      color: var(--text-muted);
+      transition: all .2s ease;
+      margin-top: 2px;
+    }
+    .modal-close:hover {
+      background: var(--sand);
+      border-color: var(--accent);
+      color: var(--text-dark);
+    }
+    .modal-close svg { width: 16px; height: 16px; }
+
+    /* Form body */
+    .modal-body {
+      padding: 24px 32px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .modal-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+
+    /* Field groups */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 480px) {
+      .field-row { grid-template-columns: 1fr; }
+      .modal-header { padding: 22px 22px 0; }
+      .modal-body { padding: 20px 22px 28px; }
+      .modal-title { font-size: 22px; }
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-group.full { grid-column: 1 / -1; }
+
+    .field-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .field-label span {
+      color: var(--rust);
+      margin-left: 2px;
+    }
+
+    .field-input,
+    .field-select,
+    .field-textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-cream);
+      color: var(--text-dark);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+      outline: none;
+      appearance: none;
+    }
+    .field-input::placeholder,
+    .field-textarea::placeholder {
+      color: var(--text-light);
+    }
+    .field-input:focus,
+    .field-select:focus,
+    .field-textarea:focus {
+      border-color: var(--accent);
+      background: var(--surface);
+      box-shadow: 0 0 0 3px rgba(193,122,62,.12);
+    }
+    .field-input.error,
+    .field-select.error,
+    .field-textarea.error {
+      border-color: var(--rust);
+      box-shadow: 0 0 0 3px rgba(184,92,59,.1);
+    }
+
+    .field-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b5e52' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+    .field-select option { background: var(--surface); color: var(--text-dark); }
+
+    .field-textarea {
+      resize: vertical;
+      min-height: 88px;
+    }
+
+    /* Radio group for self-distribution question */
+    .radio-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg-cream);
+      cursor: pointer;
+      transition: all .18s ease;
+      font-size: 13.5px;
+      color: var(--text-body);
+      font-weight: 500;
+      user-select: none;
+    }
+    .radio-option:hover {
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+    .radio-option input[type="radio"] { display: none; }
+    .radio-option .radio-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--border-strong);
+      flex-shrink: 0;
+      transition: all .18s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .radio-option.selected {
+      border-color: var(--accent);
+      background: rgba(193,122,62,.07);
+      color: var(--text-dark);
+    }
+    .radio-option.selected .radio-dot {
+      border-color: var(--accent);
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(193,122,62,.15);
+    }
+
+    /* Field hint */
+    .field-hint {
+      font-size: 11.5px;
+      color: var(--text-light);
+      line-height: 1.5;
+    }
+    .field-error-msg {
+      font-size: 11.5px;
+      color: var(--rust);
+      display: none;
+    }
+    .field-error-msg.show { display: block; }
+
+    /* Section label inside form */
+    .form-section-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Submit button */
+    .modal-submit {
+      width: 100%;
+      padding: 14px 24px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--accent), var(--rust));
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .02em;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(193,122,62,.3);
+      transition: all .2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .modal-submit::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.15) 0%, transparent 60%);
+    }
+    .modal-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(193,122,62,.4);
+    }
+    .modal-submit:active { transform: translateY(0); }
+    .modal-submit svg { width: 18px; height: 18px; }
+
+    .modal-footnote {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-light);
+      line-height: 1.6;
+    }
+    .modal-footnote a { color: var(--accent); text-decoration: underline; }
+
+    /* Success state */
+    .modal-success {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 48px 32px;
+      text-align: center;
+    }
+    .modal-success.show { display: flex; }
+    .modal-success-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--rust));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(193,122,62,.3);
+    }
+    .modal-success-icon svg { width: 30px; height: 30px; color: #fff; }
+    .modal-success h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      color: var(--text-dark);
+      font-weight: 800;
+    }
+    .modal-success p {
+      color: var(--text-muted);
+      font-size: 14.5px;
+      line-height: 1.7;
+      max-width: 36ch;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="scroll-progress" aria-hidden="true"></div>
+
+  <!-- ── NAV ── -->
+  <nav class="nav">
+    <div class="wrap nav-inner">
+      <a href="#top" class="brand" aria-label="Zvakho Music">
+        <div class="mark" aria-hidden="true">
+          <img src="https://zvakho.co.zw/zvakho-brand-mark-clean.png" alt="" class="logo-icon" />
+        </div>
+        <div>Zvakho Music</div>
+      </a>
+      <div class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#artists">Artists</a>
+        <a href="#faq">FAQ</a>
+        <a href="#launch">Launch</a>
+      </div>
+      <div class="cta">
+        <a class="btn" href="#how">Learn more</a>
+        <button class="btn primary" id="joinTop">Get WhatsApp updates</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <header class="hero" id="top">
+    <div class="wrap hero-grid">
+      <div class="animate-in">
+        <!-- LOGO — brandmark clean -->
+        <div class="hero-logo-wrap">
+          <img
+            src="https://zvakho.co.zw/zvakho-brand-mark-clean.png"
+            alt="Zvakho Music by Yasibo Media"
+          />
+        </div>
+
+        <div class="kicker">
+          <span class="dot"></span>
+          Curated launch &bull; Zimbabwe &amp; diaspora
+        </div>
+
+        <h1>Own your audience.<br><em>Earn directly.</em></h1>
+
+        <p class="lead">
+          A curated WhatsApp-native platform helping select artists build direct,
+          sustainable income from their communities — without algorithm games.
+          Fans get premium drops. Artists get ownership.
+        </p>
+
+        <div class="hero-actions">
+          <button class="btn primary" id="joinHero">Join Zvakho Music</button>
+          <button class="btn open-artist-modal">Artist partnerships</button>
+        </div>
+
+        <div class="trust-badges">
+          <span class="trust-badge">Opt-in only (Meta-friendly)</span>
+          <span class="trust-badge">Curated onboarding</span>
+          <span class="trust-badge">Built in Zimbabwe</span>
+        </div>
+      </div>
+
+      <!-- Video -->
+      <div class="video-container animate-in delay-2" aria-label="Zvakho Music platform demo">
+        <div class="video-player" id="videoPlayer">
+          <div class="video-thumbnail">
+            <div class="video-overlay">
+              <button class="play-button" id="playButton" aria-label="Play video">
+                <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </button>
+              <div>
+                <div class="video-badge">
+                  <span class="mini-dot"></span>
+                  LAUNCH FILM
+                </div>
+                <h3 class="video-title">See the Zvakho Music vision</h3>
+                <p class="video-description">A quick look at how the platform works — for fans and artists.</p>
+              </div>
+            </div>
+            <div class="video-bg-pattern"></div>
+          </div>
+          <iframe
+            class="video-element"
+            id="youtubeEmbed"
+            src="https://www.youtube.com/embed/ShMvLWjPtK0?autoplay=1&rel=0"
+            title="Zvakho Music Launch Video"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen>
+          </iframe>
+        </div>
+        <div class="video-caption">
+          <div class="caption-content">
+            <div class="caption-text">
+              <strong>Want first access?</strong> Get updates and drop alerts via WhatsApp.
+            </div>
+            <div class="caption-actions">
+              <button class="btn primary btn-sm" id="joinFromVideo">Get updates</button>
+              <button class="btn btn-sm" id="shareVideo">Share</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── STATS BAR ── -->
+  <div class="stats-bar" aria-label="Platform highlights">
+    <div class="wrap stats-grid">
+      <div class="stat-item">
+        <span class="stat-number">Curated</span>
+        <span class="stat-label">Select artists per wave</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">Direct</span>
+        <span class="stat-label">Fans support artists inside WhatsApp</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">Opt-in</span>
+        <span class="stat-label">Clean, Meta-friendly messaging</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HOW IT WORKS ── -->
+  <section id="how">
+    <div class="wrap">
+      <div class="section-header">
+        <span class="section-kicker">The Platform</span>
+        <h2>How Zvakho Music works</h2>
+        <p>Simple for fans. Serious for artists. Designed for ownership.</p>
+      </div>
+      <div class="how-grid">
+        <div class="how-card">
+          <div class="step-number">For fans</div>
+          <h3>Join in one tap</h3>
+          <p>Opt in on WhatsApp, follow your favourite artists, and get premium drops: tracks, clips, early access and exclusive perks.</p>
+        </div>
+        <div class="how-card">
+          <div class="step-number">For artists</div>
+          <h3>Build a real community</h3>
+          <p>Turn your audience into a direct channel — with subscriptions, exclusive drops and fully controlled distribution.</p>
+        </div>
+        <div class="how-card">
+          <div class="step-number">Curated launch</div>
+          <h3>Quality over noise</h3>
+          <p>Zvakho Music launches in limited waves. We onboard selectively to protect fan experience and artist outcomes.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       ── FEATURED ARTISTS SECTION ──
+  ═══════════════════════════════════════════ -->
+  <section class="artists-section" id="artists">
+    <div class="wrap">
+      <div class="section-header">
+        <span class="section-kicker">Wave 1 Artists</span>
+        <h2>Meet the artists</h2>
+        <p>A curated selection of artists leading the first wave of Zvakho Music. Connect with them directly on WhatsApp.</p>
+      </div>
+
+      <div class="artists-grid">
+
+        <!-- ── MDU SEVAN ── -->
+        <div class="artist-card">
+          <!-- Mdu Sevan profile photo -->
+          <div class="artist-photo-wrap">
+            <img
+              class="artist-photo"
+              src="https://raw.githubusercontent.com/Vodloza-ctrl/zvakho_landing_page/main/MduSevan%20Site%20Icon.jpg"
+              alt="Mdu Sevan"
+              loading="lazy"
+            />
+            <div class="artist-photo-overlay"></div>
+            <div class="artist-live-badge">
+              <span class="artist-live-dot"></span>
+              Now on Zvakho
+            </div>
+            <div class="artist-genre-tag">Music</div>
+          </div>
+
+          <!-- Body -->
+          <div class="artist-body">
+            <div class="artist-name-row">
+              <h3 class="artist-name">Mdu Sevan</h3>
+              <div class="artist-verified" title="Verified Zvakho Artist">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+            </div>
+
+            <p class="artist-bio">
+              Exclusive drops, behind-the-scenes access, and premium content — all delivered directly to you on WhatsApp. Join Mdu Sevan's community on Zvakho Music.
+            </p>
+
+            <div class="artist-divider"></div>
+
+            <div class="artist-cta-row">
+              <a
+                class="btn-artist-primary"
+                href="https://wa.me/263719362231?text=MDUSEVAN"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Follow Mdu Sevan on WhatsApp"
+              >
+                <!-- WhatsApp Icon -->
+                <svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.553 4.108 1.522 5.842L.057 23.882l6.202-1.427A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.797 9.797 0 01-5.037-1.394l-.36-.214-3.737.859.936-3.63-.235-.373A9.763 9.763 0 012.182 12c0-5.42 4.398-9.818 9.818-9.818 5.42 0 9.818 4.398 9.818 9.818 0 5.42-4.398 9.818-9.818 9.818z"/>
+                </svg>
+                Follow on WhatsApp
+              </a>
+            </div>
+          </div>
+
+          <div class="artist-card-accent"></div>
+        </div>
+
+        <!-- ── PLACEHOLDER SLOT — more artists coming ── -->
+        <div class="artist-card" style="opacity:.55; pointer-events:none; filter:saturate(0);">
+          <div class="artist-photo-wrap">
+            <div class="artist-avatar-placeholder">
+              <span class="artist-avatar-initials" style="opacity:.3;">?</span>
+            </div>
+            <div class="artist-photo-overlay"></div>
+            <div class="artist-live-badge" style="opacity:.5;">
+              <span class="artist-live-dot"></span>
+              Coming soon
+            </div>
+          </div>
+          <div class="artist-body">
+            <div class="artist-name-row">
+              <h3 class="artist-name" style="color:var(--text-light);">Next artist</h3>
+            </div>
+            <p class="artist-bio">Our next curated artist is coming in Wave 1. Apply to join Zvakho Music.</p>
+            <div class="artist-divider"></div>
+            <div class="artist-cta-row">
+              <span class="btn-artist-primary" style="background:var(--sand);color:var(--text-muted);cursor:not-allowed;">Announcing soon</span>
+            </div>
+          </div>
+          <div class="artist-card-accent"></div>
+        </div>
+
+      </div><!-- /artists-grid -->
+
+      <!-- Apply CTA under grid -->
+      <div style="text-align:center; margin-top:44px;">
+        <p style="color:var(--text-muted); font-size:14px; margin-bottom:16px;">Are you an artist? Apply for Wave 1 onboarding.</p>
+        <button class="btn primary open-artist-modal">Apply as an artist</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FAQ ── -->
+  <section id="faq" class="faq-section">
+    <div class="wrap">
+      <div class="section-header">
+        <span class="section-kicker">Questions</span>
+        <h2>Frequently asked</h2>
+        <p>Clear answers before you join</p>
+      </div>
+      <div style="max-width:800px; margin:0 auto;">
+        <details>
+          <summary>How does Zvakho Music work for fans?</summary>
+          <p>Fans opt in on WhatsApp, choose an artist, and unlock drops — tracks, behind-the-scenes clips, early access and exclusive content. You can leave anytime by replying STOP.</p>
+        </details>
+        <details>
+          <summary>Is Zvakho Music a streaming service?</summary>
+          <p>No. Zvakho Music is a direct-to-fan platform. Artists earn through subscriptions and music sales inside WhatsApp. No algorithm dependency. No streaming payout uncertainty.</p>
+        </details>
+        <details>
+          <summary>Can any artist join Zvakho Music?</summary>
+          <p>Zvakho Music is curated — a product of Yasibo Media (PBC). We onboard a limited number of serious artists to maintain quality and trust for fans. Partnership enquiries: <a href="/cdn-cgi/l/email-protection#ed9e989d9d829f99ad979b8c868582c38e82c3979a" style="color:var(--accent);text-decoration:underline;"><span class="__cf_email__" data-cfemail="3a494f4a4a55484e7a404c5b51525514595514404d">[email&#160;protected]</span></a>.</p>
+        </details>
+        <details>
+          <summary>How do I follow a specific artist like Mdu Sevan?</summary>
+          <p>Tap the "Follow on WhatsApp" button on the artist's card. You'll be taken to WhatsApp where you can opt in to their exclusive content channel. It's that simple.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA SECTION ── -->
+  <section class="cta-section" id="launch">
+    <div class="wrap cta-content">
+      <span class="section-kicker">Launch is here</span>
+      <h2>Get updates<br><em>on WhatsApp</em></h2>
+      <p>Opt in once, then get drop alerts and curated launch news from Zvakho Music. No spam. Easy opt-out.</p>
+      <div class="cta-buttons">
+        <button class="btn btn-cta-light" id="joinBottom">Join Zvakho Music</button>
+        <button class="btn btn-cta-outline open-artist-modal">Artist partnerships</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <img
+            src="https://zvakho.co.zw/zvakho-brand-mark-clean.png"
+            alt="Zvakho Music by Yasibo Media"
+            class="footer-logo"
+          />
+          <p>Curated fan subscriptions and premium drops inside WhatsApp. Built in Zimbabwe. Built to scale.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Platform</h4>
+          <ul>
+            <li><a href="#how">How it works</a></li>
+            <li><a href="#artists">Artists</a></li>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="#launch">Get updates</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>Enquiries</h4>
+          <ul>
+            <li><a href="/cdn-cgi/l/email-protection#6a191f1a1a05181e2a101c0b01020544090544101d55191f08000f091e57303c2b2122254f585a3a0b181e040f181902031a4f585a2f041b1f031813">Artist / partnership</a></li>
+            <li><a href="/cdn-cgi/l/email-protection#0774727777687573477d71666c6f68296468297d70387472656d6264733a5d51464c4f4822353754727777687573">Support</a></li>
+            <li><a href="https://zvakho.co.zw">Website</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; <span id="year"></span> Zvakho Music by Yasibo Media &mdash; Built in Zimbabwe</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════════════════════
+       ── ARTIST APPLICATION MODAL ──
+  ═══════════════════════════════════════════ -->
+  <div class="modal-backdrop" id="artistModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal" id="modalBox">
+      <div class="modal-accent-bar"></div>
+
+      <!-- Header -->
+      <div class="modal-header">
+        <div class="modal-header-text">
+          <div class="modal-kicker">
+            <span class="dot" style="width:6px;height:6px;"></span>
+            Wave 1 Applications
+          </div>
+          <h2 class="modal-title" id="modalTitle">Apply as an Artist</h2>
+          <p class="modal-subtitle">Tell us about yourself. We'll review your application and be in touch via email.</p>
+        </div>
+        <button class="modal-close" id="modalClose" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Form -->
+      <div class="modal-body" id="modalForm">
+
+        <!-- Personal info -->
+        <div class="form-section-label">Your details</div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label" for="f-name">Full name <span>*</span></label>
+            <input class="field-input" id="f-name" type="text" placeholder="e.g. Tatenda Moyo" autocomplete="name" />
+            <span class="field-error-msg" id="err-name">Please enter your full name.</span>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="f-stage">Stage / artist name <span>*</span></label>
+            <input class="field-input" id="f-stage" type="text" placeholder="e.g. Mdu Sevan" />
+            <span class="field-error-msg" id="err-stage">Please enter your artist name.</span>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label" for="f-email">Email address <span>*</span></label>
+            <input class="field-input" id="f-email" type="email" placeholder="you@example.com" autocomplete="email" />
+            <span class="field-error-msg" id="err-email">Please enter a valid email.</span>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="f-genre">Primary genre <span>*</span></label>
+            <select class="field-select" id="f-genre">
+              <option value="" disabled selected>Select genre…</option>
+              <option>Afrobeats / Afropop</option>
+              <option>Zimdancehall</option>
+              <option>Sungura</option>
+              <option>Urban Grooves</option>
+              <option>Amapiano</option>
+              <option>Hip-Hop / Rap</option>
+              <option>R&amp;B / Soul</option>
+              <option>Gospel</option>
+              <option>Reggae</option>
+              <option>Jazz / Neo-Soul</option>
+              <option>Electronic / House</option>
+              <option>Other</option>
+            </select>
+            <span class="field-error-msg" id="err-genre">Please select a genre.</span>
+          </div>
+        </div>
+
+        <div class="modal-divider"></div>
+
+        <!-- Social / online presence -->
+        <div class="form-section-label">Online presence</div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label" for="f-instagram">Instagram handle</label>
+            <input class="field-input" id="f-instagram" type="text" placeholder="@yourusername" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="f-tiktok">TikTok handle</label>
+            <input class="field-input" id="f-tiktok" type="text" placeholder="@yourusername" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="f-links">Music / streaming links</label>
+          <input class="field-input" id="f-links" type="text" placeholder="Spotify, YouTube, SoundCloud, Boomplay — paste any links" />
+          <span class="field-hint">Separate multiple links with a comma.</span>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="f-followers">Combined social media following (approx.)</label>
+          <select class="field-select" id="f-followers">
+            <option value="" disabled selected>Select range…</option>
+            <option>Under 1,000</option>
+            <option>1,000 – 5,000</option>
+            <option>5,000 – 10,000</option>
+            <option>10,000 – 50,000</option>
+            <option>50,000 – 100,000</option>
+            <option>100,000+</option>
+            <option>I'd rather not say</option>
+          </select>
+        </div>
+
+        <div class="modal-divider"></div>
+
+        <!-- Self-distribution question -->
+        <div class="form-section-label">Distribution experience</div>
+
+        <div class="field-group">
+          <label class="field-label">Have you tried to self-distribute your music locally? <span>*</span></label>
+          <div class="radio-group" id="f-distrib-group">
+            <label class="radio-option" data-val="Yes — independently">
+              <input type="radio" name="distrib" value="Yes — independently" />
+              <span class="radio-dot"></span>
+              Yes, independently
+            </label>
+            <label class="radio-option" data-val="Yes — through a label/aggregator">
+              <input type="radio" name="distrib" value="Yes — through a label/aggregator" />
+              <span class="radio-dot"></span>
+              Yes, via label / aggregator
+            </label>
+            <label class="radio-option" data-val="No — not yet">
+              <input type="radio" name="distrib" value="No — not yet" />
+              <span class="radio-dot"></span>
+              No, not yet
+            </label>
+          </div>
+          <span class="field-error-msg" id="err-distrib">Please select an option.</span>
+        </div>
+
+        <div class="modal-divider"></div>
+
+        <!-- Motivation -->
+        <div class="field-group">
+          <label class="field-label" for="f-bio">Why do you want to join Zvakho Music? <span>*</span></label>
+          <textarea class="field-textarea" id="f-bio" placeholder="Tell us a bit about yourself, your sound, and what you're hoping to achieve with Zvakho Music…"></textarea>
+          <span class="field-error-msg" id="err-bio">Please tell us a little about yourself.</span>
+        </div>
+
+        <!-- Submit -->
+        <button class="modal-submit" id="modalSubmit" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+          </svg>
+          Send application
+        </button>
+
+        <p class="modal-footnote">
+          Your application will open in your email client, pre-filled and ready to send to
+          <a href="mailto:support@zvakho.co.zw">support@zvakho.co.zw</a>.<br>
+          We review every application personally.
+        </p>
+
+      </div><!-- /modal-body form -->
+
+      <!-- Success state -->
+      <div class="modal-success" id="modalSuccess">
+        <div class="modal-success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h3>Application ready!</h3>
+        <p>Your email client has opened with everything pre-filled. Just hit <strong>Send</strong> — we'll be in touch soon.</p>
+        <button class="modal-submit" id="modalSuccessClose" style="max-width:200px; margin-top:8px;">Close</button>
+      </div>
+
+    </div><!-- /modal -->
+  </div><!-- /modal-backdrop -->
+
+  <!-- ── STICKY BAR ── -->
+  <div class="sticky-apply" role="region" aria-label="Quick join">
+    <div class="sticky-apply-inner">
+      <div class="sticky-apply-text">
+        <strong>Launch updates:</strong> Opt in on WhatsApp.
+        <span class="sticky-apply-sub">Curated waves &bull; Opt-in only &bull; Easy opt-out</span>
+      </div>
+      <button class="btn primary" id="joinSticky">Join Zvakho Music</button>
+    </div>
+  </div>
+
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    // ── CONFIG ──
+    const WHATSAPP_NUMBER = "263719362231";
+    const FAN_UPDATES_MSG = "Hi ZVAKHO! Please add me for launch updates.";
+    const SHARE_TEXT = "ZVAKHO — Own Your Audience. Get launch updates on WhatsApp: https://zvakho.co.zw";
+    const $ = (sel, root=document) => root.querySelector(sel);
+
+    function openWA(message){ window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank"); }
+
+    // Scroll progress
+    const progress = $('.scroll-progress');
+    document.addEventListener('scroll', () => {
+      const h = document.documentElement;
+      const pct = h.scrollHeight - h.clientHeight > 0
+        ? (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100 : 0;
+      if (progress) progress.style.width = pct.toFixed(2) + "%";
+    }, { passive: true });
+
+    // Sticky join
+    const sticky = $('.sticky-apply');
+    const hero = $('.hero');
+    document.addEventListener('scroll', () => {
+      if (!sticky || !hero) return;
+      sticky.classList.toggle('is-on', hero.getBoundingClientRect().bottom < 100);
+    }, { passive: true });
+
+    // CTA buttons
+    $('#joinTop')?.addEventListener('click', () => openWA(FAN_UPDATES_MSG));
+    $('#joinHero')?.addEventListener('click', () => openWA(FAN_UPDATES_MSG));
+    $('#joinFromVideo')?.addEventListener('click', () => openWA(FAN_UPDATES_MSG));
+    $('#joinBottom')?.addEventListener('click', () => openWA(FAN_UPDATES_MSG));
+    $('#joinSticky')?.addEventListener('click', () => openWA(FAN_UPDATES_MSG));
+
+    // Video player
+    const playButton = $('#playButton');
+    const youtubeEmbed = $('#youtubeEmbed');
+    const videoThumbnail = $('#videoPlayer')?.querySelector('.video-thumbnail');
+    playButton?.addEventListener('click', () => {
+      videoThumbnail?.classList.add('hidden');
+      youtubeEmbed?.classList.add('playing');
+    });
+
+    // Share
+    $('#shareVideo')?.addEventListener('click', async () => {
+      try{ await navigator.clipboard.writeText(SHARE_TEXT); alert("Link copied!"); }
+      catch(e){ prompt("Copy this:", SHARE_TEXT); }
+    });
+
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // ═══════════════════════════════════════════
+    // ── ARTIST APPLICATION MODAL ──
+    // ═══════════════════════════════════════════
+    const modal             = document.getElementById('artistModal');
+    const modalClose        = document.getElementById('modalClose');
+    const modalSubmit       = document.getElementById('modalSubmit');
+    const modalSuccessClose = document.getElementById('modalSuccessClose');
+    const modalForm         = document.getElementById('modalForm');
+    const modalSuccess      = document.getElementById('modalSuccess');
+
+    function openModal() {
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      modalForm.style.display = '';
+      modalSuccess.classList.remove('show');
+      document.querySelectorAll('.field-error-msg').forEach(el => el.classList.remove('show'));
+      document.querySelectorAll('.field-input, .field-select, .field-textarea').forEach(el => el.classList.remove('error'));
+    }
+
+    function closeModal() {
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    // All .open-artist-modal triggers
+    document.querySelectorAll('.open-artist-modal').forEach(btn => {
+      btn.addEventListener('click', openModal);
+    });
+
+    modalClose?.addEventListener('click', closeModal);
+    modalSuccessClose?.addEventListener('click', closeModal);
+
+    // Backdrop click
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    // Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+    });
+
+    // Radio button styling
+    document.querySelectorAll('.radio-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        opt.closest('.radio-group').querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        opt.querySelector('input[type="radio"]').checked = true;
+        document.getElementById('err-distrib')?.classList.remove('show');
+      });
+    });
+
+    // Validation
+    function validate() {
+      let ok = true;
+
+      function check(id, errId, testFn) {
+        const el = document.getElementById(id);
+        const err = document.getElementById(errId);
+        if (!el) return;
+        const valid = testFn(el.value.trim());
+        el.classList.toggle('error', !valid);
+        err?.classList.toggle('show', !valid);
+        if (!valid) ok = false;
+      }
+
+      check('f-name',  'err-name',  v => v.length > 1);
+      check('f-stage', 'err-stage', v => v.length > 1);
+      check('f-email', 'err-email', v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v));
+      check('f-genre', 'err-genre', v => v !== '');
+      check('f-bio',   'err-bio',   v => v.length > 10);
+
+      const distribSelected = document.querySelector('input[name="distrib"]:checked');
+      const distribErr = document.getElementById('err-distrib');
+      if (!distribSelected) {
+        distribErr?.classList.add('show');
+        ok = false;
+      } else {
+        distribErr?.classList.remove('show');
+      }
+
+      return ok;
+    }
+
+    // Build mailto and submit
+    modalSubmit?.addEventListener('click', () => {
+      if (!validate()) return;
+
+      const name      = document.getElementById('f-name').value.trim();
+      const stage     = document.getElementById('f-stage').value.trim();
+      const email     = document.getElementById('f-email').value.trim();
+      const genre     = document.getElementById('f-genre').value;
+      const instagram = document.getElementById('f-instagram').value.trim();
+      const tiktok    = document.getElementById('f-tiktok').value.trim();
+      const links     = document.getElementById('f-links').value.trim();
+      const followers = document.getElementById('f-followers').value;
+      const distrib   = document.querySelector('input[name="distrib"]:checked')?.value || 'Not specified';
+      const bio       = document.getElementById('f-bio').value.trim();
+
+      const subject = `ZVAKHO Artist Application — ${stage}`;
+
+      const body = [
+        `Hi ZVAKHO Team,`,
+        ``,
+        `I'd like to apply to join Zvakho Music as an artist. Here are my details:`,
+        ``,
+        `─── PERSONAL DETAILS ───────────────────────`,
+        `Full name:            ${name}`,
+        `Stage / artist name:  ${stage}`,
+        `Email:                ${email}`,
+        `Primary genre:        ${genre}`,
+        ``,
+        `─── ONLINE PRESENCE ────────────────────────`,
+        `Instagram:            ${instagram || 'Not provided'}`,
+        `TikTok:               ${tiktok    || 'Not provided'}`,
+        `Music / links:        ${links     || 'Not provided'}`,
+        `Combined following:   ${followers || 'Not specified'}`,
+        ``,
+        `─── DISTRIBUTION EXPERIENCE ────────────────`,
+        `Self-distributed locally: ${distrib}`,
+        ``,
+        `─── ABOUT ME / MOTIVATION ──────────────────`,
+        bio,
+        ``,
+        `────────────────────────────────────────────`,
+        `Thank you for considering my application.`,
+        ``,
+        name,
+      ].join('\n');
+
+      const mailto = `mailto:support@zvakho.co.zw?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+
+      setTimeout(() => {
+        modalForm.style.display = 'none';
+        modalSuccess.classList.add('show');
+      }, 500);
+    });
+
+  </script>
+</body>
+</html>
