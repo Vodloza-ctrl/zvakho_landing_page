@@ -14,107 +14,37 @@
 
 <section style="background:var(--brown);color:#fff"><div class="wrap section-head"><h2 style="color:#fff">Request platform access</h2><p style="color:rgba(255,255,255,.76)">ZVAKHO is onboarding artists through a controlled rollout. Start with direct music sales, then expand into release campaigns and additional revenue layers as the system matures.</p><button class="btn gold" onclick="openOnboardingModal()">Start artist onboarding</button></div></section>
 
-<footer><div class="wrap footer-grid"><div><img class="footer-logo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO"><p>ZVAKHO is direct-to-fan commerce infrastructure for artists across African markets.</p></div><div><strong>Access</strong><p><button onclick="openOnboardingModal()">Request platform access</button><br><button onclick="openOnboardingModal()">Artist onboarding</button><br><a href="/store/">Artist stores</a></p></div><div><strong>Portals</strong><p><a href="/app/">Artist dashboard</a><br><a href="/dashboard/">Owner dashboard</a></p></div></div></footer>
+<footer><div class="wrap footer-grid"><div><img class="footer-logo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO"><p>ZVAKHO is direct-to-fan commerce infrastructure for artists across African markets.</p></div><div><strong>Access</strong><p><button class="footer-link" onclick="openOnboardingModal()">Request platform access</button><br><button class="footer-link" onclick="openOnboardingModal()">Artist onboarding</button><br><a href="/store/">Artist stores</a></p></div><div><strong>Portals</strong><p><a href="/app/">Artist dashboard</a><br><a href="/dashboard/">Owner dashboard</a></p></div></div></footer>
 
 <!-- ONBOARDING MODAL -->
-<div id="onboardingModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999;">
-  <div style="background:#fff; padding:20px; max-width:500px; margin:5% auto;">
-    <h2>Artist Qualification</h2>
-
-    <input id="stage_name" placeholder="Stage Name" /><br><br>
-    <input id="genre" placeholder="Genre" /><br><br>
-    <input id="city" placeholder="City" /><br><br>
-
-    <select id="promotion_behavior">
-      <option value="">Promotion style</option>
-      <option>I actively promote on WhatsApp and social media</option>
-      <option>I post occasionally</option>
-      <option>I rely on platforms</option>
-    </select><br><br>
-
-    <select id="weekly_reach">
-      <option value="">Weekly reach</option>
-      <option>0-100</option>
-      <option>100-500</option>
-      <option>500-1000</option>
-      <option>1000+</option>
-    </select><br><br>
-
-    <select id="direct_selling">
-      <option value="">Sell directly?</option>
-      <option>Yes</option>
-      <option>Not sure</option>
-      <option>No</option>
-    </select><br><br>
-
-    <select id="weekly_commitment">
-      <option value="">Commitment</option>
-      <option>Yes</option>
-      <option>Maybe</option>
-      <option>No</option>
-    </select><br><br>
-
-    <select id="main_goal">
-      <option value="">Main goal</option>
-      <option>Make money from my fans</option>
-      <option>Grow audience</option>
-      <option>Go viral</option>
-    </select><br><br>
-
-    <input id="links" placeholder="Instagram or music link" /><br><br>
-
-    <button onclick="submitApplication()">Submit</button>
-    <button onclick="closeModal()">Cancel</button>
-
-    <p id="responseMsg"></p>
+<div id="onboardingModal" class="z-modal" aria-hidden="true">
+  <div class="z-modal-shell" role="dialog" aria-modal="true" aria-labelledby="artistQualificationTitle">
+    <button class="z-modal-close" type="button" onclick="closeModal()" aria-label="Close artist application">×</button>
+    <div class="z-modal-brandbar"><img src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO"><span>Controlled artist rollout</span></div>
+    <div class="z-modal-head"><div class="eyebrow">Artist access gate</div><h2 id="artistQualificationTitle">Apply for ZVAKHO access.</h2><p>ZVAKHO is built for artists who actively promote, sell directly to fans, and can commit to a disciplined release campaign.</p></div>
+    <form class="z-modal-form" onsubmit="submitApplication(event)">
+      <div class="z-form-grid">
+        <label><span>Stage name</span><input id="stage_name" name="stage_name" placeholder="e.g. Mdu Sevan" required></label>
+        <label><span>Genre</span><input id="genre" name="genre" placeholder="e.g. Afro Fusion" required></label>
+        <label><span>City / base</span><input id="city" name="city" placeholder="e.g. Bulawayo" required></label>
+        <label><span>Promotion behavior</span><select id="promotion_behavior" name="promotion_behavior" required><option value="">Select one</option><option>I actively promote on WhatsApp and social media</option><option>I post occasionally</option><option>I rely on platforms</option></select></label>
+        <label><span>Weekly direct fan reach</span><select id="weekly_reach" name="weekly_reach" required><option value="">Select one</option><option>0-100</option><option>100-500</option><option>500-1000</option><option>1000+</option></select></label>
+        <label><span>Direct selling readiness</span><select id="direct_selling" name="direct_selling" required><option value="">Comfortable selling music directly?</option><option>Yes</option><option>Not sure</option><option>No</option></select></label>
+        <label><span>Promotion commitment</span><select id="weekly_commitment" name="weekly_commitment" required><option value="">Can you promote 2–4 times weekly?</option><option>Yes</option><option>Maybe</option><option>No</option></select></label>
+        <label><span>Main goal</span><select id="main_goal" name="main_goal" required><option value="">Select one</option><option>Make money from my fans</option><option>Grow audience</option><option>Go viral</option></select></label>
+      </div>
+      <label><span>Music / social link</span><input id="links" name="links" placeholder="Instagram, YouTube, Spotify, Audiomack, etc." required></label>
+      <div class="z-modal-note"><strong>Before you apply:</strong> ZVAKHO is not a passive upload platform. Artists are expected to promote weekly and push fans into their direct purchase flow.</div>
+      <div class="z-modal-actions"><button id="submitApplicationBtn" class="btn primary" type="submit">Submit application</button><button class="btn" type="button" onclick="closeModal()">Cancel</button></div>
+      <p id="responseMsg" class="z-modal-response" aria-live="polite"></p>
+    </form>
   </div>
 </div>
-
 <script>
-function openOnboardingModal() {
-  document.getElementById("onboardingModal").style.display = "block";
-}
-
-function closeModal() {
-  document.getElementById("onboardingModal").style.display = "none";
-}
-
-async function submitApplication() {
-  const data = {
-    source: "website",
-    stage_name: document.getElementById("stage_name").value,
-    genre: document.getElementById("genre").value,
-    city: document.getElementById("city").value,
-    promotion_behavior: document.getElementById("promotion_behavior").value,
-    weekly_reach: document.getElementById("weekly_reach").value,
-    direct_selling: document.getElementById("direct_selling").value,
-    weekly_commitment: document.getElementById("weekly_commitment").value,
-    main_goal: document.getElementById("main_goal").value,
-    links: document.getElementById("links").value
-  };
-
-  const res = await fetch("https://zvakho-artist-onboarding.yasibomedia.workers.dev/apply", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
-  });
-
-  const result = await res.json();
-  const msg = document.getElementById("responseMsg");
-
-  if (result.qualification_status === "accepted") {
-    msg.innerHTML = "✅ You qualify. Redirecting to WhatsApp...";
-    setTimeout(() => {
-      window.location.href = "https://wa.me/263719362231?text=ONBOARD_ACCEPTED";
-    }, 1500);
-  } else if (result.qualification_status === "review") {
-    msg.innerHTML = "⏳ Application under review.";
-  } else {
-    msg.innerHTML = "⚠️ Not a fit right now.";
-  }
-}
+function openOnboardingModal(){const m=document.getElementById('onboardingModal');m.style.display='flex';m.setAttribute('aria-hidden','false');document.body.classList.add('modal-open')}
+function closeModal(){const m=document.getElementById('onboardingModal');m.style.display='none';m.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open')}
+async function submitApplication(event){if(event)event.preventDefault();const msg=document.getElementById('responseMsg');const btn=document.getElementById('submitApplicationBtn');const data={source:'website',stage_name:document.getElementById('stage_name').value.trim(),genre:document.getElementById('genre').value.trim(),city:document.getElementById('city').value.trim(),promotion_behavior:document.getElementById('promotion_behavior').value,weekly_reach:document.getElementById('weekly_reach').value,direct_selling:document.getElementById('direct_selling').value,weekly_commitment:document.getElementById('weekly_commitment').value,main_goal:document.getElementById('main_goal').value,links:document.getElementById('links').value.trim()};msg.className='z-modal-response';msg.textContent='Submitting your application...';btn.disabled=true;btn.textContent='Submitting...';try{const res=await fetch('https://zvakho-artist-onboarding.yasibomedia.workers.dev/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const result=await res.json();if(!res.ok||result.status==='error')throw new Error(result.message||'Application could not be submitted.');if(result.qualification_status==='accepted'){msg.classList.add('success');msg.textContent='You qualify. Redirecting to WhatsApp onboarding...';setTimeout(()=>{window.location.href='https://wa.me/263719362231?text=ONBOARD_ACCEPTED'},1400)}else if(result.qualification_status==='review'){msg.classList.add('review');msg.textContent='Application received. Your profile needs review before onboarding.';btn.disabled=false;btn.textContent='Submit application'}else{msg.classList.add('waitlist');msg.textContent='Application received. ZVAKHO is currently prioritising artists with active weekly promotion.';btn.disabled=false;btn.textContent='Submit application'}}catch(error){msg.classList.add('error');msg.textContent='Something went wrong. Please try again or apply through WhatsApp.';btn.disabled=false;btn.textContent='Submit application'}}
+window.addEventListener('click',e=>{const m=document.getElementById('onboardingModal');if(e.target===m)closeModal()});window.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 </script>
 
 <script src="/app.js"></script>
