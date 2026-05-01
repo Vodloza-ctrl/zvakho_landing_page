@@ -1,1 +1,298 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="/assets/brand/favicon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet"><link rel="stylesheet" href="/style.css"><script src="/config.js"></script><title>ZVAKHO Owner Dashboard</title></head><body data-dashboard="admin"><nav class="nav"><div class="wrap nav-inner"><a class="brand" href="/"><img src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO"></a><div class="nav-links"><a href="/#platform">Platform</a><a href="/#artists">Artists</a><a href="/#transaction">Live transaction</a><a href="/#release">Releases</a></div><a class="btn primary" href="https://wa.me/263719362231?text=ZVAKHO">Request access</a></div></nav><main class="wrap dash"><div class="dash-head"><div><div class="kicker">Owner Dashboard</div><h1>Platform control panel</h1><p class="lead">Operational visibility across artists, products, confirmed revenue, pending payments, and recent platform activity.</p></div><button class="btn primary" id="refreshBtn">Refresh Data</button></div><div class="metrics"><div class="metric"><span>Total platform revenue</span><strong id="mRevenue">$0.00</strong></div><div class="metric"><span>Total orders</span><strong id="mOrders">0</strong></div><div class="metric"><span>Active artists</span><strong id="mArtists">0</strong></div><div class="metric"><span>Unique customers</span><strong id="mCustomers">0</strong></div><div class="metric"><span>Today</span><strong id="mToday">$0.00</strong></div><div class="metric"><span>Last 7 days</span><strong id="mSeven">$0.00</strong></div><div class="metric"><span>Pending payments</span><strong id="mPending">0</strong></div><div class="metric"><span>Last refresh</span><strong id="mUpdated">—</strong></div></div><section class="dash-grid"><div class="panel"><h3>Artist leaderboard</h3><div id="artistLeaderboard" class="list"></div></div><div class="panel"><h3>Product leaderboard</h3><div id="productLeaderboard" class="list"></div></div></section><div class="table-wrap"><table><thead><tr><th>Date</th><th>Artist</th><th>Product</th><th>Amount</th><th>Customer</th><th>Status</th><th>Reference</th></tr></thead><tbody id="ordersBody"><tr><td colspan="7">Loading platform activity…</td></tr></tbody></table></div><section><div class="notice"><strong>Operational note.</strong> Confirmed revenue and pending payments are separated so intervention can happen without inflating performance numbers.</div></section></main><footer><div class="wrap footer-grid"><div><img class="footer-logo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO"><p>ZVAKHO is direct-to-fan commerce infrastructure for artists across African markets.</p></div><div><strong>Access</strong><p><a href="https://wa.me/263719362231?text=ZVAKHO">Request platform access</a><br><a href="https://wa.me/263719362231?text=ARTIST">Artist onboarding</a><br><a href="/store/">Artist stores</a></p></div><div><strong>Portals</strong><p><a href="/app/">Artist dashboard</a><br><a href="/dashboard/">Owner dashboard</a></p></div></div></footer><script src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" href="/assets/brand/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/config.js"></script>
+  <title>ZVAKHO Owner Dashboard</title>
+</head>
+
+<body data-dashboard="admin">
+  <nav class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="/">
+        <img src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
+      </a>
+
+      <div class="nav-links">
+        <a href="/#platform">Platform</a>
+        <a href="/#artists">Artists</a>
+        <a href="/#transaction">Live transaction</a>
+        <a href="/#release">Releases</a>
+      </div>
+
+      <a class="btn primary" href="https://wa.me/263719362231?text=ZVAKHO">Request access</a>
+    </div>
+  </nav>
+
+  <main class="wrap dash">
+    <div class="dash-head">
+      <div>
+        <div class="kicker">Owner Dashboard</div>
+        <h1>Platform control panel</h1>
+        <p class="lead">
+          Operational visibility across artists, confirmed revenue, paid transactions, and recent platform activity.
+        </p>
+      </div>
+
+      <button class="btn primary" id="refreshBtn">Refresh Data</button>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <span>Total platform revenue</span>
+        <strong id="mRevenue">$0.00</strong>
+      </div>
+
+      <div class="metric">
+        <span>Confirmed paid orders</span>
+        <strong id="mOrders">0</strong>
+      </div>
+
+      <div class="metric">
+        <span>Active artists</span>
+        <strong id="mArtists">0</strong>
+      </div>
+
+      <div class="metric">
+        <span>Unique customers</span>
+        <strong id="mCustomers">0</strong>
+      </div>
+
+      <div class="metric">
+        <span>Today</span>
+        <strong id="mToday">$0.00</strong>
+      </div>
+
+      <div class="metric">
+        <span>Last 7 days</span>
+        <strong id="mSeven">$0.00</strong>
+      </div>
+
+      <div class="metric">
+        <span>Pending payments</span>
+        <strong id="mPending">0</strong>
+      </div>
+
+      <div class="metric">
+        <span>Last refresh</span>
+        <strong id="mUpdated">—</strong>
+      </div>
+    </div>
+
+    <section class="dash-grid">
+      <div class="panel">
+        <h3>Artist leaderboard</h3>
+        <div id="artistLeaderboard" class="list"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Product leaderboard</h3>
+        <div id="productLeaderboard" class="list"></div>
+      </div>
+    </section>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Artist</th>
+            <th>Product</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Reference</th>
+          </tr>
+        </thead>
+        <tbody id="ordersBody">
+          <tr>
+            <td colspan="6">Loading confirmed platform sales…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <section>
+      <div class="notice">
+        <strong>Operational note.</strong>
+        This dashboard separates confirmed revenue from pending or archived transactions. Only fully paid records are shown as sales.
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-grid">
+      <div>
+        <img class="footer-logo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
+        <p>ZVAKHO is direct-to-fan commerce infrastructure for artists across African markets.</p>
+      </div>
+
+      <div>
+        <strong>Access</strong>
+        <p>
+          <a href="https://wa.me/263719362231?text=ZVAKHO">Request platform access</a><br>
+          <a href="https://wa.me/263719362231?text=ARTIST">Artist onboarding</a><br>
+          <a href="/store/">Artist stores</a>
+        </p>
+      </div>
+
+      <div>
+        <strong>Portals</strong>
+        <p>
+          <a href="/app/">Artist dashboard</a><br>
+          <a href="/dashboard/">Owner dashboard</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const API =
+      (window.CONFIG && CONFIG.apiUrl) ||
+      "https://zvakho-payments-v2.yasibomedia.workers.dev";
+
+    function getOwnerKey() {
+      if (window.CONFIG && CONFIG.ownerKey) return CONFIG.ownerKey;
+
+      const saved = sessionStorage.getItem("zvakho_owner_key");
+      if (saved) return saved;
+
+      const key = prompt("Enter owner dashboard key:");
+      if (key) sessionStorage.setItem("zvakho_owner_key", key.trim());
+      return key || "";
+    }
+
+    const OWNER_KEY = getOwnerKey();
+
+    function money(value) {
+      return "$" + Number(value || 0).toFixed(2);
+    }
+
+    function formatDate(value) {
+      if (!value) return "—";
+      try {
+        return new Date(value).toLocaleString();
+      } catch {
+        return value;
+      }
+    }
+
+    function isPaid(row) {
+      return String(row.payment_status || "").toLowerCase() === "paid";
+    }
+
+    function renderList(targetId, rows, emptyText, type) {
+      const target = document.getElementById(targetId);
+
+      if (!rows || !rows.length) {
+        target.innerHTML = `<div class="empty">${emptyText}</div>`;
+        return;
+      }
+
+      target.innerHTML = rows.map((row, index) => {
+        const title =
+          type === "artist"
+            ? (row.artist_name || row.artist_id || "Artist")
+            : (row.product_name || "Product");
+
+        const meta =
+          type === "artist"
+            ? `${row.paid_orders || row.sales_count || 0} paid sale(s)`
+            : `${row.artist_name || row.artist_id || "Artist"} • ${row.sales_count || 0} sale(s)`;
+
+        return `
+          <div class="list-item">
+            <div>
+              <strong>${index + 1}. ${title}</strong>
+              <span>${meta}</span>
+            </div>
+            <b>${money(row.revenue)}</b>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderOrders(rows) {
+      const tbody = document.getElementById("ordersBody");
+      const paidRows = (rows || []).filter(isPaid);
+
+      if (!paidRows.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6">No confirmed paid sales yet.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = paidRows.map(row => `
+        <tr>
+          <td>${formatDate(row.paid_at || row.created_at)}</td>
+          <td>${row.artist_name || row.artist_id || "—"}</td>
+          <td>${row.product_name || "Music purchase"}</td>
+          <td>${money(row.amount)}</td>
+          <td><span class="status paid">Paid</span></td>
+          <td>${row.payment_reference || "—"}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadOwnerDashboard() {
+      try {
+        document.getElementById("mUpdated").textContent = "Loading…";
+
+        const res = await fetch(
+          `${API}/owner-dashboard?key=${encodeURIComponent(OWNER_KEY)}`
+        );
+
+        const data = await res.json();
+
+        if (!data || data.status !== "success" || !data.summary) {
+          throw new Error(data.message || "Dashboard data could not be loaded.");
+        }
+
+        const summary = data.summary;
+
+        document.getElementById("mRevenue").textContent = money(summary.total_revenue);
+        document.getElementById("mOrders").textContent = summary.paid_orders || 0;
+        document.getElementById("mArtists").textContent = summary.active_artists || 0;
+        document.getElementById("mCustomers").textContent = summary.unique_customers || 0;
+        document.getElementById("mToday").textContent = money(summary.today_revenue);
+        document.getElementById("mSeven").textContent = money(summary.revenue_7_days);
+        document.getElementById("mPending").textContent = summary.pending_orders || 0;
+        document.getElementById("mUpdated").textContent = new Date().toLocaleString();
+
+        const paidArtists = (data.artist_leaderboard || []).filter(row =>
+          Number(row.revenue || 0) > 0 || Number(row.paid_orders || 0) > 0
+        );
+
+        const paidProducts = (data.product_leaderboard || []).filter(row =>
+          Number(row.revenue || 0) > 0 || Number(row.sales_count || 0) > 0
+        );
+
+        renderList("artistLeaderboard", paidArtists, "No confirmed artist sales yet.", "artist");
+        renderList("productLeaderboard", paidProducts, "No confirmed product sales yet.", "product");
+        renderOrders(data.recent_orders || []);
+
+      } catch (err) {
+        document.getElementById("mUpdated").textContent = "Failed";
+        document.getElementById("ordersBody").innerHTML = `
+          <tr>
+            <td colspan="6">${err.message || "Owner dashboard failed to load."}</td>
+          </tr>
+        `;
+      }
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", loadOwnerDashboard);
+
+    loadOwnerDashboard();
+    setInterval(loadOwnerDashboard, 20000);
+  </script>
+</body>
+</html>
