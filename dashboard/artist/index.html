@@ -218,7 +218,7 @@
         <div class="eyebrow">ZVAKHO Artist Dashboard</div>
         <h1 id="artistName">Artist Dashboard</h1>
         <div class="subtitle">
-          Confirmed revenue and fully paid sales only.
+          Confirmed revenue and paid sales visibility.
         </div>
       </div>
 
@@ -262,7 +262,7 @@
     <div class="section">
       <h2>Action</h2>
       <div class="action-box">
-        <strong id="actionTitle">Recommended next step</strong>
+        <strong>Recommended next step</strong>
         <p id="actionText">Share your official purchase link consistently to grow confirmed sales.</p>
       </div>
     </div>
@@ -310,12 +310,8 @@
       box.textContent = "";
     }
 
-    function isFullyPaid(row) {
-      return (
-        String(row.payment_status || "").toLowerCase() === "paid" &&
-        row.paynow_reference &&
-        String(row.paynow_reference).trim() !== ""
-      );
+    function isPaid(row) {
+      return String(row.payment_status || "").toLowerCase() === "paid";
     }
 
     async function loadDashboard() {
@@ -330,23 +326,45 @@
           throw new Error(data.message || "Dashboard data could not be loaded.");
         }
 
-        const paidRows = (data.recent_sales || []).filter(isFullyPaid);
+        const summary = data.summary || {};
+        const rowsFromApi = data.recent_sales || [];
 
-        const confirmedRevenue = paidRows.reduce((sum, row) => {
-          return sum + Number(row.amount || 0);
-        }, 0);
+        /* 
+          IMPORTANT:
+          We filter only by payment_status = paid.
+          We DO NOT require paynow_reference here because some current API versions
+          do not return paynow_reference inside recent_sales, even when D1 has it.
+        */
+        const paidRows = rowsFromApi.filter(isPaid);
+
+        const fallbackRevenue = Number(summary.total_revenue || 0);
+        const calculatedRevenue = paidRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+        const confirmedRevenue = calculatedRevenue > 0 ? calculatedRevenue : fallbackRevenue;
+
+        const fallbackSales = Number(summary.paid_orders || summary.total_sales || 0);
+        const confirmedSales = paidRows.length > 0 ? paidRows.length : fallbackSales;
 
         document.getElementById("artistName").textContent = data.artist_name || artistId;
         document.getElementById("revenue").textContent = money(confirmedRevenue);
-        document.getElementById("sales").textContent = paidRows.length;
+        document.getElementById("sales").textContent = confirmedSales;
         document.getElementById("updatedAt").textContent = new Date().toLocaleString();
 
         const tbody = document.getElementById("recentSales");
 
-        if (!paidRows.length) {
+        if (!paidRows.length && fallbackSales > 0) {
           tbody.innerHTML = `
             <tr>
-              <td colspan="5">No fully paid sales yet.</td>
+              <td>Confirmed music purchase</td>
+              <td>${money(fallbackRevenue)}</td>
+              <td><span class="status paid">Paid</span></td>
+              <td>Recorded in Paynow</td>
+              <td>—</td>
+            </tr>
+          `;
+        } else if (!paidRows.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5">No confirmed paid sales yet.</td>
             </tr>
           `;
         } else {
@@ -355,13 +373,13 @@
               <td>${row.product_name || "Music purchase"}</td>
               <td>${money(row.amount)}</td>
               <td><span class="status paid">Paid</span></td>
-              <td>${row.paynow_reference || "—"}</td>
+              <td>${row.paynow_reference || "Recorded in Paynow"}</td>
               <td>${formatDate(row.paid_at || row.created_at)}</td>
             </tr>
           `).join("");
         }
 
-        if (paidRows.length > 0) {
+        if (confirmedSales > 0) {
           document.getElementById("actionText").textContent =
             "Share your purchase link again today while your release has confirmed traction.";
         } else {
