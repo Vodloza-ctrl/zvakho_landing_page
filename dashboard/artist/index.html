@@ -15,14 +15,11 @@
       --line: rgba(255,255,255,.08);
       --gold: #c17a3e;
       --gold-2: #d4a574;
-      --danger: #c95c45;
       --success: #62b66a;
       --radius: 18px;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -87,7 +84,7 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 18px;
       margin-bottom: 28px;
     }
@@ -162,11 +159,6 @@
       color: var(--success);
     }
 
-    .pending {
-      background: rgba(212,165,116,.14);
-      color: var(--gold-2);
-    }
-
     .action-box {
       background: linear-gradient(135deg, rgba(193,122,62,.22), rgba(255,255,255,.04));
       border: 1px solid rgba(193,122,62,.28);
@@ -197,9 +189,7 @@
     }
 
     @media (max-width: 800px) {
-      body {
-        padding: 20px;
-      }
+      body { padding: 20px; }
 
       .topbar {
         flex-direction: column;
@@ -228,7 +218,7 @@
         <div class="eyebrow">ZVAKHO Artist Dashboard</div>
         <h1 id="artistName">Artist Dashboard</h1>
         <div class="subtitle">
-          Confirmed revenue, payment activity, and sales visibility.
+          Confirmed revenue and fully paid sales only.
         </div>
       </div>
 
@@ -247,27 +237,23 @@
         <div class="label">Confirmed Sales</div>
         <div class="value" id="sales">0</div>
       </div>
-
-      <div class="card">
-        <div class="label">Pending Payments</div>
-        <div class="value" id="pending">0</div>
-      </div>
     </div>
 
     <div class="section">
-      <h2>Recent Sales</h2>
+      <h2>Recent Paid Sales</h2>
       <table>
         <thead>
           <tr>
             <th>Product</th>
             <th>Amount</th>
             <th>Status</th>
+            <th>Paynow Ref</th>
             <th>Date</th>
           </tr>
         </thead>
         <tbody id="recentSales">
           <tr>
-            <td colspan="4">Loading sales data...</td>
+            <td colspan="5">Loading sales data...</td>
           </tr>
         </tbody>
       </table>
@@ -324,6 +310,14 @@
       box.textContent = "";
     }
 
+    function isFullyPaid(row) {
+      return (
+        String(row.payment_status || "").toLowerCase() === "paid" &&
+        row.paynow_reference &&
+        String(row.paynow_reference).trim() !== ""
+      );
+    }
+
     async function loadDashboard() {
       hideError();
 
@@ -336,39 +330,40 @@
           throw new Error(data.message || "Dashboard data could not be loaded.");
         }
 
-        const summary = data.summary || {};
+        const paidRows = (data.recent_sales || []).filter(isFullyPaid);
+
+        const confirmedRevenue = paidRows.reduce((sum, row) => {
+          return sum + Number(row.amount || 0);
+        }, 0);
+
         document.getElementById("artistName").textContent = data.artist_name || artistId;
-        document.getElementById("revenue").textContent = money(summary.total_revenue);
-        document.getElementById("sales").textContent = summary.paid_orders || summary.total_sales || 0;
-        document.getElementById("pending").textContent = summary.pending_orders || 0;
+        document.getElementById("revenue").textContent = money(confirmedRevenue);
+        document.getElementById("sales").textContent = paidRows.length;
         document.getElementById("updatedAt").textContent = new Date().toLocaleString();
 
         const tbody = document.getElementById("recentSales");
-        const rows = data.recent_sales || [];
 
-        if (!rows.length) {
+        if (!paidRows.length) {
           tbody.innerHTML = `
             <tr>
-              <td colspan="4">No confirmed sales yet.</td>
+              <td colspan="5">No fully paid sales yet.</td>
             </tr>
           `;
         } else {
-          tbody.innerHTML = rows.map(row => `
+          tbody.innerHTML = paidRows.map(row => `
             <tr>
               <td>${row.product_name || "Music purchase"}</td>
               <td>${money(row.amount)}</td>
-              <td><span class="status ${row.payment_status === "paid" ? "paid" : "pending"}">${row.payment_status || "—"}</span></td>
+              <td><span class="status paid">Paid</span></td>
+              <td>${row.paynow_reference || "—"}</td>
               <td>${formatDate(row.paid_at || row.created_at)}</td>
             </tr>
           `).join("");
         }
 
-        const guidance = data.dashboard_guidance || data.guidance || [];
-        if (guidance.length) {
-          document.getElementById("actionText").textContent = guidance[0];
-        } else if (Number(summary.paid_orders || 0) > 0) {
+        if (paidRows.length > 0) {
           document.getElementById("actionText").textContent =
-            "Share your purchase link again today while the product is still fresh.";
+            "Share your purchase link again today while your release has confirmed traction.";
         } else {
           document.getElementById("actionText").textContent =
             "Start by pushing one clear release link to your most active fans.";
