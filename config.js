@@ -1,5 +1,5 @@
 window.ZVAKHO_CONFIG = {
-  apiBase: "https://api.zvakho.co.zw",
+  apiBase: "https://zvakho-store-api.yasibomedia.workers.dev",
 
   // OWNER ACCESS
   ownerKey: "ZVAKHO_OWNER_2026_B6kRmVqR81tZ",
