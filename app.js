@@ -81,7 +81,7 @@ function addToCart(id, name, price) {
 window.addToCart = addToCart;
 
 // =====================
-// CHECKOUT + PAYMENT
+// CHECKOUT + PAYMENT (UPDATED)
 // =====================
 async function checkout() {
   const artist = currentArtist();
@@ -91,16 +91,32 @@ async function checkout() {
     return;
   }
 
+  // ✅ GET USER INPUT
+  const phone = document.getElementById("customerPhone")?.value.trim();
+  const email = document.getElementById("customerEmail")?.value.trim();
+
+  if (!phone) {
+    alert("Enter your EcoCash number");
+    return;
+  }
+
+  if (!email) {
+    alert("Enter your email");
+    return;
+  }
+
   try {
-    // CREATE ORDER
+    // =====================
+    // 1. CREATE ORDER
+    // =====================
     const orderRes = await fetch(api('/create-cart-order'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         artist_id: artist.id,
         customer_name: 'Guest',
-        customer_phone: '263719362231',
-        customer_email: 'test@example.com',
+        customer_phone: phone,
+        customer_email: email,
         items: CART.map(i => ({
           product_id: i.product_id,
           quantity: i.quantity
@@ -111,11 +127,13 @@ async function checkout() {
     const order = await orderRes.json();
 
     if (order.status !== 'success') {
-      alert('Order failed');
+      alert(order.message || 'Order failed');
       return;
     }
 
-    // TRIGGER PAYMENT
+    // =====================
+    // 2. TRIGGER PAYMENT
+    // =====================
     const payRes = await fetch("https://zvakho-payments-v2.yasibomedia.workers.dev/create-payment", {
       method: "POST",
       headers: {
@@ -124,19 +142,22 @@ async function checkout() {
       body: JSON.stringify({
         reference: order.payment_reference,
         amount: order.total_amount,
-        email: "test@example.com",
-        phone: "263719362231"
+        email: email,
+        phone: phone
       })
     });
 
     const pay = await payRes.json();
 
     if (pay.status === "ok" || pay.status === "success") {
-      alert("Payment prompt sent to your phone.");
+      alert("Payment prompt sent. Enter your EcoCash PIN on your phone.");
     } else {
-      alert("Payment failed");
+      alert("Payment initiation failed.");
       console.log(pay);
     }
+
+    console.log("ORDER:", order);
+    console.log("PAYMENT:", pay);
 
     CART = [];
     updateCartUI();
