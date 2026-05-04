@@ -1,89 +1,15 @@
 <!doctype html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Redirecting...</title>
 
-  <link rel="icon" href="/assets/brand/favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Instant redirect -->
+  <meta http-equiv="refresh" content="0; url=/store/?artist=mdusevan">
 
-  <link rel="stylesheet" href="/style.css">
-  <script src="/config.js"></script>
-
-  <title>ZVAKHO Store</title>
+  <script>
+    window.location.replace("/store/?artist=mdusevan");
+  </script>
 </head>
-
-<body>
-
-<nav class="nav">
-  <div class="wrap nav-inner">
-    <a class="brand" href="/">
-      <img src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
-    </a>
-
-    <div class="nav-links">
-      <a href="/#platform">Platform</a>
-      <a href="/#artists">Artists</a>
-    </div>
-
-    <a class="btn primary" href="https://wa.me/263719362231?text=ZVAKHO">
-      Request access
-    </a>
-  </div>
-</nav>
-
-<header class="store-hero" id="storeHero">
-  <div class="wrap">
-    <div class="kicker">Official Store</div>
-
-    <!-- DYNAMIC -->
-    <h1 id="artistName">Loading...</h1>
-    <p id="artistSub">Official direct-to-fan purchases.</p>
-
-    <div class="actions">
-      <a class="btn gold" id="artistWa" href="#">Buy on WhatsApp</a>
-      <a class="btn" href="/">Back</a>
-    </div>
-  </div>
-</header>
-
-<main class="wrap store-panel">
-
-  <!-- PRODUCTS LOAD HERE -->
-  <section class="track-list" id="tracks">
-    <div class="empty">Loading catalogue...</div>
-  </section>
-
-</main>
-
-<footer>
-  <div class="wrap footer-grid">
-    <div>
-      <img class="footer-logo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
-      <p>Direct-to-fan commerce infrastructure.</p>
-    </div>
-
-    <div>
-      <strong>Access</strong>
-      <p>
-        <a href="https://wa.me/263719362231?text=ZVAKHO">Request access</a><br>
-        <a href="https://wa.me/263719362231?text=ARTIST">Artist onboarding</a>
-      </p>
-    </div>
-
-    <div>
-      <strong>Portals</strong>
-      <p>
-        <a href="/app/">Artist dashboard</a><br>
-        <a href="/dashboard/">Owner dashboard</a>
-      </p>
-    </div>
-  </div>
-</footer>
-
-<script src="/app.js"></script>
-
-</body>
+<body></body>
 </html>
