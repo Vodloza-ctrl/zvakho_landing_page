@@ -58,7 +58,7 @@
     <div class="empty">Loading store...</div>
   </section>
 
-  <!-- CART (IMPORTANT) -->
+  <!-- CART -->
   <section class="card" id="cartBox" style="display:none; margin-top:30px;">
     <div class="eyebrow">Cart</div>
     <h3>Your Order</h3>
@@ -70,7 +70,22 @@
       <strong id="cartTotal">$0.00</strong>
     </div>
 
-    <button class="btn gold" onclick="checkout()" style="margin-top:16px;">
+    <!-- USER INPUT (ADDED CLEANLY) -->
+    <div style="margin-top:16px;">
+      <input 
+        id="customerPhone" 
+        placeholder="Enter EcoCash number (e.g. 2637...)" 
+        style="width:100%; padding:12px; margin-bottom:10px; border-radius:6px; border:1px solid #ccc;"
+      >
+
+      <input 
+        id="customerEmail" 
+        placeholder="Enter email (required for payment)" 
+        style="width:100%; padding:12px; border-radius:6px; border:1px solid #ccc;"
+      >
+    </div>
+
+    <button class="btn gold" onclick="checkout()" style="margin-top:16px; width:100%;">
       Checkout
     </button>
   </section>
