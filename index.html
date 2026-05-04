@@ -1,8 +1,572 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="/assets/brand/favicon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet"><link rel="stylesheet" href="/style.css"><script src="/config.js"></script><script>window.addEventListener('DOMContentLoaded',()=>{const h=location.hostname.split('.')[0].toLowerCase();const artists=(window.ZVAKHO_CONFIG?.artists||[]).map(a=>a.slug);if(h==='admin'&&location.pathname==='/')location.replace('/dashboard/');if(h==='dashboard'&&location.pathname==='/')location.replace('/app/');if(artists.includes(h)&&location.pathname==='/')location.replace('/store/?artist='+h);});</script><title>ZVAKHO — Direct-to-fan commerce infrastructure for artists</title><meta name="description" content="ZVAKHO helps artists sell tracks, albums, and release campaigns directly to fans through WhatsApp and confirmed mobile payments."></head><body><nav class="nav"><div class="wrap nav-inner"><a class="brand" href="/"><img src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO"></a><div class="nav-links"><a href="/#platform">Platform</a><a href="/#artists">Artists</a><a href="/#transaction">Live transaction</a><a href="/#release">Releases</a></div><a class="btn primary" href="https://wa.me/263719362231?text=ZVAKHO">Request access</a></div></nav>
-<header class="hero"><div class="wrap hero-grid"><div><img class="logo-lockup" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO"><div class="kicker">Controlled rollout · Zimbabwe and diaspora</div><h1>Direct-to-fan commerce infrastructure for artists.</h1><p class="lead">ZVAKHO gives artists a structured system to sell music directly to their audience through WhatsApp and confirmed mobile payments. Artists control pricing across tracks, albums, and releases while retaining the majority of every transaction.</p><div class="actions"><a class="btn primary" href="https://wa.me/263719362231?text=ZVAKHO">Request platform access</a><a class="btn" href="#artists">View active artists</a></div><div class="trust-row"><span>Confirmed mobile payment flow</span><span>Artist-specific stores</span><span>Transparent transaction records</span></div></div><div class="demo-card" id="transaction"><video controls playsinline preload="metadata" poster="/assets/video/live-purchase-poster.jpg" src="/assets/video/live-purchase-demo.mp4"></video><div class="demo-caption"><strong>Live transaction example.</strong><br>A real ZVAKHO purchase flow: WhatsApp initiation, mobile payment, confirmation, and delivery.</div></div></div></header>
-<div class="proof-strip"><div class="wrap proof-grid"><div><b>70–85%</b><span>Artist revenue retention range</span></div><div><b>Flexible</b><span>Pricing for tracks, albums, and releases</span></div><div><b>24/7</b><span>Automated transaction fulfilment</span></div></div></div>
-<section id="platform"><div class="wrap"><div class="section-head"><h2>Built as infrastructure, not hype.</h2><p>ZVAKHO is designed to make direct music purchases simple for fans, measurable for artists, and visible at platform level.</p></div><div class="cards"><article class="card"><div class="eyebrow">Access layer</div><h3>WhatsApp-first purchase flow</h3><p>Fans enter an artist-specific funnel and complete purchases through a familiar mobile payment experience.</p></article><article class="card"><div class="eyebrow">Revenue layer</div><h3>Tracks, albums, and release campaigns</h3><p>Artists can sell individual tracks, full releases, and structured preorder campaigns without being tied to one fixed price point.</p></article><article class="card"><div class="eyebrow">Control layer</div><h3>Verified performance visibility</h3><p>Dashboards are built around confirmed transaction data, revenue visibility, and operational intervention where needed.</p></article></div></div></section>
-<section id="artists" style="background:var(--cream)"><div class="wrap"><div class="section-head"><h2>Active artists on ZVAKHO</h2><p>Selected artists currently connected to ZVAKHO’s direct-to-fan music commerce system.</p></div><div class="artist-grid" id="artistsGrid"></div></div></section>
-<section id="release"><div class="wrap"><div class="section-head"><h2>Designed for release control.</h2><p>Start with music sales. Expand into preorders, merchandise, and VIP access only when the operational layer is ready.</p></div><div class="cards"><article class="card"><div class="eyebrow">Available now</div><h3>Music commerce</h3><p>Sell tracks and albums through artist-specific WhatsApp funnels with payment confirmation before delivery.</p></article><article class="card"><div class="eyebrow">Supported rollout</div><h3>Preorder setup</h3><p>Structure release campaigns before launch so committed fans can purchase ahead of delivery windows.</p></article><article class="card"><div class="eyebrow">Coming later</div><h3>Merchandise and VIP</h3><p>Merchandise and subscription access will be introduced as separate product layers once fulfilment and content operations are stable.</p></article></div></div></section>
-<section style="background:var(--brown);color:#fff"><div class="wrap section-head"><h2 style="color:#fff">Request platform access</h2><p style="color:rgba(255,255,255,.76)">ZVAKHO is onboarding artists through a controlled rollout. Start with direct music sales, then expand into release campaigns and additional revenue layers as the system matures.</p><a class="btn gold" href="https://wa.me/263719362231?text=ARTIST">Start artist onboarding</a></div></section>
-<footer><div class="wrap footer-grid"><div><img class="footer-logo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO"><p>ZVAKHO is direct-to-fan commerce infrastructure for artists across African markets.</p></div><div><strong>Access</strong><p><a href="https://wa.me/263719362231?text=ZVAKHO">Request platform access</a><br><a href="https://wa.me/263719362231?text=ARTIST">Artist onboarding</a><br><a href="/store/">Artist stores</a></p></div><div><strong>Portals</strong><p><a href="/app/">Artist dashboard</a><br><a href="/dashboard/">Owner dashboard</a></p></div></div></footer><script src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/assets/brand/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<script src="/config.js"></script>
+
+<script>
+window.addEventListener('DOMContentLoaded',()=>{
+  const h=location.hostname.split('.')[0].toLowerCase();
+  const artists=(window.ZVAKHO_CONFIG?.artists||[]).map(a=>a.slug);
+  if(h==='admin'&&location.pathname==='/')location.replace('/dashboard/');
+  if(h==='dashboard'&&location.pathname==='/')location.replace('/app/');
+  if(artists.includes(h)&&location.pathname==='/')location.replace('/store/?artist='+h);
+});
+</script>
+
+<title>ZVAKHO — Direct-to-fan commerce infrastructure for artists</title>
+<meta name="description" content="ZVAKHO helps artists sell tracks, albums, and release campaigns directly to fans through WhatsApp and confirmed mobile payments.">
+
+<style>
+body.z-modal-open{overflow:hidden}
+
+.z-modal{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:22px;
+  background:rgba(42,23,12,.72);
+  backdrop-filter:blur(12px);
+  z-index:9999;
+}
+
+.z-modal.is-open{display:flex}
+
+.z-modal-card{
+  width:min(720px,100%);
+  max-height:92vh;
+  overflow:auto;
+  background:var(--bg);
+  border:1px solid var(--line);
+  border-radius:24px;
+  box-shadow:0 30px 90px rgba(0,0,0,.35);
+  position:relative;
+}
+
+.z-modal-top{
+  padding:24px 26px 18px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#fffaf3,var(--bg));
+}
+
+.z-modal-brand{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:20px;
+}
+
+.z-modal-brand img{
+  width:130px;
+  height:auto;
+}
+
+.z-modal-pill{
+  display:inline-flex;
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:7px 12px;
+  background:#fff;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:850;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.z-modal-close{
+  position:absolute;
+  top:18px;
+  right:18px;
+  width:38px;
+  height:38px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:#fff;
+  color:var(--ink);
+  font-size:24px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.z-modal h2{
+  font-size:clamp(30px,4vw,46px);
+  letter-spacing:-.04em;
+  margin:0 0 12px;
+}
+
+.z-modal-intro{
+  max-width:58ch;
+  color:var(--body);
+  margin:0;
+  font-size:16px;
+}
+
+.z-modal-form{
+  padding:24px 26px 26px;
+}
+
+.z-form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+.z-field{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+}
+
+.z-field.full{grid-column:1/-1}
+
+.z-field span{
+  color:var(--ink);
+  font-size:12px;
+  font-weight:850;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.z-field input,
+.z-field select{
+  width:100%;
+  min-height:48px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  color:var(--ink);
+  padding:12px 13px;
+  font:inherit;
+  outline:none;
+}
+
+.z-field input:focus,
+.z-field select:focus{
+  border-color:var(--gold);
+  box-shadow:0 0 0 4px rgba(185,130,46,.12);
+}
+
+.z-modal-note{
+  margin:18px 0 0;
+  padding:15px 16px;
+  border:1px solid #ead8b8;
+  border-radius:16px;
+  background:#fff8eb;
+  color:#6b4c18;
+  font-size:14px;
+}
+
+.z-modal-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-top:20px;
+}
+
+.z-modal-response{
+  margin:16px 0 0;
+  font-weight:800;
+  font-size:14px;
+}
+
+.z-modal-response.success{color:#1f7a3a}
+.z-modal-response.review{color:#8a5a08}
+.z-modal-response.waitlist{color:#7f4d22}
+.z-modal-response.error{color:#9b1c1c}
+
+.footer-link{
+  appearance:none;
+  border:0;
+  background:transparent;
+  padding:0;
+  margin:0;
+  color:inherit;
+  font:inherit;
+  cursor:pointer;
+  text-align:left;
+}
+
+.footer-link:hover{color:var(--ink)}
+
+@media(max-width:720px){
+  .z-modal{padding:14px;align-items:flex-start}
+  .z-modal-card{max-height:96vh;border-radius:20px}
+  .z-form-grid{grid-template-columns:1fr}
+  .z-modal-top,.z-modal-form{padding-left:20px;padding-right:20px}
+  .z-modal-brand{padding-right:44px}
+  .z-modal-actions .btn{width:100%}
+}
+</style>
+</head>
+
+<body>
+
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/">
+      <img src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
+    </a>
+    <div class="nav-links">
+      <a href="/#platform">Platform</a>
+      <a href="/#artists">Artists</a>
+      <a href="/#transaction">Live transaction</a>
+      <a href="/#release">Releases</a>
+    </div>
+    <button class="btn primary" type="button" data-open-onboarding>Request access</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <img class="logo-lockup" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
+      <div class="kicker">Controlled rollout · Zimbabwe and diaspora</div>
+      <h1>Direct-to-fan commerce infrastructure for artists.</h1>
+      <p class="lead">ZVAKHO gives artists a structured system to sell music directly to their audience through WhatsApp and confirmed mobile payments. Artists control pricing across tracks, albums, and releases while retaining the majority of every transaction.</p>
+      <div class="actions">
+        <button class="btn primary" type="button" data-open-onboarding>Request platform access</button>
+        <a class="btn" href="#artists">View active artists</a>
+      </div>
+      <div class="trust-row">
+        <span>Confirmed mobile payment flow</span>
+        <span>Artist-specific stores</span>
+        <span>Transparent transaction records</span>
+      </div>
+    </div>
+
+    <div class="demo-card" id="transaction">
+      <video controls playsinline preload="metadata" poster="/assets/video/live-purchase-poster.jpg" src="/assets/video/live-purchase-demo.mp4"></video>
+      <div class="demo-caption">
+        <strong>Live transaction example.</strong><br>
+        A real ZVAKHO purchase flow: WhatsApp initiation, mobile payment, confirmation, and delivery.
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="proof-strip">
+  <div class="wrap proof-grid">
+    <div><b>70–85%</b><span>Artist revenue retention range</span></div>
+    <div><b>Flexible</b><span>Pricing for tracks, albums, and releases</span></div>
+    <div><b>24/7</b><span>Automated transaction fulfilment</span></div>
+  </div>
+</div>
+
+<section id="platform">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Built as infrastructure, not hype.</h2>
+      <p>ZVAKHO is designed to make direct music purchases simple for fans, measurable for artists, and visible at platform level.</p>
+    </div>
+    <div class="cards">
+      <article class="card">
+        <div class="eyebrow">Access layer</div>
+        <h3>WhatsApp-first purchase flow</h3>
+        <p>Fans enter an artist-specific funnel and complete purchases through a familiar mobile payment experience.</p>
+      </article>
+      <article class="card">
+        <div class="eyebrow">Revenue layer</div>
+        <h3>Tracks, albums, and release campaigns</h3>
+        <p>Artists can sell individual tracks, full releases, and structured preorder campaigns without being tied to one fixed price point.</p>
+      </article>
+      <article class="card">
+        <div class="eyebrow">Control layer</div>
+        <h3>Verified performance visibility</h3>
+        <p>Dashboards are built around confirmed transaction data, revenue visibility, and operational intervention where needed.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="artists" style="background:var(--cream)">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Active artists on ZVAKHO</h2>
+      <p>Selected artists currently connected to ZVAKHO’s direct-to-fan music commerce system.</p>
+    </div>
+    <div class="artist-grid" id="artistsGrid"></div>
+  </div>
+</section>
+
+<section id="release">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Designed for release control.</h2>
+      <p>Start with music sales. Expand into preorders, merchandise, and VIP access only when the operational layer is ready.</p>
+    </div>
+    <div class="cards">
+      <article class="card">
+        <div class="eyebrow">Available now</div>
+        <h3>Music commerce</h3>
+        <p>Sell tracks and albums through artist-specific WhatsApp funnels with payment confirmation before delivery.</p>
+      </article>
+      <article class="card">
+        <div class="eyebrow">Supported rollout</div>
+        <h3>Preorder setup</h3>
+        <p>Structure release campaigns before launch so committed fans can purchase ahead of delivery windows.</p>
+      </article>
+      <article class="card">
+        <div class="eyebrow">Coming later</div>
+        <h3>Merchandise and VIP</h3>
+        <p>Merchandise and subscription access will be introduced as separate product layers once fulfilment and content operations are stable.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--brown);color:#fff">
+  <div class="wrap section-head">
+    <h2 style="color:#fff">Request platform access</h2>
+    <p style="color:rgba(255,255,255,.76)">ZVAKHO is onboarding artists through a controlled rollout. Start with direct music sales, then expand into release campaigns and additional revenue layers as the system matures.</p>
+    <button class="btn gold" type="button" data-open-onboarding>Start artist onboarding</button>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-grid">
+    <div>
+      <img class="footer-logo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
+      <p>ZVAKHO is direct-to-fan commerce infrastructure for artists across African markets.</p>
+    </div>
+    <div>
+      <strong>Access</strong>
+      <p>
+        <button class="footer-link" type="button" data-open-onboarding>Request platform access</button><br>
+        <button class="footer-link" type="button" data-open-onboarding>Artist onboarding</button><br>
+        <a href="/store/">Artist stores</a>
+      </p>
+    </div>
+    <div>
+      <strong>Portals</strong>
+      <p>
+        <a href="/app/">Artist dashboard</a><br>
+        <a href="/dashboard/">Owner dashboard</a>
+      </p>
+    </div>
+  </div>
+</footer>
+
+<!-- ARTIST ONBOARDING MODAL -->
+<div id="artistOnboardingModal" class="z-modal" aria-hidden="true">
+  <div class="z-modal-card" role="dialog" aria-modal="true" aria-labelledby="artistModalTitle">
+
+    <button class="z-modal-close" type="button" data-close-onboarding aria-label="Close application">×</button>
+
+    <div class="z-modal-top">
+      <div class="z-modal-brand">
+        <img src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
+        <span class="z-modal-pill">Controlled artist rollout</span>
+      </div>
+
+      <div class="eyebrow">Artist access gate</div>
+      <h2 id="artistModalTitle">Apply for ZVAKHO access.</h2>
+      <p class="z-modal-intro">
+        This application filters for artists who actively promote, sell directly to fans, and can commit to disciplined release campaigns.
+      </p>
+    </div>
+
+    <form id="artistApplicationForm" class="z-modal-form">
+      <div class="z-form-grid">
+
+        <label class="z-field">
+          <span>Stage name</span>
+          <input id="stage_name" name="stage_name" placeholder="e.g. Mdu Sevan" required>
+        </label>
+
+        <label class="z-field">
+          <span>Genre</span>
+          <input id="genre" name="genre" placeholder="e.g. Afro Fusion" required>
+        </label>
+
+        <label class="z-field">
+          <span>City / base</span>
+          <input id="city" name="city" placeholder="e.g. Bulawayo" required>
+        </label>
+
+        <label class="z-field">
+          <span>Promotion behavior</span>
+          <select id="promotion_behavior" name="promotion_behavior" required>
+            <option value="">Select one</option>
+            <option>I actively promote on WhatsApp and social media</option>
+            <option>I post occasionally</option>
+            <option>I rely on platforms</option>
+          </select>
+        </label>
+
+        <label class="z-field">
+          <span>Weekly direct fan reach</span>
+          <select id="weekly_reach" name="weekly_reach" required>
+            <option value="">Select one</option>
+            <option>0-100</option>
+            <option>100-500</option>
+            <option>500-1000</option>
+            <option>1000+</option>
+          </select>
+        </label>
+
+        <label class="z-field">
+          <span>Direct selling readiness</span>
+          <select id="direct_selling" name="direct_selling" required>
+            <option value="">Select one</option>
+            <option>Yes</option>
+            <option>Not sure</option>
+            <option>No</option>
+          </select>
+        </label>
+
+        <label class="z-field">
+          <span>Promotion commitment</span>
+          <select id="weekly_commitment" name="weekly_commitment" required>
+            <option value="">Can you promote 2–4 times weekly?</option>
+            <option>Yes</option>
+            <option>Maybe</option>
+            <option>No</option>
+          </select>
+        </label>
+
+        <label class="z-field">
+          <span>Main goal</span>
+          <select id="main_goal" name="main_goal" required>
+            <option value="">Select one</option>
+            <option>Make money from my fans</option>
+            <option>Grow audience</option>
+            <option>Go viral</option>
+          </select>
+        </label>
+
+        <label class="z-field full">
+          <span>Music / social link</span>
+          <input id="links" name="links" placeholder="Instagram, YouTube, Spotify, Audiomack, etc." required>
+        </label>
+
+      </div>
+
+      <div class="z-modal-note">
+        <strong>Before you apply:</strong> ZVAKHO is not a passive upload platform. Artists are expected to promote weekly and direct fans into their purchase flow.
+      </div>
+
+      <div class="z-modal-actions">
+        <button id="submitApplicationBtn" class="btn primary" type="submit">Submit application</button>
+        <button class="btn" type="button" data-close-onboarding>Cancel</button>
+      </div>
+
+      <p id="responseMsg" class="z-modal-response" aria-live="polite"></p>
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  const modal = document.getElementById('artistOnboardingModal');
+  const form = document.getElementById('artistApplicationForm');
+  const msg = document.getElementById('responseMsg');
+  const submitBtn = document.getElementById('submitApplicationBtn');
+
+  function openModal(){
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden','false');
+    document.body.classList.add('z-modal-open');
+  }
+
+  function closeModal(){
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden','true');
+    document.body.classList.remove('z-modal-open');
+  }
+
+  document.querySelectorAll('[data-open-onboarding]').forEach(btn=>{
+    btn.addEventListener('click', openModal);
+  });
+
+  document.querySelectorAll('[data-close-onboarding]').forEach(btn=>{
+    btn.addEventListener('click', closeModal);
+  });
+
+  modal.addEventListener('click', function(e){
+    if(e.target === modal) closeModal();
+  });
+
+  window.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
+  });
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+
+    const data = {
+      source: 'website',
+      stage_name: document.getElementById('stage_name').value.trim(),
+      genre: document.getElementById('genre').value.trim(),
+      city: document.getElementById('city').value.trim(),
+      promotion_behavior: document.getElementById('promotion_behavior').value,
+      weekly_reach: document.getElementById('weekly_reach').value,
+      direct_selling: document.getElementById('direct_selling').value,
+      weekly_commitment: document.getElementById('weekly_commitment').value,
+      main_goal: document.getElementById('main_goal').value,
+      links: document.getElementById('links').value.trim()
+    };
+
+    msg.className = 'z-modal-response';
+    msg.textContent = 'Submitting your application...';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+
+    try {
+      const res = await fetch('https://zvakho-artist-onboarding.yasibomedia.workers.dev/apply', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      });
+
+      const result = await res.json();
+
+      if(!res.ok || result.status === 'error'){
+        throw new Error(result.message || 'Application could not be submitted.');
+      }
+
+      if(result.qualification_status === 'accepted'){
+        msg.classList.add('success');
+        msg.textContent = 'You qualify. Redirecting to WhatsApp onboarding...';
+
+        setTimeout(function(){
+          window.location.href = 'https://wa.me/263719362231?text=ONBOARD_ACCEPTED';
+        }, 1400);
+      }
+
+      else if(result.qualification_status === 'review'){
+        msg.classList.add('review');
+        msg.textContent = 'Application received. Your profile needs review before onboarding.';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit application';
+      }
+
+      else {
+        msg.classList.add('waitlist');
+        msg.textContent = 'Application received. ZVAKHO is currently prioritising artists with active weekly promotion.';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit application';
+      }
+
+    } catch(error) {
+      msg.classList.add('error');
+      msg.textContent = 'Something went wrong. Please try again.';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit application';
+    }
+  });
+})();
+</script>
+
+<script src="/app.js"></script>
+</body>
+</html>
