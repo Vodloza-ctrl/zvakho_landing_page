@@ -17,6 +17,7 @@
 
 <body>
 
+<!-- NAV -->
 <nav class="nav">
   <div class="wrap nav-inner">
     <a class="brand" href="/">
@@ -34,11 +35,13 @@
   </div>
 </nav>
 
+<!-- HERO -->
 <header class="store-hero" id="storeHero">
   <div class="wrap">
     <div class="kicker">Official Store</div>
+
     <h1 id="artistName">Loading...</h1>
-    <p id="artistSub">Direct-to-fan purchases.</p>
+    <p id="artistSub">Loading store...</p>
 
     <div class="actions">
       <a class="btn gold" id="artistWa" href="#">Buy via WhatsApp</a>
@@ -47,22 +50,44 @@
   </div>
 </header>
 
+<!-- STORE -->
 <main class="wrap store-panel">
+
+  <!-- PRODUCTS -->
   <section class="track-list" id="tracks">
     <div class="empty">Loading store...</div>
   </section>
+
+  <!-- CART (IMPORTANT) -->
+  <section class="card" id="cartBox" style="display:none; margin-top:30px;">
+    <div class="eyebrow">Cart</div>
+    <h3>Your Order</h3>
+
+    <div id="cartItems"></div>
+
+    <div class="list-row" style="margin-top:12px;">
+      <span>Total</span>
+      <strong id="cartTotal">$0.00</strong>
+    </div>
+
+    <button class="btn gold" onclick="checkout()" style="margin-top:16px;">
+      Checkout
+    </button>
+  </section>
+
 </main>
 
+<!-- FOOTER -->
 <footer>
   <div class="wrap footer-grid">
     <div>
-      <img class="footer-logo" src="/assets/brand/zvakho-logo.webp">
+      <img class="footer-logo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
       <p>Direct-to-fan commerce infrastructure.</p>
     </div>
   </div>
 </footer>
 
-<!-- THIS IS THE KEY -->
+<!-- CORE LOGIC -->
 <script src="/app.js"></script>
 
 </body>
