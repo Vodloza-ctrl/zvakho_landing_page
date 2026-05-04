@@ -1,6 +1,8 @@
 const CONFIG = window.ZVAKHO_CONFIG || {};
 const $ = (s, r = document) => r.querySelector(s);
 
+let CART = [];
+
 const money = (n) => `$${Number(n || 0).toFixed(2)}`;
 const norm = (s) => String(s || '').trim().toLowerCase();
 const api = (path) => `${String(CONFIG.apiBase || '').replace(/\/$/, '')}${path}`;
@@ -77,6 +79,100 @@ function setText(id, value) {
   const el = $(id);
   if (el) el.textContent = value;
 }
+
+function cartTotal() {
+  return CART.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
+}
+
+function updateCartUI() {
+  const cartBox = $('#cartBox');
+  const cartItems = $('#cartItems');
+  const cartTotalEl = $('#cartTotal');
+
+  if (!cartBox || !cartItems || !cartTotalEl) return;
+
+  if (!CART.length) {
+    cartBox.style.display = 'none';
+    cartItems.innerHTML = '';
+    cartTotalEl.textContent = '$0.00';
+    return;
+  }
+
+  cartBox.style.display = 'block';
+
+  cartItems.innerHTML = CART.map((item) => `
+    <div class="list-row">
+      <span>${item.product_name} × ${item.quantity}</span>
+      <strong>${money(Number(item.price) * Number(item.quantity))}</strong>
+    </div>
+  `).join('');
+
+  cartTotalEl.textContent = money(cartTotal());
+}
+
+function addToCart(product_id, product_name, price) {
+  const existing = CART.find((i) => i.product_id === product_id);
+
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    CART.push({
+      product_id,
+      product_name,
+      price: Number(price || 0),
+      quantity: 1
+    });
+  }
+
+  updateCartUI();
+}
+
+async function checkout() {
+  const artist = currentArtist();
+
+  if (!artist) {
+    alert('Artist not found.');
+    return;
+  }
+
+  if (!CART.length) {
+    alert('Your cart is empty.');
+    return;
+  }
+
+  try {
+    const res = await fetch(api('/create-cart-order'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        artist_id: artist.id,
+        customer_name: 'Guest',
+        customer_phone: '',
+        customer_email: '',
+        items: CART.map((i) => ({
+          product_id: i.product_id,
+          quantity: i.quantity
+        }))
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.status === 'success') {
+      alert(`Order created: ${data.total_label}`);
+      console.log('Created order:', data);
+      CART = [];
+      updateCartUI();
+    } else {
+      alert(data.message || 'Checkout failed.');
+    }
+  } catch (err) {
+    alert(err.message || 'Checkout failed.');
+  }
+}
+
+window.addToCart = addToCart;
+window.checkout = checkout;
 
 function renderError(container, message) {
   if (!container) return;
@@ -199,10 +295,31 @@ async function renderStore() {
           <strong>${p.product_name || 'Music release'}</strong><br>
           <span style="color:var(--muted)">${p.description || 'Delivered after confirmed payment.'}</span>
         </div>
-        <div class="price">${p.price_label || 'Price shown in WhatsApp'}</div>
-        <a class="btn primary" href="${p.whatsapp_link || artist.wa}">${p.cta_label || 'Purchase via WhatsApp'}</a>
+        <div class="price">${p.price_label || money(p.price)}</div>
+        <button class="btn primary" onclick="addToCart('${p.product_id}', '${String(p.product_name || 'Music release').replace(/'/g, "\\'")}', ${Number(p.price || 0)})">
+          Add to Cart
+        </button>
       </div>
     `).join('');
+
+    if (!$('#cartBox')) {
+      root.insertAdjacentHTML('afterend', `
+        <section class="card" id="cartBox" style="display:none; margin-top:24px;">
+          <div class="eyebrow">Cart</div>
+          <h3>Your Order</h3>
+          <div id="cartItems"></div>
+          <div class="list-row" style="margin-top:12px;">
+            <span>Total</span>
+            <strong id="cartTotal">$0.00</strong>
+          </div>
+          <button class="btn gold" onclick="checkout()" style="margin-top:16px;">
+            Checkout
+          </button>
+        </section>
+      `);
+    }
+
+    updateCartUI();
   } catch (err) {
     root.innerHTML = `<div class="empty"><strong style="color:var(--ink)">Store data is temporarily unavailable.</strong><br>Use the WhatsApp sales funnel button above to continue.</div>`;
   }
