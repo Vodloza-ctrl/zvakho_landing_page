@@ -29,7 +29,7 @@ function currentArtist() {
 async function fetchJSON(url) {
   const res = await fetch(url, { cache: 'no-store' });
   const data = await res.json();
-  if (!res.ok || data.status === 'error') throw new Error(data.message);
+  if (!res.ok || data.status === 'error') throw new Error(data.message || 'Request failed');
   return data;
 }
 
@@ -42,7 +42,7 @@ function setText(id, value) {
 // CART
 // =====================
 function cartTotal() {
-  return CART.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  return CART.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
 }
 
 function updateCartUI() {
@@ -50,10 +50,12 @@ function updateCartUI() {
   const items = $('#cartItems');
   const total = $('#cartTotal');
 
-  if (!box) return;
+  if (!box || !items || !total) return;
 
   if (!CART.length) {
     box.style.display = 'none';
+    items.innerHTML = '';
+    total.textContent = '$0.00';
     return;
   }
 
@@ -62,7 +64,7 @@ function updateCartUI() {
   items.innerHTML = CART.map(i => `
     <div class="list-row">
       <span>${i.product_name} × ${i.quantity}</span>
-      <strong>${money(i.price * i.quantity)}</strong>
+      <strong>${money(Number(i.price) * Number(i.quantity))}</strong>
     </div>
   `).join('');
 
@@ -72,8 +74,16 @@ function updateCartUI() {
 function addToCart(id, name, price) {
   const existing = CART.find(i => i.product_id === id);
 
-  if (existing) existing.quantity++;
-  else CART.push({ product_id: id, product_name: name, price, quantity: 1 });
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    CART.push({
+      product_id: id,
+      product_name: name,
+      price: Number(price || 0),
+      quantity: 1
+    });
+  }
 
   updateCartUI();
 }
@@ -81,39 +91,41 @@ function addToCart(id, name, price) {
 window.addToCart = addToCart;
 
 // =====================
-// CHECKOUT + PAYMENT (UPDATED)
+// CHECKOUT VIA STORE WORKER ADAPTER
 // =====================
 async function checkout() {
   const artist = currentArtist();
 
-  if (!CART.length) {
-    alert('Cart is empty');
+  if (!artist) {
+    alert('Artist not found.');
     return;
   }
 
-  // ✅ GET USER INPUT
-  const phone = document.getElementById("customerPhone")?.value.trim();
-  const email = document.getElementById("customerEmail")?.value.trim();
+  if (!CART.length) {
+    alert('Cart is empty.');
+    return;
+  }
+
+  const phone = document.getElementById('customerPhone')?.value.trim();
+  const email = document.getElementById('customerEmail')?.value.trim();
 
   if (!phone) {
-    alert("Enter your EcoCash number");
+    alert('Enter your EcoCash number.');
     return;
   }
 
   if (!email) {
-    alert("Enter your email");
+    alert('Enter your email.');
     return;
   }
 
   try {
-    // =====================
-    // 1. CREATE ORDER
-    // =====================
-    const orderRes = await fetch(api('/create-cart-order'), {
+    const checkoutRes = await fetch(api('/web-checkout'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         artist_id: artist.id,
+        artist_name: artist.name,
         customer_name: 'Guest',
         customer_phone: phone,
         customer_email: email,
@@ -124,46 +136,23 @@ async function checkout() {
       })
     });
 
-    const order = await orderRes.json();
+    const checkoutData = await checkoutRes.json();
 
-    if (order.status !== 'success') {
-      alert(order.message || 'Order failed');
+    if (checkoutData.status !== 'success') {
+      alert(checkoutData.message || 'Checkout failed.');
+      console.log('CHECKOUT ERROR:', checkoutData);
       return;
     }
 
-    // =====================
-    // 2. TRIGGER PAYMENT
-    // =====================
-    const payRes = await fetch("https://zvakho-payments-v2.yasibomedia.workers.dev/create-payment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        reference: order.payment_reference,
-        amount: order.total_amount,
-        email: email,
-        phone: phone
-      })
-    });
+    alert('Payment prompt sent. Enter your EcoCash PIN on your phone.');
 
-    const pay = await payRes.json();
-
-    if (pay.status === "ok" || pay.status === "success") {
-      alert("Payment prompt sent. Enter your EcoCash PIN on your phone.");
-    } else {
-      alert("Payment initiation failed.");
-      console.log(pay);
-    }
-
-    console.log("ORDER:", order);
-    console.log("PAYMENT:", pay);
+    console.log('WEB CHECKOUT:', checkoutData);
 
     CART = [];
     updateCartUI();
 
   } catch (err) {
-    alert(err.message);
+    alert(err.message || 'Checkout failed.');
   }
 }
 
@@ -178,34 +167,55 @@ async function renderStore() {
 
   const artist = currentArtist();
 
+  if (!artist) {
+    root.innerHTML = `<div class="empty">Artist not found.</div>`;
+    return;
+  }
+
   document.title = `${artist.name} — Store`;
 
   setText('#artistName', artist.name);
   setText('#artistSub', 'Official purchases');
 
   const wa = $('#artistWa');
-  if (wa) wa.href = artist.wa;
+  if (wa) {
+    wa.href = artist.wa;
+    wa.textContent = `Buy ${artist.name} via WhatsApp`;
+  }
+
+  const hero = $('#storeHero');
+  if (hero && artist.header) {
+    hero.style.backgroundImage = `url('${artist.header}')`;
+  }
 
   try {
-    const data = await fetchJSON(api(`/artist-store?artist_id=${artist.id}`));
+    const data = await fetchJSON(api(`/artist-store?artist_id=${encodeURIComponent(artist.id)}`));
     const products = data.products || [];
 
-    root.innerHTML = products.map(p => `
-      <div class="track">
-        <div>
-          <strong>${p.product_name}</strong><br>
-          <span>${p.description}</span>
-        </div>
-        <div class="price">${p.price_label}</div>
-        <button class="btn primary"
-          onclick="addToCart('${p.product_id}', '${p.product_name}', ${p.price})">
-          Add to Cart
-        </button>
-      </div>
-    `).join('');
+    if (!products.length) {
+      root.innerHTML = `<div class="empty">No products available yet.</div>`;
+      return;
+    }
 
-  } catch {
-    root.innerHTML = `<div class="empty">Store unavailable</div>`;
+    root.innerHTML = products.map(p => {
+      const safeName = String(p.product_name || 'Product').replace(/'/g, "\\'");
+      return `
+        <div class="track">
+          <div>
+            <strong>${p.product_name || 'Product'}</strong><br>
+            <span>${p.description || 'Fulfilled after confirmed payment.'}</span>
+          </div>
+          <div class="price">${p.price_label || money(p.price)}</div>
+          <button class="btn primary"
+            onclick="addToCart('${p.product_id}', '${safeName}', ${Number(p.price || 0)})">
+            Add to Cart
+          </button>
+        </div>
+      `;
+    }).join('');
+
+  } catch (err) {
+    root.innerHTML = `<div class="empty">Store unavailable: ${err.message || 'Unknown error'}</div>`;
   }
 }
 
