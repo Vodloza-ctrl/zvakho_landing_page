@@ -21,9 +21,10 @@ function currentArtist() {
   const pathPart = norm(location.pathname.split('/').filter(Boolean)[0]);
 
   const candidates = [query, pathPart].filter(Boolean);
+
   return (CONFIG.artists || []).find((a) =>
     candidates.includes(a.slug) || candidates.includes(norm(a.id))
-  ) || (CONFIG.artists || [])[0];
+  ) || null;
 }
 
 async function fetchJSON(url) {
@@ -36,6 +37,35 @@ async function fetchJSON(url) {
 function setText(id, value) {
   const el = $(id);
   if (el) el.textContent = value;
+}
+
+// =====================
+// HOMEPAGE ARTISTS GRID
+// =====================
+function renderArtistsGrid() {
+  const grid = $('#artistsGrid');
+  if (!grid) return;
+
+  const artists = (CONFIG.artists || []).filter(a => a.active !== false);
+
+  if (!artists.length) {
+    grid.innerHTML = `<div class="empty">No active artists yet.</div>`;
+    return;
+  }
+
+  grid.innerHTML = artists.map(a => `
+    <article class="artist-card">
+      <div class="artist-image">
+        <img src="${a.image || a.header || '/assets/brand/favicon.png'}" alt="${a.name || 'ZVAKHO artist'}">
+      </div>
+      <div class="artist-content">
+        <div class="eyebrow">${a.genre || 'ZVAKHO Artist'}</div>
+        <h3>${a.name || a.id}</h3>
+        <p>${a.description || 'Official direct-to-fan store connected to ZVAKHO.'}</p>
+        <a class="btn primary" href="/store/?artist=${a.slug || norm(a.id)}">View store</a>
+      </div>
+    </article>
+  `).join('');
 }
 
 // =====================
@@ -220,4 +250,7 @@ async function renderStore() {
 }
 
 // =====================
+// INIT
+// =====================
+renderArtistsGrid();
 renderStore();
