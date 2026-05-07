@@ -2,107 +2,156 @@ const CONFIG = window.ZVAKHO_CONFIG || {};
 const $ = (s, r = document) => r.querySelector(s);
 
 let CART = [];
+let STORE = null;
 
 const money = (n) => `$${Number(n || 0).toFixed(2)}`;
-const norm = (s) => String(s || '').trim().toLowerCase();
-const api = (path) => `${String(CONFIG.apiBase || '').replace(/\/$/, '')}${path}`;
 
-// =====================
-// CORE HELPERS
-// =====================
-function artistById(id) {
-  const key = String(id || '').toUpperCase();
-  return (CONFIG.artists || []).find((a) => a.id === key || a.slug === norm(id));
-}
+const api = (path) =>
+  `${String(CONFIG.apiBase || "").replace(/\/$/, "")}${path}`;
 
-function currentArtist() {
+function currentArtistSlug() {
   const params = new URLSearchParams(location.search);
-  const query = norm(params.get('artist') || params.get('artist_id'));
-  const pathPart = norm(location.pathname.split('/').filter(Boolean)[0]);
 
-  const candidates = [query, pathPart].filter(Boolean);
+  const query =
+    params.get("artist") ||
+    params.get("slug");
 
-  return (CONFIG.artists || []).find((a) =>
-    candidates.includes(a.slug) || candidates.includes(norm(a.id))
-  ) || null;
+  if (query) return String(query).trim().toLowerCase();
+
+  const pathPart = location.pathname
+    .split("/")
+    .filter(Boolean)[0];
+
+  return String(pathPart || "").trim().toLowerCase();
 }
 
 async function fetchJSON(url) {
-  const res = await fetch(url, { cache: 'no-store' });
+  const res = await fetch(url, { cache: "no-store" });
   const data = await res.json();
-  if (!res.ok || data.status === 'error') throw new Error(data.message || 'Request failed');
+
+  if (!res.ok || data.status === "error") {
+    throw new Error(data.message || "Request failed");
+  }
+
   return data;
 }
 
-function setText(id, value) {
-  const el = $(id);
-  if (el) el.textContent = value;
+function applyTheme(theme) {
+  if (!theme) return;
+
+  document.documentElement.style.setProperty(
+    "--bg",
+    theme.background_color || "#ffffff"
+  );
+
+  document.documentElement.style.setProperty(
+    "--ink",
+    theme.text_color || "#111111"
+  );
+
+  document.documentElement.style.setProperty(
+    "--gold",
+    theme.primary_color || "#b9822e"
+  );
+
+  document.documentElement.style.setProperty(
+    "--brown",
+    theme.secondary_color || "#111111"
+  );
 }
 
-// =====================
-// HOMEPAGE ARTISTS GRID
-// =====================
-function renderArtistsGrid() {
-  const grid = $('#artistsGrid');
-  if (!grid) return;
+function updateArtistUI(artist, theme) {
+  document.title = `${artist.artist_name} — Store`;
 
-  const artists = (CONFIG.artists || []).filter(a => a.active !== false);
-
-  if (!artists.length) {
-    grid.innerHTML = `<div class="empty">No active artists yet.</div>`;
-    return;
+  const name = $("#artistName");
+  if (name) {
+    name.textContent =
+      theme.hero_title || artist.artist_name;
   }
 
-  grid.innerHTML = artists.map(a => `
-    <article class="artist-card">
-      <div class="artist-image">
-        <img src="${a.image || a.header || '/assets/brand/favicon.png'}" alt="${a.name || 'ZVAKHO artist'}">
-      </div>
-      <div class="artist-content">
-        <div class="eyebrow">${a.genre || 'ZVAKHO Artist'}</div>
-        <h3>${a.name || a.id}</h3>
-        <p>${a.description || 'Official direct-to-fan store connected to ZVAKHO.'}</p>
-        <a class="btn primary" href="/store/?artist=${a.slug || norm(a.id)}">View store</a>
-      </div>
-    </article>
-  `).join('');
+  const sub = $("#artistSub");
+  if (sub) {
+    sub.textContent =
+      artist.tagline ||
+      artist.genre ||
+      "Official Store";
+  }
+
+  const hero = $("#storeHero");
+
+  if (hero && artist.hero_image_url) {
+    hero.style.backgroundImage =
+      `url('${artist.hero_image_url}')`;
+  }
+
+  const wa = $("#artistWa");
+
+  if (wa) {
+    wa.href =
+      `https://wa.me/${artist.whatsapp_number.replace(/\+/g, "")}?text=Buy%20${encodeURIComponent(artist.artist_name)}`;
+
+    wa.textContent =
+      `Buy ${artist.artist_name} via WhatsApp`;
+  }
+
+  // LOGO SWAP
+  const navLogo = document.querySelector(".brand img");
+
+  if (navLogo) {
+    const bg =
+      (theme.background_color || "").toLowerCase();
+
+    const isDark =
+      bg.includes("050505") ||
+      bg.includes("111111");
+
+    navLogo.src = isDark
+      ? artist.logo_white_url
+      : artist.logo_black_url;
+  }
 }
 
-// =====================
-// CART
-// =====================
 function cartTotal() {
-  return CART.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
+  return CART.reduce(
+    (sum, item) =>
+      sum +
+      Number(item.price || 0) *
+      Number(item.quantity || 1),
+    0
+  );
 }
 
 function updateCartUI() {
-  const box = $('#cartBox');
-  const items = $('#cartItems');
-  const total = $('#cartTotal');
+  const box = $("#cartBox");
+  const items = $("#cartItems");
+  const total = $("#cartTotal");
 
   if (!box || !items || !total) return;
 
   if (!CART.length) {
-    box.style.display = 'none';
-    items.innerHTML = '';
-    total.textContent = '$0.00';
+    box.style.display = "none";
+    items.innerHTML = "";
+    total.textContent = "$0.00";
     return;
   }
 
-  box.style.display = 'block';
+  box.style.display = "block";
 
   items.innerHTML = CART.map(i => `
     <div class="list-row">
       <span>${i.product_name} × ${i.quantity}</span>
-      <strong>${money(Number(i.price) * Number(i.quantity))}</strong>
+      <strong>${money(
+        Number(i.price) * Number(i.quantity)
+      )}</strong>
     </div>
-  `).join('');
+  `).join("");
 
   total.textContent = money(cartTotal());
 }
 
 function addToCart(id, name, price) {
-  const existing = CART.find(i => i.product_id === id);
+  const existing =
+    CART.find(i => i.product_id === id);
 
   if (existing) {
     existing.quantity += 1;
@@ -120,137 +169,183 @@ function addToCart(id, name, price) {
 
 window.addToCart = addToCart;
 
-// =====================
-// CHECKOUT VIA STORE WORKER ADAPTER
-// =====================
 async function checkout() {
-  const artist = currentArtist();
-
-  if (!artist) {
-    alert('Artist not found.');
+  if (!STORE) {
+    alert("Store unavailable.");
     return;
   }
 
   if (!CART.length) {
-    alert('Cart is empty.');
+    alert("Cart is empty.");
     return;
   }
 
-  const phone = document.getElementById('customerPhone')?.value.trim();
-  const email = document.getElementById('customerEmail')?.value.trim();
+  const phone =
+    $("#customerPhone")?.value.trim();
+
+  const email =
+    $("#customerEmail")?.value.trim();
 
   if (!phone) {
-    alert('Enter your EcoCash number.');
+    alert("Enter your EcoCash number.");
     return;
   }
 
   if (!email) {
-    alert('Enter your email.');
+    alert("Enter your email.");
     return;
   }
 
   try {
-    const checkoutRes = await fetch(api('/web-checkout'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        artist_id: artist.id,
-        artist_name: artist.name,
-        customer_name: 'Guest',
-        customer_phone: phone,
-        customer_email: email,
-        items: CART.map(i => ({
-          product_id: i.product_id,
-          quantity: i.quantity
-        }))
-      })
-    });
+    const checkoutRes = await fetch(
+      api("/web-checkout"),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          artist_id: STORE.artist.artist_id,
+          artist_name: STORE.artist.artist_name,
+          customer_name: "Guest",
+          customer_phone: phone,
+          customer_email: email,
+          items: CART.map(i => ({
+            product_id: i.product_id,
+            quantity: i.quantity
+          }))
+        })
+      }
+    );
 
-    const checkoutData = await checkoutRes.json();
+    const checkoutData =
+      await checkoutRes.json();
 
-    if (checkoutData.status !== 'success') {
-      alert(checkoutData.message || 'Checkout failed.');
-      console.log('CHECKOUT ERROR:', checkoutData);
+    if (
+      checkoutData.status !== "success"
+    ) {
+      alert(
+        checkoutData.message ||
+        "Checkout failed."
+      );
+
+      console.log(checkoutData);
       return;
     }
 
-    alert('Payment prompt sent. Enter your EcoCash PIN on your phone.');
-
-    console.log('WEB CHECKOUT:', checkoutData);
+    alert(
+      "Payment prompt sent. Enter your EcoCash PIN."
+    );
 
     CART = [];
     updateCartUI();
 
   } catch (err) {
-    alert(err.message || 'Checkout failed.');
+    alert(err.message || "Checkout failed.");
   }
 }
 
 window.checkout = checkout;
 
-// =====================
-// STORE RENDER
-// =====================
 async function renderStore() {
-  const root = $('#tracks');
+  const root = $("#tracks");
+
   if (!root) return;
 
-  const artist = currentArtist();
+  const slug = currentArtistSlug();
 
-  if (!artist) {
-    root.innerHTML = `<div class="empty">Artist not found.</div>`;
+  if (!slug) {
+    root.innerHTML =
+      `<div class="empty">Artist not found.</div>`;
     return;
   }
 
-  document.title = `${artist.name} — Store`;
-
-  setText('#artistName', artist.name);
-  setText('#artistSub', 'Official purchases');
-
-  const wa = $('#artistWa');
-  if (wa) {
-    wa.href = artist.wa;
-    wa.textContent = `Buy ${artist.name} via WhatsApp`;
-  }
-
-  const hero = $('#storeHero');
-  if (hero && artist.header) {
-    hero.style.backgroundImage = `url('${artist.header}')`;
-  }
-
   try {
-    const data = await fetchJSON(api(`/artist-store?artist_id=${encodeURIComponent(artist.id)}`));
-    const products = data.products || [];
+    const data = await fetchJSON(
+      api(`/store-config?artist=${slug}`)
+    );
+
+    STORE = data;
+
+    applyTheme(data.theme);
+
+    updateArtistUI(
+      data.artist,
+      data.theme
+    );
+
+    const products =
+      data.products || [];
 
     if (!products.length) {
-      root.innerHTML = `<div class="empty">No products available yet.</div>`;
+      root.innerHTML =
+        `<div class="empty">No products available yet.</div>`;
       return;
     }
 
     root.innerHTML = products.map(p => {
-      const safeName = String(p.product_name || 'Product').replace(/'/g, "\\'");
+      const safeName =
+        String(
+          p.product_name || "Product"
+        ).replace(/'/g, "\\'");
+
       return `
-        <div class="track">
-          <div>
-            <strong>${p.product_name || 'Product'}</strong><br>
-            <span>${p.description || 'Fulfilled after confirmed payment.'}</span>
+        <div class="track-card">
+
+          <div class="track-art">
+            <img
+              src="${p.main_image_url}"
+              alt="${p.product_name}"
+              style="
+                width:100%;
+                height:100%;
+                object-fit:cover;
+                border-radius:18px;
+              "
+            >
           </div>
-          <div class="price">${p.price_label || money(p.price)}</div>
-          <button class="btn primary"
-            onclick="addToCart('${p.product_id}', '${safeName}', ${Number(p.price || 0)})">
-            Add to Cart
-          </button>
+
+          <div class="track-info">
+            <div class="eyebrow">
+              ${p.product_type}
+            </div>
+
+            <h3>${p.product_name}</h3>
+
+            <p>
+              ${p.description || ""}
+            </p>
+
+            <strong>
+              ${p.price_label}
+            </strong>
+          </div>
+
+          <div class="track-actions">
+            <button
+              class="btn primary"
+              onclick="addToCart(
+                '${p.product_id}',
+                '${safeName}',
+                ${Number(p.price || 0)}
+              )"
+            >
+              Add to Cart
+            </button>
+          </div>
+
         </div>
       `;
-    }).join('');
+    }).join("");
 
   } catch (err) {
-    root.innerHTML = `<div class="empty">Store unavailable: ${err.message || 'Unknown error'}</div>`;
+    root.innerHTML = `
+      <div class="empty">
+        Store unavailable:
+        ${err.message || "Unknown error"}
+      </div>
+    `;
   }
 }
 
-// =====================
-// INIT
-// =====================
-renderArtistsGrid();
 renderStore();
