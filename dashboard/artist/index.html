@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZVAKHO Artist Dashboard</title>
+
+  <style>
+    :root {
+      --bg: #0f0e0c;
+      --card: #181614;
+      --card-2: #211d19;
+      --text: #f7f2ec;
+      --muted: #b8aaa0;
+      --line: rgba(255,255,255,.08);
+      --gold: #c17a3e;
+      --gold-2: #d4a574;
+      --success: #62b66a;
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(193,122,62,.18), transparent 35%),
+        linear-gradient(180deg, #11100e, #080807);
+      color: var(--text);
+      font-family: Inter, Arial, sans-serif;
+      padding: 32px;
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 34px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 24px;
+    }
+
+    .eyebrow {
+      color: var(--gold-2);
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: .14em;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 44px);
+      letter-spacing: -.03em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 15px;
+    }
+
+    .refresh {
+      background: var(--gold);
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .refresh:hover {
+      background: var(--gold-2);
+      color: #1b130d;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--card-2), var(--card));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .value {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -.03em;
+    }
+
+    .section {
+      margin-top: 28px;
+    }
+
+    .section h2 {
+      font-size: 20px;
+      margin: 0 0 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: var(--card);
+      border: 1px solid var(--line);
+    }
+
+    th, td {
+      text-align: left;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      background: rgba(255,255,255,.03);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .paid {
+      background: rgba(98,182,106,.14);
+      color: var(--success);
+    }
+
+    .action-box {
+      background: linear-gradient(135deg, rgba(193,122,62,.22), rgba(255,255,255,.04));
+      border: 1px solid rgba(193,122,62,.28);
+      border-radius: var(--radius);
+      padding: 22px;
+      color: var(--text);
+    }
+
+    .action-box p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .footer-note {
+      margin-top: 22px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .error {
+      background: rgba(201,92,69,.12);
+      border: 1px solid rgba(201,92,69,.35);
+      color: #ffb2a4;
+      padding: 16px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    @media (max-width: 800px) {
+      body { padding: 20px; }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .refresh {
+        width: 100%;
+      }
+
+      th, td {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <div class="eyebrow">ZVAKHO Artist Dashboard</div>
+        <h1 id="artistName">Artist Dashboard</h1>
+        <div class="subtitle">
+          Confirmed revenue and paid sales visibility.
+        </div>
+      </div>
+
+      <button class="refresh" onclick="loadDashboard()">Refresh Data</button>
+    </div>
+
+    <div id="errorBox" class="error"></div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">Confirmed Revenue</div>
+        <div class="value" id="revenue">$0.00</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Confirmed Sales</div>
+        <div class="value" id="sales">0</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Recent Paid Sales</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Paynow Ref</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="recentSales">
+          <tr>
+            <td colspan="5">Loading sales data...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>Action</h2>
+      <div class="action-box">
+        <strong>Recommended next step</strong>
+        <p id="actionText">Share your official purchase link consistently to grow confirmed sales.</p>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      Last updated: <span id="updatedAt">—</span> • Auto-refreshes every 20 seconds
+    </div>
+  </div>
+
+  <script>
+    const API = "https://zvakho-payments-v2.yasibomedia.workers.dev";
+
+    const ARTIST_KEYS = {
+      MDUSEVAN: "abc123",
+      VUSAMANGENA: "xyz456",
+      ABSOLL: "key789"
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const artistId = (params.get("artist") || "MDUSEVAN").toUpperCase();
+    const artistKey = ARTIST_KEYS[artistId] || "";
+
+    function money(value) {
+      return "$" + Number(value || 0).toFixed(2);
+    }
+
+    function formatDate(value) {
+      if (!value) return "—";
+      try {
+        return new Date(value).toLocaleString();
+      } catch {
+        return value;
+      }
+    }
+
+    function showError(message) {
+      const box = document.getElementById("errorBox");
+      box.style.display = "block";
+      box.textContent = message;
+    }
+
+    function hideError() {
+      const box = document.getElementById("errorBox");
+      box.style.display = "none";
+      box.textContent = "";
+    }
+
+    function isPaid(row) {
+      return String(row.payment_status || "").toLowerCase() === "paid";
+    }
+
+    async function loadDashboard() {
+      hideError();
+
+      try {
+        const url = `${API}/artist-dashboard?artist_id=${artistId}&key=${encodeURIComponent(artistKey)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!data || data.status !== "success") {
+          throw new Error(data.message || "Dashboard data could not be loaded.");
+        }
+
+        const summary = data.summary || {};
+        const rowsFromApi = data.recent_sales || [];
+
+        /* 
+          IMPORTANT:
+          We filter only by payment_status = paid.
+          We DO NOT require paynow_reference here because some current API versions
+          do not return paynow_reference inside recent_sales, even when D1 has it.
+        */
+        const paidRows = rowsFromApi.filter(isPaid);
+
+        const fallbackRevenue = Number(summary.total_revenue || 0);
+        const calculatedRevenue = paidRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+        const confirmedRevenue = calculatedRevenue > 0 ? calculatedRevenue : fallbackRevenue;
+
+        const fallbackSales = Number(summary.paid_orders || summary.total_sales || 0);
+        const confirmedSales = paidRows.length > 0 ? paidRows.length : fallbackSales;
+
+        document.getElementById("artistName").textContent = data.artist_name || artistId;
+        document.getElementById("revenue").textContent = money(confirmedRevenue);
+        document.getElementById("sales").textContent = confirmedSales;
+        document.getElementById("updatedAt").textContent = new Date().toLocaleString();
+
+        const tbody = document.getElementById("recentSales");
+
+        if (!paidRows.length && fallbackSales > 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td>Confirmed music purchase</td>
+              <td>${money(fallbackRevenue)}</td>
+              <td><span class="status paid">Paid</span></td>
+              <td>Recorded in Paynow</td>
+              <td>—</td>
+            </tr>
+          `;
+        } else if (!paidRows.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5">No confirmed paid sales yet.</td>
+            </tr>
+          `;
+        } else {
+          tbody.innerHTML = paidRows.map(row => `
+            <tr>
+              <td>${row.product_name || "Music purchase"}</td>
+              <td>${money(row.amount)}</td>
+              <td><span class="status paid">Paid</span></td>
+              <td>${row.paynow_reference || "Recorded in Paynow"}</td>
+              <td>${formatDate(row.paid_at || row.created_at)}</td>
+            </tr>
+          `).join("");
+        }
+
+        if (confirmedSales > 0) {
+          document.getElementById("actionText").textContent =
+            "Share your purchase link again today while your release has confirmed traction.";
+        } else {
+          document.getElementById("actionText").textContent =
+            "Start by pushing one clear release link to your most active fans.";
+        }
+
+      } catch (err) {
+        showError(err.message || "Could not load artist dashboard.");
+      }
+    }
+
+    loadDashboard();
+    setInterval(loadDashboard, 20000);
+  </script>
+</body>
+</html>

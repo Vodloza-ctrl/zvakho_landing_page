@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+  <link rel="icon" href="/assets/brand/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/store/store.css?v=4">
+  <script src="/config.js?v=4"></script>
+
+  <title>ZVAKHO Artist Store</title>
+  <meta name="description" content="Official artist store powered by ZVAKHO.">
+</head>
+
+<body class="store-page is-loading" data-layout="universal">
+
+<nav class="store-nav" aria-label="Store navigation">
+  <div class="store-shell store-nav-inner">
+    <a class="store-brand" href="/" aria-label="ZVAKHO home">
+      <img id="navLogo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
+    </a>
+
+    <div class="store-nav-links">
+      <a href="#drop">Drop</a>
+      <a href="#products">Shop</a>
+      <a href="#music">Music</a>
+      <a href="#about">About</a>
+    </div>
+
+    <button class="store-cart-trigger" type="button" data-cart-open aria-label="Open cart">
+      <span>Cart</span>
+      <strong id="cartCount">0</strong>
+    </button>
+  </div>
+</nav>
+
+<div class="store-ticker" id="ticker" aria-label="Store announcement">
+  <div class="store-ticker-track" id="tickerTrack">
+    <span>OFFICIAL STORE • MUSIC • MERCH • LIMITED RELEASES •</span>
+    <span>OFFICIAL STORE • MUSIC • MERCH • LIMITED RELEASES •</span>
+  </div>
+</div>
+
+<header class="experience-hero" id="storeHero">
+  <div class="hero-media" aria-hidden="true"></div>
+  <div class="hero-overlay" aria-hidden="true"></div>
+
+  <div class="store-shell hero-grid-v2">
+    <section class="hero-copy">
+      <div class="store-pill" id="storeKicker">Official Store</div>
+      <h1 id="artistName">Loading...</h1>
+      <p id="artistSub">Loading store...</p>
+
+      <div class="hero-actions">
+        <a class="btn hero-primary" href="#drop">Shop the Drop</a>
+        <a class="btn hero-secondary" href="#music">Preview Music</a>
+      </div>
+    </section>
+
+    <aside class="artist-orb-card" id="artistOrbCard">
+      <div class="artist-orb-image" id="artistProfileWrap">
+        <img id="artistProfile" src="/assets/brand/favicon.png" alt="Artist profile">
+      </div>
+      <div>
+        <span id="artistGenre">Artist</span>
+        <strong id="artistCardName">ZVAKHO</strong>
+      </div>
+    </aside>
+  </div>
+</header>
+
+<main>
+  <section class="featured-drop store-shell" id="drop">
+    <div class="section-intro split-intro">
+      <div>
+        <span class="micro-label">Featured release</span>
+        <h2 id="featuredTitle">Artist drop</h2>
+      </div>
+      <p id="featuredCopy">Official merchandise and music from the artist, fulfilled through ZVAKHO.</p>
+    </div>
+
+    <div class="featured-card" id="featuredProduct">
+      <div class="featured-placeholder">Loading featured product...</div>
+    </div>
+  </section>
+
+  <section class="store-shell product-section" id="products">
+    <div class="section-intro">
+      <span class="micro-label">Shop</span>
+      <h2>Available now</h2>
+      <p>Merchandise first, music always close. Add items to your cart and check out with EcoCash/Paynow flow.</p>
+    </div>
+
+    <div class="product-grid" id="productGrid">
+      <div class="empty">Loading products...</div>
+    </div>
+  </section>
+
+  <section class="music-section" id="music">
+    <div class="store-shell music-layout">
+      <div class="section-intro">
+        <span class="micro-label">Preview before buying</span>
+        <h2>Music player</h2>
+        <p>Play previews, then add the track directly to your cart. ZVAKHO is built for direct artist sales, not passive streams.</p>
+      </div>
+
+      <div class="music-list" id="musicList">
+        <div class="empty">Loading music...</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="artist-story store-shell" id="about">
+    <div class="story-card">
+      <div class="story-profile">
+        <img id="storyProfileImage" src="/assets/brand/favicon.png" alt="Artist profile">
+      </div>
+      <div>
+        <span class="micro-label">Artist world</span>
+        <h2 id="storyTitle">Official artist store</h2>
+        <p id="artistBio">Music, merch and direct-to-fan releases powered by ZVAKHO.</p>
+        <div class="social-row" id="socialRow"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="artist-footer" id="artistFooter">
+  <div class="store-shell artist-footer-grid">
+    <div>
+      <img class="footer-logo" id="footerLogo" src="/assets/brand/zvakho-logo.webp" alt="Artist logo">
+      <p id="footerQuote">Official store powered by ZVAKHO.</p>
+    </div>
+    <div>
+      <strong id="footerArtistName">Artist Store</strong>
+      <p id="footerMeta">Music • Merch • Direct-to-fan commerce</p>
+    </div>
+    <div>
+      <strong>ZVAKHO</strong>
+      <p>Secure artist commerce infrastructure for music, merch and release campaigns.</p>
+    </div>
+  </div>
+</footer>
+
+<aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+  <div class="cart-backdrop" data-cart-close></div>
+  <section class="cart-panel" aria-label="Shopping cart">
+    <div class="cart-head">
+      <div>
+        <span class="micro-label">Cart</span>
+        <h3>Your order</h3>
+      </div>
+      <button class="cart-close" type="button" data-cart-close aria-label="Close cart">×</button>
+    </div>
+
+    <div class="cart-items" id="cartItems"></div>
+
+    <div class="cart-total-row">
+      <span>Total</span>
+      <strong id="cartTotal">$0.00</strong>
+    </div>
+
+    <div class="checkout-fields">
+      <input id="customerPhone" inputmode="tel" placeholder="EcoCash number, e.g. 2637...">
+      <input id="customerEmail" type="email" placeholder="Email required for payment">
+    </div>
+
+    <button class="btn checkout-btn" type="button" id="checkoutBtn">Checkout</button>
+    <p class="checkout-note" id="checkoutNote">You will receive a mobile payment prompt. Enter your PIN on your phone.</p>
+  </section>
+</aside>
+
+<div class="floating-player" id="floatingPlayer" hidden>
+  <button class="player-btn" type="button" id="playerToggle" aria-label="Play preview">▶</button>
+  <div class="player-meta">
+    <strong id="playerTitle">Preview</strong>
+    <span id="playerArtist">ZVAKHO</span>
+  </div>
+  <button class="player-buy" type="button" id="playerBuy">Buy track</button>
+  <audio id="audioPreview" preload="none"></audio>
+</div>
+
+<div class="mobile-buy-bar" id="mobileBuyBar" hidden>
+  <span><strong id="mobileCartCount">0</strong> item(s)</span>
+  <button type="button" data-cart-open>Checkout</button>
+</div>
+
+<script src="/store/store.js?v=4"></script>
+</body>
+</html>
