@@ -252,7 +252,13 @@
       const status = String(value || "").toLowerCase();
 
       if (status === "paid" || status === "delivered") return "paid";
-      if (status === "pending" || status === "not_started") return "pending";
+      if (
+        status === "pending" ||
+        status === "not_started" ||
+        status === "processing" ||
+        status === "ready_for_delivery"
+      ) return "pending";
+
       if (status === "cancelled" || status === "failed" || status === "error") return "failed";
 
       return "pending";
@@ -363,14 +369,69 @@
               </span>
             </td>
             <td>
-              <span class="status ${statusClass(fulfilmentStatus)}">
-                ${escapeHTML(labelStatus(fulfilmentStatus))}
-              </span>
+              <div class="fulfilment-actions">
+                <span class="status ${statusClass(fulfilmentStatus)}">
+                  ${escapeHTML(labelStatus(fulfilmentStatus))}
+                </span>
+
+                <select
+                  class="fulfilment-select"
+                  data-reference="${escapeHTML(item.payment_reference || "")}"
+                  data-current="${escapeHTML(fulfilmentStatus)}"
+                >
+                  <option value="not_started" ${fulfilmentStatus === "not_started" ? "selected" : ""}>Not started</option>
+                  <option value="processing" ${fulfilmentStatus === "processing" ? "selected" : ""}>Processing</option>
+                  <option value="ready_for_delivery" ${fulfilmentStatus === "ready_for_delivery" ? "selected" : ""}>Ready</option>
+                  <option value="delivered" ${fulfilmentStatus === "delivered" ? "selected" : ""}>Delivered</option>
+                  <option value="cancelled" ${fulfilmentStatus === "cancelled" ? "selected" : ""}>Cancelled</option>
+                </select>
+              </div>
             </td>
             <td>${escapeHTML(item.payment_reference || "—")}</td>
           </tr>
         `;
       }).join("");
+    }
+
+    async function updateFulfilmentStatus(paymentReference, nextStatus) {
+      if (!paymentReference || !nextStatus) return;
+
+      const confirmed = confirm(
+        `Update fulfilment status to "${labelStatus(nextStatus)}"?`
+      );
+
+      if (!confirmed) {
+        loadOwnerDashboard();
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/update-fulfilment`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            key: OWNER_KEY,
+            payment_reference: paymentReference,
+            fulfilment_status: nextStatus
+          })
+        });
+
+        const data = await res.json();
+
+        if (!data || data.status !== "success") {
+          alert(data.message || "Fulfilment update failed.");
+          loadOwnerDashboard();
+          return;
+        }
+
+        loadOwnerDashboard();
+
+      } catch (err) {
+        alert(err.message || "Fulfilment update failed.");
+        loadOwnerDashboard();
+      }
     }
 
     async function loadOwnerDashboard() {
@@ -432,6 +493,17 @@
     }
 
     document.getElementById("refreshBtn").addEventListener("click", loadOwnerDashboard);
+
+    document.addEventListener("change", function (event) {
+      const target = event.target;
+
+      if (!target.classList.contains("fulfilment-select")) return;
+
+      const paymentReference = target.dataset.reference || "";
+      const nextStatus = target.value;
+
+      updateFulfilmentStatus(paymentReference, nextStatus);
+    });
 
     loadOwnerDashboard();
     setInterval(loadOwnerDashboard, 20000);
