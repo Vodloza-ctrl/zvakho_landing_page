@@ -5,6 +5,7 @@ const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selec
 let STORE = null;
 let CART = [];
 let ACTIVE_PREVIEW_PRODUCT = null;
+let SELECTED_VARIANTS = {};
 
 const api = (path) => `${String(CONFIG.apiBase || "").replace(/\/$/, "")}${path}`;
 const money = (n) => `$${Number(n || 0).toFixed(2)}`;
@@ -26,7 +27,7 @@ function attr(value) {
  * Artist slug detection order:
  * 1. Query string: /store/?artist=absoll
  * 2. Artist subdomain: absoll.zvakho.co.zw
- * 3. Path fallback: /absoll or /store/absoll if needed later
+ * 3. Path fallback: /absoll or /store/absoll
  */
 function slugFromURL() {
   const params = new URLSearchParams(location.search);
@@ -50,10 +51,6 @@ function slugFromURL() {
     "127"
   ];
 
-  // Handles artist subdomains:
-  // absoll.zvakho.co.zw -> absoll
-  // vusamangena.zvakho.co.zw -> vusamangena
-  // mdusevan.zvakho.co.zw -> mdusevan
   if (
     host.endsWith("zvakho.co.zw") &&
     hostParts.length >= 4 &&
@@ -62,8 +59,6 @@ function slugFromURL() {
     return firstHostPart;
   }
 
-  // Also supports local/dev/custom host style:
-  // absoll.localhost or absoll.pages.dev, if needed
   if (
     hostParts.length > 2 &&
     !ignoredSubdomains.includes(firstHostPart)
@@ -73,12 +68,10 @@ function slugFromURL() {
 
   const pathParts = location.pathname.split("/").filter(Boolean);
 
-  // /absoll
   if (pathParts[0] && pathParts[0] !== "store") {
     return pathParts[0].toLowerCase();
   }
 
-  // /store/absoll
   if (pathParts[0] === "store" && pathParts[1]) {
     return pathParts[1].toLowerCase();
   }
@@ -89,24 +82,32 @@ function slugFromURL() {
 async function fetchJSON(url) {
   const response = await fetch(url, { cache: "no-store" });
   const data = await response.json();
-  if (!response.ok || data.status === "error") throw new Error(data.message || "Request failed");
+
+  if (!response.ok || data.status === "error") {
+    throw new Error(data.message || "Request failed");
+  }
+
   return data;
 }
 
 function isDarkColor(hex) {
   const value = String(hex || "").replace("#", "");
   if (value.length !== 6) return true;
+
   const r = parseInt(value.slice(0, 2), 16);
   const g = parseInt(value.slice(2, 4), 16);
   const b = parseInt(value.slice(4, 6), 16);
+
   return (r * 299 + g * 587 + b * 114) / 1000 < 150;
 }
 
 function layoutFromStore(artist, theme) {
   const style = String(artist.visual_style || theme.preset_id || "streetwear_dark").toLowerCase();
+
   if (style.includes("gospel")) return "gospel_clean";
   if (style.includes("luxury") || style.includes("minimal")) return "minimal_luxury";
   if (style.includes("fashion")) return "fashion_brand";
+
   return "streetwear_dark";
 }
 
@@ -133,6 +134,7 @@ function applyTheme(artist, theme) {
 
 function pickLogo(artist, theme) {
   const bg = theme.background_color || "#050505";
+
   return isDarkColor(bg)
     ? (artist.logo_white_url || artist.logo_url || "/assets/brand/zvakho-logo.webp")
     : (artist.logo_black_url || artist.logo_url || "/assets/brand/zvakho-logo.webp");
@@ -141,25 +143,58 @@ function pickLogo(artist, theme) {
 function setImage(selector, src, fallback = "/assets/brand/favicon.png") {
   const image = $(selector);
   if (!image) return;
+
   image.src = src || fallback;
-  image.onerror = () => { image.src = fallback; };
+  image.onerror = () => {
+    image.src = fallback;
+  };
 }
 
 function productsByType(type) {
-  return (STORE?.products || []).filter((product) => String(product.product_type || "").toLowerCase() === type);
+  return (STORE?.products || []).filter((product) =>
+    String(product.product_type || "").toLowerCase() === type
+  );
 }
 
 function featuredProduct() {
   const products = STORE.products || [];
   const id = STORE.artist.featured_product_id;
+
   return products.find((product) => product.product_id === id)
     || products.find((product) => product.product_type === "merch")
     || products[0]
     || null;
 }
 
+function getProduct(productId) {
+  return (STORE.products || []).find((product) => product.product_id === productId);
+}
+
+function getVariant(product, variantId) {
+  return (product?.variants || []).find((variant) => variant.variant_id === variantId) || null;
+}
+
+function isMerch(product) {
+  return String(product?.product_type || "").toLowerCase() === "merch";
+}
+
+function defaultVariantForProduct(product) {
+  const variants = product?.variants || [];
+  return variants.find((variant) => Number(variant.stock_qty ?? 1) > 0) || variants[0] || null;
+}
+
+function selectedVariantForProduct(product) {
+  if (!product) return null;
+
+  const selectedId = SELECTED_VARIANTS[product.product_id];
+  const selected = getVariant(product, selectedId);
+
+  return selected || defaultVariantForProduct(product);
+}
+
 function updateGlobalUI() {
   const { artist, theme } = STORE;
+
   document.title = `${artist.artist_name} — Official Store`;
   document.body.classList.remove("is-loading");
 
@@ -175,6 +210,7 @@ function updateGlobalUI() {
   $("#storeKicker").textContent = artist.store_mode ? `${artist.store_mode} store` : "Official Store";
 
   const logo = pickLogo(artist, theme);
+
   setImage("#navLogo", logo);
   setImage("#footerLogo", logo);
   setImage("#artistProfile", artist.profile_image_url || artist.hero_image_url || logo);
@@ -187,7 +223,11 @@ function updateGlobalUI() {
   $("#footerMeta").textContent = [artist.genre, "Music", "Merch"].filter(Boolean).join(" • ");
 
   const tickerText = theme.ticker_text || `${artist.artist_name} • OFFICIAL STORE • MUSIC • MERCH • LIMITED RELEASES •`;
-  $("#tickerTrack").innerHTML = `<span>${escapeHTML(tickerText)}</span><span>${escapeHTML(tickerText)}</span><span>${escapeHTML(tickerText)}</span>`;
+  $("#tickerTrack").innerHTML = `
+    <span>${escapeHTML(tickerText)}</span>
+    <span>${escapeHTML(tickerText)}</span>
+    <span>${escapeHTML(tickerText)}</span>
+  `;
 
   renderSocials();
 }
@@ -195,6 +235,7 @@ function updateGlobalUI() {
 function renderSocials() {
   const row = $("#socialRow");
   const artist = STORE.artist;
+
   const socials = [
     ["Instagram", artist.instagram_url],
     ["TikTok", artist.tiktok_url],
@@ -226,10 +267,49 @@ function productDescription(product) {
 
 function productBadges(product) {
   const badges = [];
+
   if (product.limited_release) badges.push(`<span class="badge hot">Limited</span>`);
   if (product.preorder_enabled) badges.push(`<span class="badge">Preorder</span>`);
   if (product.product_type === "music") badges.push(`<span class="badge">Instant delivery</span>`);
+  if (isMerch(product) && product.has_variants) badges.push(`<span class="badge">Choose size</span>`);
+
   return badges.join("");
+}
+
+function renderVariantSelector(product, context = "card") {
+  if (!isMerch(product) || !product.has_variants || !(product.variants || []).length) {
+    return "";
+  }
+
+  const selectedVariant = selectedVariantForProduct(product);
+  const selectedId = selectedVariant?.variant_id || "";
+
+  return `
+    <div class="variant-block" data-variant-block="${attr(product.product_id)}">
+      <div class="variant-label">Size</div>
+      <div class="variant-options">
+        ${(product.variants || []).map((variant) => {
+          const disabled = Number(variant.stock_qty ?? 1) <= 0;
+          const active = variant.variant_id === selectedId;
+
+          return `
+            <button
+              class="variant-option ${active ? "is-selected" : ""}"
+              type="button"
+              data-variant-select="${attr(product.product_id)}"
+              data-variant-id="${attr(variant.variant_id)}"
+              ${disabled ? "disabled" : ""}
+            >
+              ${escapeHTML(variant.size_code || variant.size_label || "Size")}
+            </button>
+          `;
+        }).join("")}
+      </div>
+      <div class="variant-note">
+        ${escapeHTML(selectedVariant ? `${selectedVariant.color || ""} ${selectedVariant.size_label || selectedVariant.size_code || ""}`.trim() : "Select a size")}
+      </div>
+    </div>
+  `;
 }
 
 function renderFeatured() {
@@ -242,21 +322,44 @@ function renderFeatured() {
     return;
   }
 
+  if (isMerch(product) && product.has_variants && !SELECTED_VARIANTS[product.product_id]) {
+    const firstVariant = defaultVariantForProduct(product);
+    if (firstVariant) SELECTED_VARIANTS[product.product_id] = firstVariant.variant_id;
+  }
+
   $("#featuredTitle").textContent = product.product_name || "Featured drop";
   $("#featuredCopy").textContent = productDescription(product);
 
   box.innerHTML = `
     <div class="featured-image">
-      <img src="${attr(productImage(product))}" alt="${attr(product.product_name)}" onerror="this.parentElement.innerHTML='<div class=&quot;product-media&quot;>${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}</div>'">
+      <img
+        src="${attr(productImage(product))}"
+        alt="${attr(product.product_name)}"
+        onerror="this.parentElement.innerHTML='<div class=&quot;product-media&quot;>${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}</div>'"
+      >
     </div>
+
     <div class="featured-info">
       <div class="featured-badges">${productBadges(product)}</div>
+
       <h3>${escapeHTML(product.product_name)}</h3>
+
       <p>${escapeHTML(productDescription(product))}</p>
+
+      ${renderVariantSelector(product, "featured")}
+
       <div class="featured-price">${escapeHTML(product.price_label || money(product.price))}</div>
+
       <div class="featured-actions">
-        <button class="btn hero-primary" type="button" data-add="${attr(product.product_id)}">Add to cart</button>
-        ${product.preview_url ? `<button class="btn hero-secondary" type="button" data-preview="${attr(product.product_id)}">Play preview</button>` : ``}
+        <button class="btn hero-primary" type="button" data-add="${attr(product.product_id)}">
+          Add to cart
+        </button>
+
+        ${product.preview_url ? `
+          <button class="btn hero-secondary" type="button" data-preview="${attr(product.product_id)}">
+            Play preview
+          </button>
+        ` : ``}
       </div>
     </div>
   `;
@@ -265,12 +368,20 @@ function renderFeatured() {
 function renderProducts() {
   const grid = $("#productGrid");
   const products = STORE.products || [];
+
   if (!grid) return;
 
   if (!products.length) {
     grid.innerHTML = `<div class="empty">No products available yet.</div>`;
     return;
   }
+
+  products.forEach((product) => {
+    if (isMerch(product) && product.has_variants && !SELECTED_VARIANTS[product.product_id]) {
+      const firstVariant = defaultVariantForProduct(product);
+      if (firstVariant) SELECTED_VARIANTS[product.product_id] = firstVariant.variant_id;
+    }
+  });
 
   const sorted = [...products].sort((a, b) => {
     const weight = { merch: 1, vip: 2, music: 3 };
@@ -280,16 +391,29 @@ function renderProducts() {
   grid.innerHTML = sorted.map((product) => `
     <article class="product-card">
       <div class="product-media">
-        <img src="${attr(productImage(product))}" alt="${attr(product.product_name)}" onerror="this.remove();this.parentElement.textContent='${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}'">
+        <img
+          src="${attr(productImage(product))}"
+          alt="${attr(product.product_name)}"
+          onerror="this.remove();this.parentElement.textContent='${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}'"
+        >
       </div>
+
       <div class="product-body">
         <div class="product-type">${escapeHTML(product.product_type || "product")}</div>
+
         <h3>${escapeHTML(product.product_name)}</h3>
+
         <p>${escapeHTML(productDescription(product))}</p>
+
         <div class="featured-badges">${productBadges(product)}</div>
+
+        ${renderVariantSelector(product, "card")}
+
         <div class="product-foot">
           <span class="product-price">${escapeHTML(product.price_label || money(product.price))}</span>
-          <button class="product-add" type="button" data-add="${attr(product.product_id)}">Add</button>
+          <button class="product-add" type="button" data-add="${attr(product.product_id)}">
+            Add
+          </button>
         </div>
       </div>
     </article>
@@ -299,6 +423,7 @@ function renderProducts() {
 function renderMusic() {
   const list = $("#musicList");
   const tracks = productsByType("music");
+
   if (!list) return;
 
   if (!tracks.length) {
@@ -310,14 +435,25 @@ function renderMusic() {
   list.innerHTML = tracks.map((track) => `
     <article class="music-row">
       <div class="music-art">
-        <img src="${attr(productImage(track))}" alt="${attr(track.product_name)}" onerror="this.remove();this.parentElement.textContent='${escapeHTML((track.product_name || 'Z').slice(0,2).toUpperCase())}'">
+        <img
+          src="${attr(productImage(track))}"
+          alt="${attr(track.product_name)}"
+          onerror="this.remove();this.parentElement.textContent='${escapeHTML((track.product_name || 'Z').slice(0,2).toUpperCase())}'"
+        >
       </div>
+
       <div>
         <h3>${escapeHTML(track.product_name)}</h3>
         <p>${escapeHTML(track.price_label || money(track.price))} • Direct artist purchase</p>
       </div>
-      <button class="preview-btn" type="button" ${track.preview_url ? `data-preview="${attr(track.product_id)}"` : `disabled`}>${track.preview_url ? "Play" : "No preview"}</button>
-      <button class="mini-add" type="button" data-add="${attr(track.product_id)}">Buy</button>
+
+      <button class="preview-btn" type="button" ${track.preview_url ? `data-preview="${attr(track.product_id)}"` : `disabled`}>
+        ${track.preview_url ? "Play" : "No preview"}
+      </button>
+
+      <button class="mini-add" type="button" data-add="${attr(track.product_id)}">
+        Buy
+      </button>
     </article>
   `).join("");
 
@@ -325,37 +461,75 @@ function renderMusic() {
   if (firstPlayable) setActivePreview(firstPlayable, false);
 }
 
-function getProduct(productId) {
-  return (STORE.products || []).find((product) => product.product_id === productId);
-}
-
 function addToCart(productId, quantity = 1) {
   const product = getProduct(productId);
   if (!product) return;
 
-  const existing = CART.find((item) => item.product_id === productId);
-  if (existing) existing.quantity += quantity;
-  else CART.push({
-    product_id: product.product_id,
-    product_name: product.product_name,
-    price: Number(product.price || 0),
-    quantity
-  });
+  let variant = null;
+
+  if (isMerch(product)) {
+    if (product.has_variants) {
+      variant = selectedVariantForProduct(product);
+
+      if (!variant) {
+        alert("Please select a size first.");
+        return;
+      }
+    } else {
+      alert("This merch item is missing sizes. Please contact ZVAKHO.");
+      return;
+    }
+  }
+
+  const cartKey = variant
+    ? `${product.product_id}::${variant.variant_id}`
+    : product.product_id;
+
+  const existing = CART.find((item) => item.cart_key === cartKey);
+
+  if (existing) {
+    existing.quantity += quantity;
+  } else {
+    CART.push({
+      cart_key: cartKey,
+      product_id: product.product_id,
+      variant_id: variant ? variant.variant_id : "",
+      product_name: product.product_name,
+      product_type: product.product_type,
+      color: variant ? variant.color : "",
+      size_code: variant ? variant.size_code : "",
+      size_label: variant ? variant.size_label : "",
+      price: Number(product.price || 0),
+      quantity
+    });
+  }
 
   updateCartUI();
   openCart();
 }
 
 function cartTotal() {
-  return CART.reduce((total, item) => total + Number(item.price || 0) * Number(item.quantity || 1), 0);
+  return CART.reduce((total, item) =>
+    total + Number(item.price || 0) * Number(item.quantity || 1), 0
+  );
 }
 
 function cartCount() {
-  return CART.reduce((total, item) => total + Number(item.quantity || 1), 0);
+  return CART.reduce((total, item) =>
+    total + Number(item.quantity || 1), 0
+  );
+}
+
+function cartItemLabel(item) {
+  const variantLabel = [item.color, item.size_code].filter(Boolean).join(" ");
+  return variantLabel
+    ? `${item.product_name} (${variantLabel})`
+    : item.product_name;
 }
 
 function updateCartUI() {
   const count = cartCount();
+
   $("#cartCount").textContent = count;
   $("#mobileCartCount").textContent = count;
   $("#cartTotal").textContent = money(cartTotal());
@@ -372,32 +546,41 @@ function updateCartUI() {
   items.innerHTML = CART.map((item) => `
     <div class="cart-item">
       <div>
-        <strong>${escapeHTML(item.product_name)}</strong><br>
+        <strong>${escapeHTML(cartItemLabel(item))}</strong><br>
         <span>${escapeHTML(money(item.price))} × ${item.quantity}</span>
+
         <div class="qty-controls">
-          <button type="button" data-qty="${attr(item.product_id)}" data-step="-1">−</button>
+          <button type="button" data-qty="${attr(item.cart_key)}" data-step="-1">−</button>
           <span>${item.quantity}</span>
-          <button type="button" data-qty="${attr(item.product_id)}" data-step="1">+</button>
+          <button type="button" data-qty="${attr(item.cart_key)}" data-step="1">+</button>
         </div>
       </div>
+
       <div>
         <strong>${escapeHTML(money(item.price * item.quantity))}</strong><br>
-        <button class="remove-item" type="button" data-remove="${attr(item.product_id)}">Remove</button>
+        <button class="remove-item" type="button" data-remove="${attr(item.cart_key)}">
+          Remove
+        </button>
       </div>
     </div>
   `).join("");
 }
 
-function changeQuantity(productId, step) {
-  const item = CART.find((cartItem) => cartItem.product_id === productId);
+function changeQuantity(cartKey, step) {
+  const item = CART.find((cartItem) => cartItem.cart_key === cartKey);
   if (!item) return;
+
   item.quantity += step;
-  if (item.quantity <= 0) CART = CART.filter((cartItem) => cartItem.product_id !== productId);
+
+  if (item.quantity <= 0) {
+    CART = CART.filter((cartItem) => cartItem.cart_key !== cartKey);
+  }
+
   updateCartUI();
 }
 
-function removeFromCart(productId) {
-  CART = CART.filter((item) => item.product_id !== productId);
+function removeFromCart(cartKey) {
+  CART = CART.filter((item) => item.cart_key !== cartKey);
   updateCartUI();
 }
 
@@ -417,11 +600,13 @@ function setActivePreview(product, autoplay = true) {
   if (!product || !product.preview_url) return;
 
   ACTIVE_PREVIEW_PRODUCT = product;
+
   const player = $("#floatingPlayer");
   const audio = $("#audioPreview");
 
   $("#playerTitle").textContent = product.product_name;
   $("#playerArtist").textContent = STORE.artist.artist_name;
+
   audio.src = product.preview_url;
   player.hidden = false;
   $("#playerToggle").textContent = "▶";
@@ -483,6 +668,7 @@ async function checkout() {
         customer_email: email,
         items: CART.map((item) => ({
           product_id: item.product_id,
+          variant_id: item.variant_id || "",
           quantity: item.quantity
         }))
       })
@@ -496,8 +682,10 @@ async function checkout() {
 
     note.textContent = "Payment prompt sent. Enter your PIN on your phone.";
     btn.textContent = "Prompt sent";
+
     CART = [];
     updateCartUI();
+
   } catch (error) {
     note.textContent = error.message || "Checkout failed. Please try again.";
     btn.disabled = false;
@@ -505,34 +693,71 @@ async function checkout() {
   }
 }
 
+function rerenderVariantProduct(productId) {
+  const product = getProduct(productId);
+  if (!product) return;
+
+  renderFeatured();
+  renderProducts();
+}
+
 function bindEvents() {
   document.addEventListener("click", (event) => {
+    const variantButton = event.target.closest("[data-variant-select]");
+    if (variantButton) {
+      const productId = variantButton.dataset.variantSelect;
+      const variantId = variantButton.dataset.variantId;
+
+      SELECTED_VARIANTS[productId] = variantId;
+      rerenderVariantProduct(productId);
+      return;
+    }
+
     const add = event.target.closest("[data-add]");
-    if (add) addToCart(add.dataset.add);
+    if (add) {
+      addToCart(add.dataset.add);
+      return;
+    }
 
     const preview = event.target.closest("[data-preview]");
     if (preview) {
       const product = getProduct(preview.dataset.preview);
       setActivePreview(product, true);
+      return;
     }
 
     const open = event.target.closest("[data-cart-open]");
-    if (open) openCart();
+    if (open) {
+      openCart();
+      return;
+    }
 
     const close = event.target.closest("[data-cart-close]");
-    if (close) closeCart();
+    if (close) {
+      closeCart();
+      return;
+    }
 
     const qty = event.target.closest("[data-qty]");
-    if (qty) changeQuantity(qty.dataset.qty, Number(qty.dataset.step || 0));
+    if (qty) {
+      changeQuantity(qty.dataset.qty, Number(qty.dataset.step || 0));
+      return;
+    }
 
     const remove = event.target.closest("[data-remove]");
-    if (remove) removeFromCart(remove.dataset.remove);
+    if (remove) {
+      removeFromCart(remove.dataset.remove);
+    }
   });
 
   $("#checkoutBtn").addEventListener("click", checkout);
+
   $("#playerToggle").addEventListener("click", togglePreview);
+
   $("#playerBuy").addEventListener("click", () => {
-    if (ACTIVE_PREVIEW_PRODUCT) addToCart(ACTIVE_PREVIEW_PRODUCT.product_id);
+    if (ACTIVE_PREVIEW_PRODUCT) {
+      addToCart(ACTIVE_PREVIEW_PRODUCT.product_id);
+    }
   });
 
   $("#audioPreview").addEventListener("ended", () => {
@@ -542,24 +767,37 @@ function bindEvents() {
 
 async function initStore() {
   bindEvents();
+
   const slug = slugFromURL();
   const productGrid = $("#productGrid");
 
   if (!slug) {
-    productGrid.innerHTML = `<div class="empty">Artist not found. Open a store with <strong>/store/?artist=artist-slug</strong>.</div>`;
+    productGrid.innerHTML = `
+      <div class="empty">
+        Artist not found. Open a store with <strong>/store/?artist=artist-slug</strong>.
+      </div>
+    `;
     return;
   }
 
   try {
     STORE = await fetchJSON(api(`/store-config?artist=${encodeURIComponent(slug)}`));
+
     applyTheme(STORE.artist, STORE.theme || {});
     updateGlobalUI();
     renderFeatured();
     renderProducts();
     renderMusic();
     updateCartUI();
+
   } catch (error) {
-    productGrid.innerHTML = `<div class="empty"><strong>Store unavailable.</strong><br>${escapeHTML(error.message || "Please try again.")}</div>`;
+    productGrid.innerHTML = `
+      <div class="empty">
+        <strong>Store unavailable.</strong><br>
+        ${escapeHTML(error.message || "Please try again.")}
+      </div>
+    `;
+
     $("#artistName").textContent = "Store unavailable";
     $("#artistSub").textContent = error.message || "Please try again.";
   }
