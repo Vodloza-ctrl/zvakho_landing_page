@@ -22,16 +22,66 @@ function attr(value) {
   return escapeHTML(value).replace(/`/g, "&#096;");
 }
 
+/**
+ * Artist slug detection order:
+ * 1. Query string: /store/?artist=absoll
+ * 2. Artist subdomain: absoll.zvakho.co.zw
+ * 3. Path fallback: /absoll or /store/absoll if needed later
+ */
 function slugFromURL() {
   const params = new URLSearchParams(location.search);
   const query = params.get("artist") || params.get("slug");
-  if (query) return String(query).trim().toLowerCase();
 
-  const parts = location.pathname.split("/").filter(Boolean);
-  if (parts[0] && parts[0] !== "store") return parts[0].toLowerCase();
+  if (query) {
+    return String(query).trim().toLowerCase();
+  }
 
-  const host = location.hostname.split(".")[0].toLowerCase();
-  if (!["www", "zvakho", "store", "localhost", "127"].includes(host)) return host;
+  const host = location.hostname.toLowerCase();
+  const hostParts = host.split(".");
+  const firstHostPart = hostParts[0];
+
+  const ignoredSubdomains = [
+    "www",
+    "zvakho",
+    "store",
+    "api",
+    "assets",
+    "localhost",
+    "127"
+  ];
+
+  // Handles artist subdomains:
+  // absoll.zvakho.co.zw -> absoll
+  // vusamangena.zvakho.co.zw -> vusamangena
+  // mdusevan.zvakho.co.zw -> mdusevan
+  if (
+    host.endsWith("zvakho.co.zw") &&
+    hostParts.length >= 4 &&
+    !ignoredSubdomains.includes(firstHostPart)
+  ) {
+    return firstHostPart;
+  }
+
+  // Also supports local/dev/custom host style:
+  // absoll.localhost or absoll.pages.dev, if needed
+  if (
+    hostParts.length > 2 &&
+    !ignoredSubdomains.includes(firstHostPart)
+  ) {
+    return firstHostPart;
+  }
+
+  const pathParts = location.pathname.split("/").filter(Boolean);
+
+  // /absoll
+  if (pathParts[0] && pathParts[0] !== "store") {
+    return pathParts[0].toLowerCase();
+  }
+
+  // /store/absoll
+  if (pathParts[0] === "store" && pathParts[1]) {
+    return pathParts[1].toLowerCase();
+  }
 
   return "";
 }
