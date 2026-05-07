@@ -178,18 +178,11 @@ function isMerch(product) {
   return String(product?.product_type || "").toLowerCase() === "merch";
 }
 
-function defaultVariantForProduct(product) {
-  const variants = product?.variants || [];
-  return variants.find((variant) => Number(variant.stock_qty ?? 1) > 0) || variants[0] || null;
-}
-
 function selectedVariantForProduct(product) {
   if (!product) return null;
 
   const selectedId = SELECTED_VARIANTS[product.product_id];
-  const selected = getVariant(product, selectedId);
-
-  return selected || defaultVariantForProduct(product);
+  return getVariant(product, selectedId);
 }
 
 function updateGlobalUI() {
@@ -286,11 +279,12 @@ function renderVariantSelector(product, context = "card") {
 
   return `
     <div class="variant-block" data-variant-block="${attr(product.product_id)}">
-      <div class="variant-label">Size</div>
+      <div class="variant-label">Choose size</div>
+
       <div class="variant-options">
         ${(product.variants || []).map((variant) => {
           const disabled = Number(variant.stock_qty ?? 1) <= 0;
-          const active = variant.variant_id === selectedId;
+          const active = selectedId && variant.variant_id === selectedId;
 
           return `
             <button
@@ -305,8 +299,13 @@ function renderVariantSelector(product, context = "card") {
           `;
         }).join("")}
       </div>
-      <div class="variant-note">
-        ${escapeHTML(selectedVariant ? `${selectedVariant.color || ""} ${selectedVariant.size_label || selectedVariant.size_code || ""}`.trim() : "Select a size")}
+
+      <div class="variant-note ${selectedVariant ? "is-selected" : "needs-selection"}">
+        ${
+          selectedVariant
+            ? escapeHTML(`${selectedVariant.color || ""} ${selectedVariant.size_label || selectedVariant.size_code || ""}`.trim())
+            : "Please select a size before adding to cart"
+        }
       </div>
     </div>
   `;
@@ -320,11 +319,6 @@ function renderFeatured() {
   if (!product) {
     box.innerHTML = `<div class="featured-placeholder">No featured product yet.</div>`;
     return;
-  }
-
-  if (isMerch(product) && product.has_variants && !SELECTED_VARIANTS[product.product_id]) {
-    const firstVariant = defaultVariantForProduct(product);
-    if (firstVariant) SELECTED_VARIANTS[product.product_id] = firstVariant.variant_id;
   }
 
   $("#featuredTitle").textContent = product.product_name || "Featured drop";
@@ -375,13 +369,6 @@ function renderProducts() {
     grid.innerHTML = `<div class="empty">No products available yet.</div>`;
     return;
   }
-
-  products.forEach((product) => {
-    if (isMerch(product) && product.has_variants && !SELECTED_VARIANTS[product.product_id]) {
-      const firstVariant = defaultVariantForProduct(product);
-      if (firstVariant) SELECTED_VARIANTS[product.product_id] = firstVariant.variant_id;
-    }
-  });
 
   const sorted = [...products].sort((a, b) => {
     const weight = { merch: 1, vip: 2, music: 3 };
