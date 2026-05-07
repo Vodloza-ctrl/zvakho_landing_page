@@ -3,6 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
+<script>
+(function(){
+  const host = window.location.hostname.toLowerCase();
+  const subdomain = host.split(".")[0];
+
+  const reservedSubdomains = [
+    "www",
+    "zvakho",
+    "store",
+    "api",
+    "assets",
+    "admin",
+    "dashboard"
+  ];
+
+  if (
+    host.endsWith("zvakho.co.zw") &&
+    !reservedSubdomains.includes(subdomain) &&
+    window.location.pathname === "/"
+  ) {
+    window.location.replace(`/store/?artist=${encodeURIComponent(subdomain)}`);
+  }
+})();
+</script>
+
 <link rel="icon" href="/assets/brand/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,10 +38,15 @@
 
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
-  const h=location.hostname.split('.')[0].toLowerCase();
-  if(h==='admin'&&location.pathname==='/')location.replace('/dashboard/');
-  if(h==='dashboard'&&location.pathname==='/')location.replace('/app/');
-  // Future subdomain support: any artist subdomain can be routed by Cloudflare to /store/?artist={slug}.
+  const h = location.hostname.split('.')[0].toLowerCase();
+
+  if(h === 'admin' && location.pathname === '/') {
+    location.replace('/dashboard/');
+  }
+
+  if(h === 'dashboard' && location.pathname === '/') {
+    location.replace('/app/');
+  }
 });
 </script>
 
