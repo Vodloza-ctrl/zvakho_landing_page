@@ -36,7 +36,7 @@
         <div class="kicker">Owner Dashboard</div>
         <h1>Platform control panel</h1>
         <p class="lead">
-          Operational visibility across artists, confirmed revenue, paid transactions, and recent platform activity.
+          Operational visibility across artists, confirmed revenue, paid transactions, fulfilment items, and recent platform activity.
         </p>
       </div>
 
@@ -80,6 +80,11 @@
       </div>
 
       <div class="metric">
+        <span>Fulfilment items</span>
+        <strong id="mFulfilment">0</strong>
+      </div>
+
+      <div class="metric">
         <span>Last refresh</span>
         <strong id="mUpdated">—</strong>
       </div>
@@ -97,30 +102,78 @@
       </div>
     </section>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Artist</th>
-            <th>Product</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Reference</th>
-          </tr>
-        </thead>
-        <tbody id="ordersBody">
-          <tr>
-            <td colspan="6">Loading confirmed platform sales…</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <section class="dashboard-section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Fulfilment</div>
+          <h2>Merch & order items</h2>
+          <p class="lead">
+            Line-item view for merch, sizes, quantities, payment status, and fulfilment status.
+          </p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Artist</th>
+              <th>Product</th>
+              <th>Color</th>
+              <th>Size</th>
+              <th>Qty</th>
+              <th>Amount</th>
+              <th>Payment</th>
+              <th>Fulfilment</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody id="fulfilmentBody">
+            <tr>
+              <td colspan="10">Loading fulfilment items…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="dashboard-section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Confirmed revenue</div>
+          <h2>Paid platform sales</h2>
+          <p class="lead">
+            Only transactions confirmed as paid are shown in this revenue table.
+          </p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Artist</th>
+              <th>Product</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody id="ordersBody">
+            <tr>
+              <td colspan="6">Loading confirmed platform sales…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
     <section>
       <div class="notice">
         <strong>Operational note.</strong>
-        This dashboard separates confirmed revenue from pending or archived transactions. Only fully paid records are shown as sales.
+        This dashboard separates confirmed revenue from pending or archived transactions. Only fully paid records are shown as sales. Fulfilment items may appear before payment is confirmed, but they should only be processed after payment status becomes paid.
       </div>
     </section>
   </main>
@@ -182,8 +235,33 @@
       }
     }
 
+    function escapeHTML(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
     function isPaid(row) {
       return String(row.payment_status || "").toLowerCase() === "paid";
+    }
+
+    function statusClass(value) {
+      const status = String(value || "").toLowerCase();
+
+      if (status === "paid" || status === "delivered") return "paid";
+      if (status === "pending" || status === "not_started") return "pending";
+      if (status === "cancelled" || status === "failed" || status === "error") return "failed";
+
+      return "pending";
+    }
+
+    function labelStatus(value) {
+      return String(value || "—")
+        .replaceAll("_", " ")
+        .replace(/\b\w/g, char => char.toUpperCase());
     }
 
     function renderList(targetId, rows, emptyText, type) {
@@ -208,8 +286,8 @@
         return `
           <div class="list-item">
             <div>
-              <strong>${index + 1}. ${title}</strong>
-              <span>${meta}</span>
+              <strong>${index + 1}. ${escapeHTML(title)}</strong>
+              <span>${escapeHTML(meta)}</span>
             </div>
             <b>${money(row.revenue)}</b>
           </div>
@@ -233,13 +311,66 @@
       tbody.innerHTML = paidRows.map(row => `
         <tr>
           <td>${formatDate(row.paid_at || row.created_at)}</td>
-          <td>${row.artist_name || row.artist_id || "—"}</td>
-          <td>${row.product_name || "Music purchase"}</td>
+          <td>${escapeHTML(row.artist_name || row.artist_id || "—")}</td>
+          <td>${escapeHTML(row.product_name || "Music purchase")}</td>
           <td>${money(row.amount)}</td>
           <td><span class="status paid">Paid</span></td>
-          <td>${row.payment_reference || "—"}</td>
+          <td>${escapeHTML(row.payment_reference || "—")}</td>
         </tr>
       `).join("");
+    }
+
+    function renderFulfilmentItems(rows) {
+      const tbody = document.getElementById("fulfilmentBody");
+      const countTarget = document.getElementById("mFulfilment");
+
+      const items = Array.isArray(rows) ? rows : [];
+
+      if (countTarget) {
+        countTarget.textContent = items.length;
+      }
+
+      if (!items.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10">No fulfilment items yet.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = items.map(item => {
+        const size =
+          item.size_label && item.size_code
+            ? `${item.size_label} (${item.size_code})`
+            : item.size_label || item.size_code || "—";
+
+        const paymentStatus = item.payment_status || "pending";
+        const fulfilmentStatus = item.fulfilment_status || "not_started";
+
+        return `
+          <tr>
+            <td>${formatDate(item.paid_at || item.order_created_at || item.created_at)}</td>
+            <td>${escapeHTML(item.artist_name || item.artist_id || "—")}</td>
+            <td>${escapeHTML(item.product_name || "—")}</td>
+            <td>${escapeHTML(item.color || "—")}</td>
+            <td>${escapeHTML(size)}</td>
+            <td>${Number(item.quantity || 1)}</td>
+            <td>${money(item.line_total || item.amount || 0)}</td>
+            <td>
+              <span class="status ${statusClass(paymentStatus)}">
+                ${escapeHTML(labelStatus(paymentStatus))}
+              </span>
+            </td>
+            <td>
+              <span class="status ${statusClass(fulfilmentStatus)}">
+                ${escapeHTML(labelStatus(fulfilmentStatus))}
+              </span>
+            </td>
+            <td>${escapeHTML(item.payment_reference || "—")}</td>
+          </tr>
+        `;
+      }).join("");
     }
 
     async function loadOwnerDashboard() {
@@ -277,13 +408,24 @@
 
         renderList("artistLeaderboard", paidArtists, "No confirmed artist sales yet.", "artist");
         renderList("productLeaderboard", paidProducts, "No confirmed product sales yet.", "product");
+        renderFulfilmentItems(data.fulfilment_items || []);
         renderOrders(data.recent_orders || []);
 
       } catch (err) {
         document.getElementById("mUpdated").textContent = "Failed";
+
+        const fulfilmentBody = document.getElementById("fulfilmentBody");
+        if (fulfilmentBody) {
+          fulfilmentBody.innerHTML = `
+            <tr>
+              <td colspan="10">${escapeHTML(err.message || "Fulfilment data failed to load.")}</td>
+            </tr>
+          `;
+        }
+
         document.getElementById("ordersBody").innerHTML = `
           <tr>
-            <td colspan="6">${err.message || "Owner dashboard failed to load."}</td>
+            <td colspan="6">${escapeHTML(err.message || "Owner dashboard failed to load.")}</td>
           </tr>
         `;
       }
