@@ -533,6 +533,15 @@ body.store-page img{
   margin-top:8px;
 }
 
+.variant-note.needs-selection{
+  color:var(--store-primary);
+  font-weight:850;
+}
+
+.variant-note.is-selected{
+  color:var(--store-muted);
+}
+
 /* MUSIC */
 
 .music-layout{
