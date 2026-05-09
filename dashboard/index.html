@@ -106,6 +106,175 @@
       color: #2a1a12;
       border: 1px solid rgba(42, 26, 18, 0.16);
     }
+
+    .submission-filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .submission-filters select {
+      border: 1px solid rgba(42, 26, 18, 0.16);
+      border-radius: 999px;
+      padding: 11px 14px;
+      background: #fffaf4;
+      color: #2a1a12;
+      font: inherit;
+      font-weight: 800;
+      outline: none;
+    }
+
+    .submission-card {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      border: 1px solid rgba(42, 26, 18, 0.12);
+      border-radius: 22px;
+      background: #fffaf4;
+      margin-bottom: 14px;
+    }
+
+    .submission-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .submission-title strong {
+      display: block;
+      color: #2a1a12;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .submission-title span {
+      color: rgba(42, 26, 18, 0.68);
+      font-size: 13px;
+      line-height: 1.55;
+      display: block;
+    }
+
+    .submission-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .submission-meta {
+      background: #fff;
+      border: 1px solid rgba(42, 26, 18, 0.1);
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    .submission-meta small {
+      display: block;
+      color: rgba(42, 26, 18, 0.58);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 6px;
+    }
+
+    .submission-meta b {
+      color: #2a1a12;
+      font-size: 13px;
+      word-break: break-word;
+    }
+
+    .submission-files {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .submission-file {
+      background: rgba(42, 26, 18, 0.035);
+      border: 1px solid rgba(42, 26, 18, 0.1);
+      border-radius: 16px;
+      padding: 12px;
+      font-size: 12px;
+      color: rgba(42, 26, 18, 0.72);
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    .submission-file strong {
+      display: block;
+      color: #2a1a12;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+
+    .submission-review {
+      display: grid;
+      grid-template-columns: 220px 1fr auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .submission-review select,
+    .submission-review textarea {
+      width: 100%;
+      border: 1px solid rgba(42, 26, 18, 0.16);
+      border-radius: 16px;
+      padding: 12px;
+      background: #fff;
+      color: #2a1a12;
+      font: inherit;
+      outline: none;
+    }
+
+    .submission-review textarea {
+      resize: vertical;
+      min-height: 46px;
+    }
+
+    .submission-empty {
+      padding: 18px;
+      border: 1px solid rgba(42, 26, 18, 0.12);
+      border-radius: 18px;
+      background: #fffaf4;
+      color: rgba(42, 26, 18, 0.68);
+      font-weight: 800;
+    }
+
+    .submission-count {
+      color: rgba(42, 26, 18, 0.68);
+      font-size: 13px;
+      font-weight: 800;
+      margin-top: 6px;
+    }
+
+    @media (max-width: 1000px) {
+      .submission-meta-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .submission-review {
+        grid-template-columns: 1fr;
+      }
+
+      .submission-files {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .submission-meta-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .submission-filters {
+        justify-content: flex-start;
+      }
+    }
   </style>
 </head>
 
@@ -132,7 +301,7 @@
       <div class="kicker">Owner Access</div>
       <h1>Sign in to ZVAKHO</h1>
       <p>
-        Use your owner account to access platform revenue, artist activity, fulfilment items, and operational controls.
+        Use your owner account to access platform revenue, artist activity, fulfilment items, music submissions, and operational controls.
       </p>
 
       <form id="loginForm" class="auth-form">
@@ -159,7 +328,7 @@
         <div class="kicker">Owner Dashboard</div>
         <h1>Platform control panel</h1>
         <p class="lead">
-          Operational visibility across artists, confirmed revenue, paid transactions, fulfilment items, and recent platform activity.
+          Operational visibility across artists, confirmed revenue, paid transactions, fulfilment items, music submissions, and recent platform activity.
         </p>
       </div>
 
@@ -212,6 +381,11 @@
       </div>
 
       <div class="metric">
+        <span>Music submissions</span>
+        <strong id="mSubmissions">0</strong>
+      </div>
+
+      <div class="metric">
         <span>Last refresh</span>
         <strong id="mUpdated">—</strong>
       </div>
@@ -226,6 +400,36 @@
       <div class="panel">
         <h3>Product leaderboard</h3>
         <div id="productLeaderboard" class="list"></div>
+      </div>
+    </section>
+
+    <section class="dashboard-section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Music submissions</div>
+          <h2>Artist music review queue</h2>
+          <p class="lead">
+            Review uploaded MP3 files, artwork, metadata, rights confirmation, and update approval status.
+          </p>
+          <div id="submissionCount" class="submission-count">Loading submissions…</div>
+        </div>
+
+        <div class="submission-filters">
+          <select id="submissionStatusFilter">
+            <option value="">All statuses</option>
+            <option value="submitted">Submitted</option>
+            <option value="under_review">Under review</option>
+            <option value="needs_fixes">Needs fixes</option>
+            <option value="approved">Approved</option>
+            <option value="live">Live</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <button class="btn secondary" id="refreshSubmissionsBtn">Refresh Submissions</button>
+        </div>
+      </div>
+
+      <div id="submissionsBody">
+        <div class="submission-empty">Loading music submissions…</div>
       </div>
     </section>
 
@@ -300,7 +504,7 @@
     <section>
       <div class="notice">
         <strong>Operational note.</strong>
-        This dashboard separates confirmed revenue from pending or archived transactions. Only fully paid records are shown as sales. Fulfilment items may appear before payment is confirmed, but they should only be processed after payment status becomes paid.
+        This dashboard separates confirmed revenue from pending or archived transactions. Only fully paid records are shown as sales. Fulfilment items may appear before payment is confirmed, but they should only be processed after payment status becomes paid. Music submissions are private review records until approved and made live.
       </div>
     </section>
   </main>
@@ -335,6 +539,8 @@
     const API =
       (window.CONFIG && CONFIG.apiUrl) ||
       "https://zvakho-payments-v2.yasibomedia.workers.dev";
+
+    const SUBMISSIONS_API = "https://zvakho-submissions-api.yasibomedia.workers.dev";
 
     const TOKEN_KEY = "zvakho_owner_token";
     const USER_KEY = "zvakho_owner_user";
@@ -444,16 +650,19 @@
     function statusClass(value) {
       const status = String(value || "").toLowerCase();
 
-      if (status === "paid" || status === "delivered") return "paid";
+      if (status === "paid" || status === "delivered" || status === "approved" || status === "live") return "paid";
 
       if (
         status === "pending" ||
         status === "not_started" ||
         status === "processing" ||
-        status === "ready_for_delivery"
+        status === "ready_for_delivery" ||
+        status === "submitted" ||
+        status === "under_review" ||
+        status === "needs_fixes"
       ) return "pending";
 
-      if (status === "cancelled" || status === "failed" || status === "error") return "failed";
+      if (status === "cancelled" || status === "failed" || status === "error" || status === "rejected") return "failed";
 
       return "pending";
     }
@@ -587,6 +796,229 @@
       }).join("");
     }
 
+    function renderSubmissions(rows) {
+      const target = document.getElementById("submissionsBody");
+      const countTarget = document.getElementById("mSubmissions");
+      const labelTarget = document.getElementById("submissionCount");
+
+      const submissions = Array.isArray(rows) ? rows : [];
+
+      if (countTarget) {
+        countTarget.textContent = submissions.length;
+      }
+
+      if (labelTarget) {
+        labelTarget.textContent = `${submissions.length} submission(s) loaded`;
+      }
+
+      if (!submissions.length) {
+        target.innerHTML = `<div class="submission-empty">No music submissions found.</div>`;
+        return;
+      }
+
+      target.innerHTML = submissions.map(row => {
+        const status = row.submission_status || "submitted";
+        const noteId = `note_${row.submission_id}`;
+        const selectId = `status_${row.submission_id}`;
+
+        return `
+          <article class="submission-card">
+            <div class="submission-top">
+              <div class="submission-title">
+                <strong>${escapeHTML(row.song_title || "Untitled submission")}</strong>
+                <span>
+                  ${escapeHTML(row.artist_name || row.artist_id || "Artist")} •
+                  ${escapeHTML(row.artist_email || "No email")} •
+                  Submitted ${formatDate(row.created_at)}
+                </span>
+              </div>
+
+              <span class="status ${statusClass(status)}">${escapeHTML(labelStatus(status))}</span>
+            </div>
+
+            <div class="submission-meta-grid">
+              <div class="submission-meta">
+                <small>Artist ID</small>
+                <b>${escapeHTML(row.artist_id || "—")}</b>
+              </div>
+
+              <div class="submission-meta">
+                <small>Release Type</small>
+                <b>${escapeHTML(labelStatus(row.release_type || "single"))}</b>
+              </div>
+
+              <div class="submission-meta">
+                <small>Genre</small>
+                <b>${escapeHTML(row.genre || "—")}</b>
+              </div>
+
+              <div class="submission-meta">
+                <small>Price</small>
+                <b>${money(row.price || 0)}</b>
+              </div>
+
+              <div class="submission-meta">
+                <small>Explicit</small>
+                <b>${escapeHTML(labelStatus(row.explicit_content || "no"))}</b>
+              </div>
+
+              <div class="submission-meta">
+                <small>Rights Confirmed</small>
+                <b>${Number(row.rights_confirmed || 0) === 1 ? "Yes" : "No"}</b>
+              </div>
+
+              <div class="submission-meta">
+                <small>Permission To Sell</small>
+                <b>${Number(row.permission_to_sell || 0) === 1 ? "Yes" : "No"}</b>
+              </div>
+
+              <div class="submission-meta">
+                <small>Reviewed By</small>
+                <b>${escapeHTML(row.reviewed_by || "—")}</b>
+              </div>
+            </div>
+
+            <div class="submission-files">
+              <div class="submission-file">
+                <strong>Audio file</strong>
+                Filename: ${escapeHTML(row.audio_filename || "—")}<br>
+                R2: ${escapeHTML(row.audio_r2_key || "—")}<br>
+                SHA256: ${escapeHTML(row.audio_sha256 || "—")}
+              </div>
+
+              <div class="submission-file">
+                <strong>Artwork file</strong>
+                Filename: ${escapeHTML(row.artwork_filename || "—")}<br>
+                R2: ${escapeHTML(row.artwork_r2_key || "—")}<br>
+                SHA256: ${escapeHTML(row.artwork_sha256 || "—")}
+              </div>
+            </div>
+
+            <div class="submission-file">
+              <strong>Description / caption / credits</strong>
+              Producer: ${escapeHTML(row.producer_credits || "—")}<br>
+              Songwriter: ${escapeHTML(row.songwriter_credits || "—")}<br>
+              Description: ${escapeHTML(row.description || "—")}<br>
+              Marketing caption: ${escapeHTML(row.marketing_caption || "—")}<br>
+              Current review note: ${escapeHTML(row.review_note || "—")}
+            </div>
+
+            <div class="submission-review">
+              <select id="${selectId}" class="submission-status-select">
+                <option value="submitted" ${status === "submitted" ? "selected" : ""}>Submitted</option>
+                <option value="under_review" ${status === "under_review" ? "selected" : ""}>Under review</option>
+                <option value="needs_fixes" ${status === "needs_fixes" ? "selected" : ""}>Needs fixes</option>
+                <option value="approved" ${status === "approved" ? "selected" : ""}>Approved</option>
+                <option value="live" ${status === "live" ? "selected" : ""}>Live</option>
+                <option value="rejected" ${status === "rejected" ? "selected" : ""}>Rejected</option>
+              </select>
+
+              <textarea id="${noteId}" placeholder="Review note for artist or internal record...">${escapeHTML(row.review_note || "")}</textarea>
+
+              <button
+                class="btn primary submission-update-btn"
+                type="button"
+                data-submission-id="${escapeHTML(row.submission_id)}"
+                data-status-id="${selectId}"
+                data-note-id="${noteId}"
+              >
+                Update Status
+              </button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    async function loadSubmissions() {
+      const target = document.getElementById("submissionsBody");
+      const statusFilter = document.getElementById("submissionStatusFilter")?.value || "";
+      const countTarget = document.getElementById("submissionCount");
+
+      if (countTarget) {
+        countTarget.textContent = "Loading submissions…";
+      }
+
+      target.innerHTML = `<div class="submission-empty">Loading music submissions…</div>`;
+
+      try {
+        const url = statusFilter
+          ? `${SUBMISSIONS_API}/admin-submissions?status=${encodeURIComponent(statusFilter)}`
+          : `${SUBMISSIONS_API}/admin-submissions`;
+
+        const res = await fetch(url, {
+          method: "GET",
+          headers: authHeaders()
+        });
+
+        const data = await res.json();
+
+        if (res.status === 401 || res.status === 403) {
+          clearToken();
+          showAuth();
+          showAuthError(data.message || "Session expired. Please sign in again.");
+          return;
+        }
+
+        if (!data || data.status !== "success") {
+          throw new Error(data.message || "Submissions failed to load.");
+        }
+
+        renderSubmissions(data.submissions || []);
+
+      } catch (err) {
+        if (countTarget) {
+          countTarget.textContent = "Failed to load submissions";
+        }
+
+        target.innerHTML = `
+          <div class="submission-empty">
+            ${escapeHTML(err.message || "Could not load music submissions.")}
+          </div>
+        `;
+      }
+    }
+
+    async function updateSubmissionStatus(submissionId, statusId, noteId) {
+      const statusTarget = document.getElementById(statusId);
+      const noteTarget = document.getElementById(noteId);
+
+      const nextStatus = statusTarget?.value || "";
+      const reviewNote = noteTarget?.value || "";
+
+      if (!submissionId || !nextStatus) return;
+
+      const confirmed = confirm(`Update submission to "${labelStatus(nextStatus)}"?`);
+
+      if (!confirmed) return;
+
+      try {
+        const res = await fetch(`${SUBMISSIONS_API}/update-submission-status`, {
+          method: "POST",
+          headers: authHeaders({
+            "Content-Type": "application/json"
+          }),
+          body: JSON.stringify({
+            submission_id: submissionId,
+            submission_status: nextStatus,
+            review_note: reviewNote
+          })
+        });
+
+        const data = await res.json();
+
+        if (!data || data.status !== "success") {
+          alert(data.message || "Submission update failed.");
+          return;
+        }
+
+        loadSubmissions();
+
+      } catch (err) {
+        alert(err.message || "Submission update failed.");
+      }
+    }
+
     async function updateFulfilmentStatus(paymentReference, nextStatus) {
       if (!paymentReference || !nextStatus) return;
 
@@ -672,6 +1104,7 @@
         renderList("productLeaderboard", paidProducts, "No confirmed product sales yet.", "product");
         renderFulfilmentItems(data.fulfilment_items || []);
         renderOrders(data.recent_orders || []);
+        loadSubmissions();
 
       } catch (err) {
         document.getElementById("mUpdated").textContent = "Failed";
@@ -691,6 +1124,8 @@
             <td colspan="6">${escapeHTML(err.message || "Owner dashboard failed to load.")}</td>
           </tr>
         `;
+
+        loadSubmissions();
       }
     }
 
@@ -797,6 +1232,8 @@
 
     document.getElementById("logoutBtn").addEventListener("click", logout);
     document.getElementById("refreshBtn").addEventListener("click", loadOwnerDashboard);
+    document.getElementById("refreshSubmissionsBtn").addEventListener("click", loadSubmissions);
+    document.getElementById("submissionStatusFilter").addEventListener("change", loadSubmissions);
 
     document.addEventListener("change", function (event) {
       const target = event.target;
@@ -807,6 +1244,18 @@
       const nextStatus = target.value;
 
       updateFulfilmentStatus(paymentReference, nextStatus);
+    });
+
+    document.addEventListener("click", function (event) {
+      const target = event.target;
+
+      if (!target.classList.contains("submission-update-btn")) return;
+
+      const submissionId = target.dataset.submissionId || "";
+      const statusId = target.dataset.statusId || "";
+      const noteId = target.dataset.noteId || "";
+
+      updateSubmissionStatus(submissionId, statusId, noteId);
     });
 
     checkExistingSession();
