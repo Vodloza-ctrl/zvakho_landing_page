@@ -1,1 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Submit Music | ZVAKHO</title>
 
+  <style>
+    :root {
+      --bg: #0f0e0c;
+      --card: #181614;
+      --card-2: #211d19;
+      --text: #f7f2ec;
+      --muted: #b8aaa0;
+      --line: rgba(255,255,255,.08);
+      --gold: #c17a3e;
+      --gold-2: #d4a574;
+      --success: #62b66a;
+      --danger: #ff8b78;
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(193,122,62,.18), transparent 35%),
+        linear-gradient(180deg, #11100e, #080807);
+      color: var(--text);
+      font-family: Inter, Arial, sans-serif;
+      padding: 32px;
+    }
+
+    .wrap {
+      max-width: 1060px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 34px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 24px;
+    }
+
+    .eyebrow {
+      color: var(--gold-2);
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: .14em;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 48px);
+      letter-spacing: -.04em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .btn {
+      background: var(--gold);
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-weight: 900;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font: inherit;
+    }
+
+    .btn:hover {
+      background: var(--gold-2);
+      color: #1b130d;
+    }
+
+    .btn.secondary {
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      color: var(--text);
+    }
+
+    .btn.secondary:hover {
+      background: rgba(255,255,255,.1);
+      color: var(--text);
+    }
+
+    .btn:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--card-2), var(--card));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 22px;
+      letter-spacing: -.03em;
+    }
+
+    .form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      padding: 14px;
+      font: inherit;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 96px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: rgba(212,165,116,.7);
+      box-shadow: 0 0 0 4px rgba(193,122,62,.16);
+    }
+
+    option {
+      background: #181614;
+      color: var(--text);
+    }
+
+    .file-help {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .checks {
+      display: grid;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .check {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: start;
+      background: rgba(255,255,255,.035);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+
+    .check input {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      accent-color: var(--gold);
+    }
+
+    .status-box {
+      display: none;
+      padding: 16px;
+      border-radius: 16px;
+      line-height: 1.6;
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 18px;
+    }
+
+    .status-box.show {
+      display: block;
+    }
+
+    .status-box.success {
+      background: rgba(98,182,106,.14);
+      border: 1px solid rgba(98,182,106,.3);
+      color: #a5e3aa;
+    }
+
+    .status-box.error {
+      background: rgba(201,92,69,.12);
+      border: 1px solid rgba(201,92,69,.35);
+      color: #ffb2a4;
+    }
+
+    .info-list {
+      display: grid;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .info-item {
+      background: rgba(255,255,255,.035);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .info-item strong {
+      color: var(--text);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .submissions {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .submission-row {
+      background: rgba(255,255,255,.035);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .submission-title {
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+
+    .submission-meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      background: rgba(212,165,116,.14);
+      color: var(--gold-2);
+      margin-top: 8px;
+    }
+
+    .signed-in {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 20px; }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .layout,
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <div class="eyebrow">ZVAKHO Artist Portal</div>
+        <h1>Submit Music</h1>
+        <div class="subtitle">
+          Upload your MP3, artwork, metadata, and rights confirmation for review.
+        </div>
+        <div id="signedInAs" class="signed-in">Checking session…</div>
+      </div>
+
+      <a class="btn secondary" href="/app/">Back to Dashboard</a>
+    </div>
+
+    <div id="statusBox" class="status-box"></div>
+
+    <div class="layout">
+      <section class="card">
+        <h2>Release Details</h2>
+
+        <form id="submitForm" class="form">
+          <label>
+            Song Title
+            <input id="songTitle" name="song_title" type="text" maxlength="160" required placeholder="Example: Igama Lakho Nkosi" />
+          </label>
+
+          <div class="grid-2">
+            <label>
+              Release Type
+              <select id="releaseType" name="release_type" required>
+                <option value="single">Single</option>
+                <option value="ep">EP</option>
+                <option value="album">Album</option>
+              </select>
+            </label>
+
+            <label>
+              Genre
+              <input id="genre" name="genre" type="text" maxlength="100" placeholder="Gospel, Afrobeats, Amapiano..." />
+            </label>
+          </div>
+
+          <div class="grid-2">
+            <label>
+              Price USD
+              <input id="price" name="price" type="number" min="0" max="100" step="0.01" value="1.00" required />
+            </label>
+
+            <label>
+              Explicit Content
+              <select id="explicitContent" name="explicit_content" required>
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select>
+            </label>
+          </div>
+
+          <label>
+            Artist Phone
+            <input id="artistPhone" name="artist_phone" type="text" maxlength="60" placeholder="+263..." />
+          </label>
+
+          <label>
+            Producer Credits
+            <textarea id="producerCredits" name="producer_credits" maxlength="800" placeholder="Producer name(s), studio, beat maker..."></textarea>
+          </label>
+
+          <label>
+            Songwriter / Composer Credits
+            <textarea id="songwriterCredits" name="songwriter_credits" maxlength="800" placeholder="Writer, composer, featured artist credits..."></textarea>
+          </label>
+
+          <label>
+            Short Description
+            <textarea id="description" name="description" maxlength="1200" placeholder="Briefly describe the song, message, or release story."></textarea>
+          </label>
+
+          <label>
+            Marketing Caption
+            <textarea id="marketingCaption" name="marketing_caption" maxlength="1200" placeholder="Optional caption ZVAKHO can use when promoting this release."></textarea>
+          </label>
+
+          <label>
+            MP3 File
+            <input id="audioFile" name="audio_file" type="file" accept=".mp3,audio/mpeg" required />
+            <span class="file-help">MP3 only. Maximum size: 30MB.</span>
+          </label>
+
+          <label>
+            Artwork File
+            <input id="artworkFile" name="artwork_file" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required />
+            <span class="file-help">JPG, PNG, or WEBP. Maximum size: 10MB.</span>
+          </label>
+
+          <div class="checks">
+            <label class="check">
+              <input id="rightsConfirmed" type="checkbox" required />
+              <span>
+                I confirm that I own or control the rights to this recording, artwork, metadata, and submitted materials.
+              </span>
+            </label>
+
+            <label class="check">
+              <input id="permissionToSell" type="checkbox" required />
+              <span>
+                I grant ZVAKHO permission to review, sell, promote, and distribute this release through approved ZVAKHO channels.
+              </span>
+            </label>
+          </div>
+
+          <button id="submitBtn" class="btn" type="submit">Submit Music for Review</button>
+        </form>
+      </section>
+
+      <aside class="card">
+        <h2>Submission Rules</h2>
+
+        <div class="info-list">
+          <div class="info-item">
+            <strong>Audio format</strong>
+            Upload MP3 only, up to 30MB.
+          </div>
+
+          <div class="info-item">
+            <strong>Artwork required</strong>
+            Upload JPG, PNG, or WEBP up to 10MB.
+          </div>
+
+          <div class="info-item">
+            <strong>Rights confirmation</strong>
+            Your submission stores a timestamped legal record, IP address, user agent, and file hashes.
+          </div>
+
+          <div class="info-item">
+            <strong>Status flow</strong>
+            Submitted → Under Review → Needs Fixes / Approved → Live.
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 style="margin-top: 28px;">My Submissions</h2>
+          <div id="mySubmissions" class="submissions">
+            <div class="submission-row">
+              <div class="submission-meta">Loading submissions…</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const SUBMISSIONS_API = "https://zvakho-submissions-api.yasibomedia.workers.dev";
+    const TOKEN_KEY = "zvakho_artist_token";
+    const USER_KEY = "zvakho_artist_user";
+
+    const MAX_AUDIO_BYTES = 30 * 1024 * 1024;
+    const MAX_ARTWORK_BYTES = 10 * 1024 * 1024;
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || "";
+    }
+
+    function getUser() {
+      try {
+        return JSON.parse(localStorage.getItem(USER_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    }
+
+    function setUser(user) {
+      localStorage.setItem(USER_KEY, JSON.stringify(user || {}));
+    }
+
+    function clearSession() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    }
+
+    function authHeaders(extra = {}) {
+      return {
+        ...extra,
+        Authorization: `Bearer ${getToken()}`
+      };
+    }
+
+    function showStatus(type, message) {
+      const box = document.getElementById("statusBox");
+      box.className = `status-box show ${type}`;
+      box.textContent = message;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function clearStatus() {
+      const box = document.getElementById("statusBox");
+      box.className = "status-box";
+      box.textContent = "";
+    }
+
+    function escapeHTML(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function formatDate(value) {
+      if (!value) return "—";
+      try {
+        return new Date(value).toLocaleString();
+      } catch {
+        return value;
+      }
+    }
+
+    function updateSignedInLabel(user) {
+      const label = document.getElementById("signedInAs");
+      const email = user?.email || "";
+      const artistId = user?.artist_id || "";
+
+      label.textContent = email
+        ? `Signed in as ${email}${artistId ? " • " + artistId : ""}`
+        : "Not signed in";
+    }
+
+    async function checkSession() {
+      const token = getToken();
+
+      if (!token) {
+        window.location.href = "/app/";
+        return;
+      }
+
+      try {
+        const res = await fetch(`${SUBMISSIONS_API}/me`, {
+          method: "GET",
+          headers: authHeaders()
+        });
+
+        const data = await res.json();
+
+        if (!data || data.status !== "success") {
+          clearSession();
+          window.location.href = "/app/";
+          return;
+        }
+
+        if (String(data.user?.role || "").toLowerCase() !== "artist") {
+          showStatus("error", "Only artist accounts can submit music.");
+          return;
+        }
+
+        setUser(data.user);
+        updateSignedInLabel(data.user);
+        loadMySubmissions();
+
+      } catch {
+        showStatus("error", "Could not verify your session. Please return to the dashboard and sign in again.");
+      }
+    }
+
+    function validateFiles() {
+      const audio = document.getElementById("audioFile").files[0];
+      const artwork = document.getElementById("artworkFile").files[0];
+
+      if (!audio) {
+        throw new Error("MP3 file is required.");
+      }
+
+      if (!artwork) {
+        throw new Error("Artwork file is required.");
+      }
+
+      const audioName = audio.name.toLowerCase();
+      const artworkName = artwork.name.toLowerCase();
+
+      if (!audioName.endsWith(".mp3")) {
+        throw new Error("Audio must be an MP3 file.");
+      }
+
+      if (audio.size > MAX_AUDIO_BYTES) {
+        throw new Error("MP3 file is too large. Maximum is 30MB.");
+      }
+
+      if (!(
+        artworkName.endsWith(".jpg") ||
+        artworkName.endsWith(".jpeg") ||
+        artworkName.endsWith(".png") ||
+        artworkName.endsWith(".webp")
+      )) {
+        throw new Error("Artwork must be JPG, PNG, or WEBP.");
+      }
+
+      if (artwork.size > MAX_ARTWORK_BYTES) {
+        throw new Error("Artwork file is too large. Maximum is 10MB.");
+      }
+    }
+
+    async function submitMusic(event) {
+      event.preventDefault();
+      clearStatus();
+
+      const submitBtn = document.getElementById("submitBtn");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Uploading submission…";
+
+      try {
+        validateFiles();
+
+        const form = new FormData();
+
+        form.append("song_title", document.getElementById("songTitle").value.trim());
+        form.append("release_type", document.getElementById("releaseType").value);
+        form.append("genre", document.getElementById("genre").value.trim());
+        form.append("price", document.getElementById("price").value);
+        form.append("explicit_content", document.getElementById("explicitContent").value);
+        form.append("artist_phone", document.getElementById("artistPhone").value.trim());
+        form.append("producer_credits", document.getElementById("producerCredits").value.trim());
+        form.append("songwriter_credits", document.getElementById("songwriterCredits").value.trim());
+        form.append("description", document.getElementById("description").value.trim());
+        form.append("marketing_caption", document.getElementById("marketingCaption").value.trim());
+
+        form.append("rights_confirmed", document.getElementById("rightsConfirmed").checked ? "yes" : "no");
+        form.append("permission_to_sell", document.getElementById("permissionToSell").checked ? "yes" : "no");
+
+        form.append("audio_file", document.getElementById("audioFile").files[0]);
+        form.append("artwork_file", document.getElementById("artworkFile").files[0]);
+
+        const res = await fetch(`${SUBMISSIONS_API}/submit`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: form
+        });
+
+        const data = await res.json();
+
+        if (!data || data.status !== "success") {
+          throw new Error(data.message || "Submission failed.");
+        }
+
+        showStatus("success", `Submission received: ${data.submission.song_title}. Status: submitted.`);
+        document.getElementById("submitForm").reset();
+        loadMySubmissions();
+
+      } catch (err) {
+        showStatus("error", err.message || "Submission failed.");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Music for Review";
+      }
+    }
+
+    async function loadMySubmissions() {
+      const target = document.getElementById("mySubmissions");
+
+      try {
+        const res = await fetch(`${SUBMISSIONS_API}/my-submissions`, {
+          method: "GET",
+          headers: authHeaders()
+        });
+
+        const data = await res.json();
+
+        if (!data || data.status !== "success") {
+          throw new Error(data.message || "Could not load submissions.");
+        }
+
+        const rows = data.submissions || [];
+
+        if (!rows.length) {
+          target.innerHTML = `
+            <div class="submission-row">
+              <div class="submission-meta">No submissions yet.</div>
+            </div>
+          `;
+          return;
+        }
+
+        target.innerHTML = rows.map(row => `
+          <div class="submission-row">
+            <div class="submission-title">${escapeHTML(row.song_title || "Untitled")}</div>
+            <div class="submission-meta">
+              ${escapeHTML(row.release_type || "single")} • ${escapeHTML(row.genre || "No genre")} • $${Number(row.price || 0).toFixed(2)}
+              <br>
+              Submitted: ${formatDate(row.created_at)}
+            </div>
+            <span class="pill">${escapeHTML(row.submission_status || "submitted")}</span>
+          </div>
+        `).join("");
+
+      } catch {
+        target.innerHTML = `
+          <div class="submission-row">
+            <div class="submission-meta">Could not load submissions.</div>
+          </div>
+        `;
+      }
+    }
+
+    document.getElementById("submitForm").addEventListener("submit", submitMusic);
+
+    checkSession();
+  </script>
+</body>
+</html>
