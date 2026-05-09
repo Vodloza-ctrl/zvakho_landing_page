@@ -205,6 +205,108 @@
       box-shadow: 0 18px 50px rgba(0,0,0,.25);
     }
 
+    .breakdown-card {
+      grid-column: span 3;
+      background:
+        radial-gradient(circle at top right, rgba(212,165,116,.12), transparent 34%),
+        linear-gradient(180deg, var(--card-2), var(--card));
+      border: 1px solid rgba(212,165,116,.18);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+
+    .breakdown-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .breakdown-head h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      letter-spacing: -.03em;
+    }
+
+    .breakdown-head p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .stream-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .stream-card.highlight {
+      background:
+        radial-gradient(circle at top right, rgba(212,165,116,.16), transparent 38%),
+        rgba(255,255,255,.05);
+      border-color: rgba(212,165,116,.26);
+    }
+
+    .stream-title {
+      color: var(--gold-2);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 12px;
+    }
+
+    .stream-main {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+      margin-bottom: 12px;
+    }
+
+    .stream-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 0;
+      border-top: 1px solid rgba(255,255,255,.07);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .stream-row b {
+      color: var(--text);
+      font-weight: 900;
+      text-align: right;
+    }
+
+    .stream-note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .type-pill {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(212,165,116,.12);
+      color: var(--gold-2);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: capitalize;
+    }
+
     .payout-card {
       background:
         radial-gradient(circle at top right, rgba(212,165,116,.14), transparent 34%),
@@ -481,6 +583,14 @@
       .share-row {
         grid-template-columns: 1fr;
       }
+
+      .breakdown-card {
+        grid-column: span 2;
+      }
+
+      .breakdown-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
 
     @media (max-width: 800px) {
@@ -504,8 +614,13 @@
 
       .progress-card,
       .note-card,
-      .share-card {
+      .share-card,
+      .breakdown-card {
         grid-column: span 1;
+      }
+
+      .breakdown-grid {
+        grid-template-columns: 1fr;
       }
 
       .progress-top {
@@ -573,7 +688,7 @@
 
     <div class="grid">
       <div class="card">
-        <div class="label">Confirmed Revenue</div>
+        <div class="label">Combined Confirmed Revenue</div>
         <div class="value" id="revenue">$0.00</div>
       </div>
 
@@ -588,12 +703,12 @@
       </div>
 
       <div class="card payout-card">
-        <div class="label">Estimated Artist Share</div>
+        <div class="label">Combined Artist Share</div>
         <div class="value" id="artistShare">$0.00</div>
       </div>
 
       <div class="card payout-card">
-        <div class="label">Estimated ZVAKHO Share</div>
+        <div class="label">Combined ZVAKHO Share</div>
         <div class="value" id="zvakhoShare">$0.00</div>
       </div>
 
@@ -628,6 +743,54 @@
         </div>
       </div>
 
+      <div class="breakdown-card">
+        <div class="breakdown-head">
+          <div>
+            <div class="eyebrow">Revenue Breakdown</div>
+            <h2>Income Streams</h2>
+            <p>Confirmed paid revenue split by music, VIP, merch, and combined total.</p>
+          </div>
+        </div>
+
+        <div class="breakdown-grid">
+          <div class="stream-card">
+            <div class="stream-title">Music Sales</div>
+            <div class="stream-main" id="musicRevenue">$0.00</div>
+            <div class="stream-row"><span>Artist Share</span><b id="musicArtistShare">$0.00</b></div>
+            <div class="stream-row"><span>ZVAKHO Share</span><b id="musicZvakhoShare">$0.00</b></div>
+            <div class="stream-row"><span>Units</span><b id="musicUnits">0</b></div>
+            <div class="stream-note" id="musicTerms">80% Artist / 20% ZVAKHO from confirmed music revenue.</div>
+          </div>
+
+          <div class="stream-card">
+            <div class="stream-title">VIP Revenue</div>
+            <div class="stream-main" id="vipRevenue">$0.00</div>
+            <div class="stream-row"><span>Artist Share</span><b id="vipArtistShare">$0.00</b></div>
+            <div class="stream-row"><span>ZVAKHO Share</span><b id="vipZvakhoShare">$0.00</b></div>
+            <div class="stream-row"><span>Units</span><b id="vipUnits">0</b></div>
+            <div class="stream-note" id="vipTerms">80% Artist / 20% ZVAKHO from confirmed VIP revenue.</div>
+          </div>
+
+          <div class="stream-card">
+            <div class="stream-title">Merch Revenue</div>
+            <div class="stream-main" id="merchRevenue">$0.00</div>
+            <div class="stream-row"><span>Artist Share</span><b id="merchArtistShare">Pending</b></div>
+            <div class="stream-row"><span>ZVAKHO Share</span><b id="merchZvakhoShare">Pending</b></div>
+            <div class="stream-row"><span>Units</span><b id="merchUnits">0</b></div>
+            <div class="stream-note" id="merchTerms">Merch is shown as gross revenue. Final profit share is calculated after production, packaging, and fulfilment costs.</div>
+          </div>
+
+          <div class="stream-card highlight">
+            <div class="stream-title">Combined Total</div>
+            <div class="stream-main" id="combinedRevenue">$0.00</div>
+            <div class="stream-row"><span>Artist Share</span><b id="combinedArtistShare">$0.00</b></div>
+            <div class="stream-row"><span>ZVAKHO Share</span><b id="combinedZvakhoShare">$0.00</b></div>
+            <div class="stream-row"><span>Units</span><b id="combinedUnits">0</b></div>
+            <div class="stream-note" id="combinedTerms">Music and VIP use confirmed 80/20 split. Merch payout is finalized separately after costs.</div>
+          </div>
+        </div>
+      </div>
+
       <div class="share-card">
         <div class="share-head">
           <div>
@@ -647,7 +810,7 @@
       </div>
 
       <div class="note-card" id="payoutNote">
-        Artist share is estimated from confirmed paid music/VIP sales only. Payouts are processed after the artist share reaches the $50.00 threshold. Merch payouts are calculated separately after production costs.
+        Music and VIP use the 80% artist / 20% ZVAKHO split. Merch is shown as gross revenue and final merch payout is calculated after production, packaging, and fulfilment costs.
       </div>
     </div>
 
@@ -658,7 +821,9 @@
           <thead>
             <tr>
               <th>Product</th>
+              <th>Type</th>
               <th>Amount</th>
+              <th>Artist Share</th>
               <th>Status</th>
               <th>Paynow Ref</th>
               <th>Date</th>
@@ -666,7 +831,7 @@
           </thead>
           <tbody id="recentSales">
             <tr>
-              <td colspan="5">Loading sales data...</td>
+              <td colspan="7">Loading sales data...</td>
             </tr>
           </tbody>
         </table>
@@ -810,6 +975,144 @@
 
     function isPaid(row) {
       return String(row.payment_status || "").toLowerCase() === "paid";
+    }
+
+    function productTypeLabel(value) {
+      const clean = String(value || "music").trim().toLowerCase();
+
+      if (clean.includes("vip") || clean.includes("subscription")) return "VIP";
+      if (clean.includes("merch") || clean.includes("tshirt") || clean.includes("shirt")) return "Merch";
+      if (clean.includes("music") || clean.includes("track") || clean.includes("album") || clean.includes("single")) return "Music";
+
+      return clean.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase());
+    }
+
+    function getStreamValue(stream, keys, fallback = 0) {
+      if (!stream) return fallback;
+
+      for (const key of keys) {
+        if (stream[key] !== undefined && stream[key] !== null) {
+          return stream[key];
+        }
+      }
+
+      return fallback;
+    }
+
+    function fallbackStreamFromRows(rows, type) {
+      const cleanType = String(type || "").toLowerCase();
+      const filtered = (rows || []).filter(row => {
+        const rowType = String(row.product_type || row.order_type || "").toLowerCase();
+        const productName = String(row.product_name || "").toLowerCase();
+
+        if (cleanType === "music") {
+          return (
+            rowType.includes("music") ||
+            rowType.includes("track") ||
+            rowType.includes("single") ||
+            rowType.includes("album") ||
+            (!rowType.includes("vip") && !rowType.includes("merch") && !productName.includes("t-shirt") && !productName.includes("shirt"))
+          );
+        }
+
+        if (cleanType === "vip") {
+          return rowType.includes("vip") || rowType.includes("subscription") || productName.includes("vip");
+        }
+
+        if (cleanType === "merch") {
+          return rowType.includes("merch") || productName.includes("t-shirt") || productName.includes("shirt") || productName.includes("mug") || productName.includes("hat");
+        }
+
+        return false;
+      });
+
+      return {
+        revenue: filtered.reduce((sum, row) => sum + Number(row.amount || row.revenue || 0), 0),
+        units: filtered.length
+      };
+    }
+
+    function streamRevenue(stream, fallback) {
+      return Number(getStreamValue(stream, ["confirmed_revenue", "revenue", "gross_revenue", "total_revenue"], fallback));
+    }
+
+    function streamUnits(stream, fallback) {
+      return Number(getStreamValue(stream, ["units", "sales_count", "paid_orders", "confirmed_sales"], fallback));
+    }
+
+    function streamArtistShare(stream, fallback) {
+      return Number(getStreamValue(stream, ["artist_share", "estimated_artist_share"], fallback));
+    }
+
+    function streamZvakhoShare(stream, fallback) {
+      return Number(getStreamValue(stream, ["zvakho_share", "estimated_zvakho_share"], fallback));
+    }
+
+    function setText(id, value) {
+      const target = document.getElementById(id);
+      if (target) target.textContent = value;
+    }
+
+    function renderRevenueBreakdown(data, paidRows, confirmedRevenue, artistShare, zvakhoShare, confirmedSales) {
+      const breakdown = data.revenue_breakdown || {};
+
+      const fallbackMusic = fallbackStreamFromRows(paidRows, "music");
+      const fallbackVip = fallbackStreamFromRows(paidRows, "vip");
+      const fallbackMerch = fallbackStreamFromRows(paidRows, "merch");
+
+      const music = breakdown.music || {};
+      const vip = breakdown.vip || {};
+      const merch = breakdown.merch || {};
+      const combined = breakdown.combined || {};
+
+      const musicRevenue = streamRevenue(music, fallbackMusic.revenue);
+      const vipRevenue = streamRevenue(vip, fallbackVip.revenue);
+      const merchRevenue = streamRevenue(merch, fallbackMerch.revenue);
+      const combinedRevenue = streamRevenue(combined, confirmedRevenue || (musicRevenue + vipRevenue + merchRevenue));
+
+      const musicArtistShare = streamArtistShare(music, musicRevenue * 0.8);
+      const musicZvakhoShare = streamZvakhoShare(music, musicRevenue * 0.2);
+
+      const vipArtistShare = streamArtistShare(vip, vipRevenue * 0.8);
+      const vipZvakhoShare = streamZvakhoShare(vip, vipRevenue * 0.2);
+
+      const merchArtistRaw = getStreamValue(merch, ["artist_share", "estimated_artist_share"], null);
+      const merchZvakhoRaw = getStreamValue(merch, ["zvakho_share", "estimated_zvakho_share"], null);
+
+      const combinedArtist = streamArtistShare(combined, artistShare || (musicArtistShare + vipArtistShare + Number(merchArtistRaw || 0)));
+      const combinedZvakho = streamZvakhoShare(combined, zvakhoShare || (musicZvakhoShare + vipZvakhoShare + Number(merchZvakhoRaw || 0)));
+
+      setText("musicRevenue", money(musicRevenue));
+      setText("musicArtistShare", money(musicArtistShare));
+      setText("musicZvakhoShare", money(musicZvakhoShare));
+      setText("musicUnits", streamUnits(music, fallbackMusic.units));
+
+      setText("vipRevenue", money(vipRevenue));
+      setText("vipArtistShare", money(vipArtistShare));
+      setText("vipZvakhoShare", money(vipZvakhoShare));
+      setText("vipUnits", streamUnits(vip, fallbackVip.units));
+
+      setText("merchRevenue", money(merchRevenue));
+      setText("merchArtistShare", merchArtistRaw === null ? "Pending" : money(merchArtistRaw));
+      setText("merchZvakhoShare", merchZvakhoRaw === null ? "Pending" : money(merchZvakhoRaw));
+      setText("merchUnits", streamUnits(merch, fallbackMerch.units));
+
+      setText("combinedRevenue", money(combinedRevenue));
+      setText("combinedArtistShare", money(combinedArtist));
+      setText("combinedZvakhoShare", money(combinedZvakho));
+      setText("combinedUnits", streamUnits(combined, confirmedSales));
+    }
+
+    function artistShareForRow(row) {
+      const type = String(row.product_type || row.order_type || "").toLowerCase();
+      const name = String(row.product_name || "").toLowerCase();
+      const amount = Number(row.amount || 0);
+
+      if (type.includes("merch") || name.includes("t-shirt") || name.includes("shirt") || name.includes("mug") || name.includes("hat")) {
+        return "After costs";
+      }
+
+      return money(amount * 0.8);
     }
 
     function artistSlugFromId(artistId) {
@@ -1032,17 +1335,21 @@
           : `You are ${money(amountRemaining)} away from your next payout.`;
 
         document.getElementById("payoutNote").textContent =
-          "Artist share is estimated from confirmed paid music/VIP sales only. Payouts are processed after the artist share reaches the $50.00 threshold. Merch payouts are calculated separately after production costs.";
+          "Music and VIP use the 80% artist / 20% ZVAKHO split. Merch is shown as gross revenue and final merch payout is calculated after production, packaging, and fulfilment costs.";
 
         document.getElementById("updatedAt").textContent = new Date().toLocaleString();
 
         const tbody = document.getElementById("recentSales");
 
+        renderRevenueBreakdown(data, paidRows, confirmedRevenue, artistShare, zvakhoShare, confirmedSales);
+
         if (!paidRows.length && fallbackSales > 0) {
           tbody.innerHTML = `
             <tr>
               <td>Confirmed music purchase</td>
+              <td><span class="type-pill">Music</span></td>
               <td>${money(fallbackRevenue)}</td>
+              <td>${money(fallbackRevenue * 0.8)}</td>
               <td><span class="status paid">Paid</span></td>
               <td>Recorded in Paynow</td>
               <td>—</td>
@@ -1051,14 +1358,16 @@
         } else if (!paidRows.length) {
           tbody.innerHTML = `
             <tr>
-              <td colspan="5">No confirmed paid sales yet.</td>
+              <td colspan="7">No confirmed paid sales yet.</td>
             </tr>
           `;
         } else {
           tbody.innerHTML = paidRows.map(row => `
             <tr>
               <td>${escapeHTML(row.product_name || "Music purchase")}</td>
+              <td><span class="type-pill">${escapeHTML(productTypeLabel(row.product_type || row.order_type || "music"))}</span></td>
               <td>${money(row.amount)}</td>
+              <td>${escapeHTML(artistShareForRow(row))}</td>
               <td><span class="status paid">Paid</span></td>
               <td>${escapeHTML(row.paynow_reference || "Recorded in Paynow")}</td>
               <td>${formatDate(row.paid_at || row.created_at)}</td>
