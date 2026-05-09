@@ -167,6 +167,10 @@
       font-weight: 800;
       cursor: pointer;
       text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
 
     .refresh:hover,
@@ -178,6 +182,11 @@
     .btn.secondary {
       background: rgba(255,255,255,.06);
       border: 1px solid var(--line);
+      color: var(--text);
+    }
+
+    .btn.secondary:hover {
+      background: rgba(255,255,255,.1);
       color: var(--text);
     }
 
@@ -302,6 +311,64 @@
       line-height: 1.6;
     }
 
+    .share-card {
+      grid-column: span 3;
+      background:
+        radial-gradient(circle at top left, rgba(193,122,62,.16), transparent 36%),
+        linear-gradient(180deg, var(--card-2), var(--card));
+      border: 1px solid rgba(212,165,116,.2);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+
+    .share-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .share-head h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      letter-spacing: -.03em;
+    }
+
+    .share-head p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .share-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .share-input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      padding: 13px 16px;
+      font: inherit;
+      outline: none;
+    }
+
+    .copy-feedback {
+      margin-top: 12px;
+      color: var(--gold-2);
+      font-size: 13px;
+      font-weight: 800;
+      min-height: 18px;
+    }
+
     .section {
       margin-top: 28px;
     }
@@ -377,6 +444,11 @@
     .action-box p {
       margin: 6px 0 0;
       color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .action-box .btn {
+      margin-top: 16px;
     }
 
     .footer-note {
@@ -401,15 +473,21 @@
       }
 
       .progress-card,
-      .note-card {
+      .note-card,
+      .share-card {
         grid-column: span 2;
+      }
+
+      .share-row {
+        grid-template-columns: 1fr;
       }
     }
 
     @media (max-width: 800px) {
       body { padding: 20px; }
 
-      .topbar {
+      .topbar,
+      .share-head {
         flex-direction: column;
         align-items: flex-start;
       }
@@ -425,7 +503,8 @@
       }
 
       .progress-card,
-      .note-card {
+      .note-card,
+      .share-card {
         grid-column: span 1;
       }
 
@@ -451,7 +530,7 @@
       <div class="eyebrow">ZVAKHO Artist Access</div>
       <h1>Artist Dashboard</h1>
       <p>
-        Sign in to view your confirmed revenue, paid sales, payout progress, and recommended next actions.
+        Sign in to view your confirmed revenue, paid sales, payout progress, store link, and recommended next actions.
       </p>
 
       <form id="loginForm" class="auth-form">
@@ -478,7 +557,7 @@
         <div class="eyebrow">ZVAKHO Artist Dashboard</div>
         <h1 id="artistName">Artist Dashboard</h1>
         <div class="subtitle">
-          Confirmed revenue, paid sales visibility, and payout progress.
+          Confirmed revenue, payout progress, and your official store link.
         </div>
       </div>
 
@@ -548,6 +627,24 @@
         </div>
       </div>
 
+      <div class="share-card">
+        <div class="share-head">
+          <div>
+            <div class="eyebrow">Promote Your Store</div>
+            <h2>Official Store Link</h2>
+            <p>Copy this link and post it on WhatsApp Status, Facebook, Instagram, TikTok bio, or send it directly to fans.</p>
+          </div>
+        </div>
+
+        <div class="share-row">
+          <input id="storeLinkInput" class="share-input" type="text" readonly value="https://zvakho.co.zw/store/" />
+          <button id="copyStoreLinkBtn" class="btn" type="button">Copy Store Link</button>
+          <a id="openStoreBtn" class="btn secondary" href="https://zvakho.co.zw/store/" target="_blank" rel="noopener">Open Store</a>
+        </div>
+
+        <div id="copyFeedback" class="copy-feedback"></div>
+      </div>
+
       <div class="note-card" id="payoutNote">
         Artist share is estimated from confirmed paid music/VIP sales only. Payouts are processed after the artist share reaches the $50.00 threshold. Merch payouts are calculated separately after production costs.
       </div>
@@ -579,7 +676,8 @@
       <h2>Action</h2>
       <div class="action-box">
         <strong>Recommended next step</strong>
-        <p id="actionText">Share your official purchase link consistently to grow confirmed sales.</p>
+        <p id="actionText">Share your official store link consistently to grow confirmed sales.</p>
+        <button id="actionCopyBtn" class="btn" type="button">Copy Store Link</button>
       </div>
     </div>
 
@@ -596,6 +694,7 @@
     const PAYOUT_THRESHOLD = 50;
 
     let refreshTimer = null;
+    let currentStoreLink = "https://zvakho.co.zw/store/";
 
     function getToken() {
       return localStorage.getItem(TOKEN_KEY) || "";
@@ -710,6 +809,54 @@
 
     function isPaid(row) {
       return String(row.payment_status || "").toLowerCase() === "paid";
+    }
+
+    function artistSlugFromId(artistId) {
+      const value = String(artistId || "").trim().toUpperCase();
+
+      const map = {
+        MDUSEVAN: "mdusevan",
+        VUSAMANGENA: "vusamangena",
+        ABSOLL: "absoll"
+      };
+
+      return map[value] || value.toLowerCase();
+    }
+
+    function buildStoreLink(artistId) {
+      const slug = artistSlugFromId(artistId);
+      return `https://zvakho.co.zw/store/?artist=${encodeURIComponent(slug)}`;
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+
+      const temp = document.createElement("textarea");
+      temp.value = text;
+      temp.style.position = "fixed";
+      temp.style.left = "-9999px";
+      document.body.appendChild(temp);
+      temp.focus();
+      temp.select();
+      document.execCommand("copy");
+      document.body.removeChild(temp);
+    }
+
+    async function copyStoreLink() {
+      const feedback = document.getElementById("copyFeedback");
+
+      try {
+        await copyText(currentStoreLink);
+        feedback.textContent = "Store link copied. Share it with your fans.";
+        setTimeout(() => {
+          feedback.textContent = "";
+        }, 3000);
+      } catch {
+        feedback.textContent = "Could not copy automatically. Select and copy the link manually.";
+      }
     }
 
     async function login(email, password) {
@@ -861,6 +1008,10 @@
         const amountRemaining = Math.max(PAYOUT_THRESHOLD - artistShare, 0);
         const eligible = artistShare >= PAYOUT_THRESHOLD;
 
+        currentStoreLink = buildStoreLink(data.artist_id);
+        document.getElementById("storeLinkInput").value = currentStoreLink;
+        document.getElementById("openStoreBtn").href = currentStoreLink;
+
         document.getElementById("artistName").textContent = data.artist_name || data.artist_id || "Artist Dashboard";
         document.getElementById("revenue").textContent = money(confirmedRevenue);
         document.getElementById("sales").textContent = confirmedSales;
@@ -914,14 +1065,21 @@
           `).join("");
         }
 
-        if (Array.isArray(data.dashboard_guidance) && data.dashboard_guidance.length) {
-          document.getElementById("actionText").textContent = data.dashboard_guidance[0];
+        const bestProduct = data.best_product?.product_name || "";
+        const actionText = document.getElementById("actionText");
+
+        if (eligible) {
+          actionText.textContent =
+            "You have reached the payout threshold. Keep sharing your store link while ZVAKHO prepares payout processing.";
+        } else if (bestProduct) {
+          actionText.textContent =
+            `You are ${money(amountRemaining)} away from payout. Share your store link today and push "${bestProduct}" because it is currently your strongest product.`;
         } else if (confirmedSales > 0) {
-          document.getElementById("actionText").textContent =
-            "Share your purchase link again today while your release has confirmed traction.";
+          actionText.textContent =
+            `You are ${money(amountRemaining)} away from payout. Share your store link again today while your release has confirmed traction.`;
         } else {
-          document.getElementById("actionText").textContent =
-            "Start by pushing one clear release link to your most active fans.";
+          actionText.textContent =
+            "Start by pushing your official store link to your most active fans. WhatsApp Status is the quickest place to begin.";
         }
 
       } catch (err) {
@@ -940,6 +1098,8 @@
 
     document.getElementById("logoutBtn").addEventListener("click", logout);
     document.getElementById("refreshBtn").addEventListener("click", loadDashboard);
+    document.getElementById("copyStoreLinkBtn").addEventListener("click", copyStoreLink);
+    document.getElementById("actionCopyBtn").addEventListener("click", copyStoreLink);
 
     checkExistingSession();
   </script>
