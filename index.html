@@ -16,7 +16,8 @@
     "api",
     "assets",
     "admin",
-    "dashboard"
+    "dashboard",
+    "portal"
   ];
 
   if (
@@ -44,7 +45,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     location.replace('/dashboard/');
   }
 
-  if(h === 'dashboard' && location.pathname === '/') {
+  if((h === 'dashboard' || h === 'portal') && location.pathname === '/') {
     location.replace('/app/');
   }
 });
@@ -250,9 +251,9 @@ body.z-modal-open{overflow:hidden}
       <a href="/#platform">Platform</a>
       <a href="/#artists">Artists</a>
       <a href="/#transaction">Live transaction</a>
-      <a href="/#release">Releases</a>
+      <a href="/for-artists/">For Artists</a>
     </div>
-    <button class="btn primary" type="button" data-open-onboarding>Request access</button>
+    <a class="btn primary" href="/for-artists/">For Artists</a>
   </div>
 </nav>
 
@@ -264,7 +265,7 @@ body.z-modal-open{overflow:hidden}
       <h1>Direct-to-fan commerce infrastructure for artists.</h1>
       <p class="lead">ZVAKHO gives artists a structured system to sell music directly to their audience through WhatsApp and confirmed mobile payments. Artists control pricing across tracks, albums, and releases while retaining the majority of every transaction.</p>
       <div class="actions">
-        <button class="btn primary" type="button" data-open-onboarding>Request platform access</button>
+        <a class="btn primary" href="/for-artists/">For artists</a>
         <a class="btn" href="#artists">View active artists</a>
       </div>
       <div class="trust-row">
@@ -371,16 +372,16 @@ body.z-modal-open{overflow:hidden}
     <div>
       <strong>Access</strong>
       <p>
-        <button class="footer-link" type="button" data-open-onboarding>Request platform access</button><br>
-        <button class="footer-link" type="button" data-open-onboarding>Artist onboarding</button><br>
+        <a href="/for-artists/">For artists</a><br>
+        <button class="footer-link" type="button" data-open-onboarding>Artist application</button><br>
         <a href="/store/">Artist stores</a>
       </p>
     </div>
     <div>
       <strong>Portals</strong>
       <p>
-        <a href="/app/">Artist dashboard</a><br>
-        <a href="/dashboard/">Owner dashboard</a>
+        <a href="https://dashboard.zvakho.co.zw">Artist dashboard</a><br>
+        <a href="https://admin.zvakho.co.zw">Owner dashboard</a>
       </p>
     </div>
   </div>
