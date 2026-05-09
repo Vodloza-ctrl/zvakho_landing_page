@@ -16,6 +16,7 @@
       --gold: #c17a3e;
       --gold-2: #d4a574;
       --success: #62b66a;
+      --danger: #ff8b78;
       --radius: 18px;
     }
 
@@ -36,6 +37,81 @@
       margin: 0 auto;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
+    .auth-screen {
+      min-height: 78vh;
+      display: grid;
+      place-items: center;
+    }
+
+    .auth-card {
+      width: min(460px, 100%);
+      background: linear-gradient(180deg, var(--card-2), var(--card));
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 34px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.34);
+    }
+
+    .auth-card h1 {
+      margin: 0 0 10px;
+      font-size: clamp(28px, 4vw, 44px);
+      letter-spacing: -.04em;
+    }
+
+    .auth-card p {
+      color: var(--muted);
+      line-height: 1.6;
+      margin: 0 0 24px;
+    }
+
+    .auth-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .auth-form label {
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .auth-form input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      padding: 14px;
+      font: inherit;
+      outline: none;
+    }
+
+    .auth-form input:focus {
+      border-color: rgba(212,165,116,.7);
+      box-shadow: 0 0 0 4px rgba(193,122,62,.16);
+    }
+
+    .auth-error {
+      display: none;
+      background: rgba(201,92,69,.12);
+      border: 1px solid rgba(201,92,69,.35);
+      color: #ffb2a4;
+      padding: 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .auth-error.show {
+      display: block;
+    }
+
     .topbar {
       display: flex;
       justify-content: space-between;
@@ -44,6 +120,20 @@
       margin-bottom: 34px;
       border-bottom: 1px solid var(--line);
       padding-bottom: 24px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .signed-in {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
     }
 
     .eyebrow {
@@ -67,24 +157,33 @@
       font-size: 15px;
     }
 
-    .refresh {
+    .refresh,
+    .btn {
       background: var(--gold);
       color: white;
       border: none;
       padding: 12px 18px;
       border-radius: 999px;
-      font-weight: 700;
+      font-weight: 800;
       cursor: pointer;
+      text-decoration: none;
     }
 
-    .refresh:hover {
+    .refresh:hover,
+    .btn:hover {
       background: var(--gold-2);
       color: #1b130d;
     }
 
+    .btn.secondary {
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      color: var(--text);
+    }
+
     .grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 18px;
       margin-bottom: 28px;
     }
@@ -116,6 +215,10 @@
     .section h2 {
       font-size: 20px;
       margin: 0 0 14px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
     }
 
     table {
@@ -159,6 +262,16 @@
       color: var(--success);
     }
 
+    .pending {
+      background: rgba(212,165,116,.14);
+      color: var(--gold-2);
+    }
+
+    .failed {
+      background: rgba(255,139,120,.12);
+      color: var(--danger);
+    }
+
     .action-box {
       background: linear-gradient(135deg, rgba(193,122,62,.22), rgba(255,255,255,.04));
       border: 1px solid rgba(193,122,62,.28);
@@ -188,6 +301,12 @@
       display: none;
     }
 
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
     @media (max-width: 800px) {
       body { padding: 20px; }
 
@@ -196,12 +315,14 @@
         align-items: flex-start;
       }
 
-      .grid {
-        grid-template-columns: 1fr;
+      .top-actions,
+      .refresh,
+      .btn {
+        width: 100%;
       }
 
-      .refresh {
-        width: 100%;
+      .grid {
+        grid-template-columns: 1fr;
       }
 
       th, td {
@@ -212,7 +333,33 @@
 </head>
 
 <body>
-  <div class="wrap">
+  <div id="authScreen" class="wrap auth-screen">
+    <section class="auth-card">
+      <div class="eyebrow">ZVAKHO Artist Access</div>
+      <h1>Artist Dashboard</h1>
+      <p>
+        Sign in to view your confirmed revenue, paid sales, product performance, and recommended next actions.
+      </p>
+
+      <form id="loginForm" class="auth-form">
+        <div id="authError" class="auth-error"></div>
+
+        <label>
+          Email address
+          <input id="loginEmail" type="email" autocomplete="email" placeholder="mdusevan@gmail.com" required>
+        </label>
+
+        <label>
+          Password
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password" required>
+        </label>
+
+        <button id="loginBtn" class="btn" type="submit">Sign in</button>
+      </form>
+    </section>
+  </div>
+
+  <div id="dashboardApp" class="wrap hidden">
     <div class="topbar">
       <div>
         <div class="eyebrow">ZVAKHO Artist Dashboard</div>
@@ -222,7 +369,11 @@
         </div>
       </div>
 
-      <button class="refresh" onclick="loadDashboard()">Refresh Data</button>
+      <div class="top-actions">
+        <span id="signedInAs" class="signed-in">Signed in</span>
+        <button class="btn secondary" id="logoutBtn">Logout</button>
+        <button class="refresh" id="refreshBtn">Refresh Data</button>
+      </div>
     </div>
 
     <div id="errorBox" class="error"></div>
@@ -237,26 +388,38 @@
         <div class="label">Confirmed Sales</div>
         <div class="value" id="sales">0</div>
       </div>
+
+      <div class="card">
+        <div class="label">Pending Payments</div>
+        <div class="value" id="pending">0</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Last 7 Days</div>
+        <div class="value" id="sevenDays">$0.00</div>
+      </div>
     </div>
 
     <div class="section">
       <h2>Recent Paid Sales</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Paynow Ref</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody id="recentSales">
-          <tr>
-            <td colspan="5">Loading sales data...</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Paynow Ref</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="recentSales">
+            <tr>
+              <td colspan="5">Loading sales data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="section">
@@ -275,15 +438,81 @@
   <script>
     const API = "https://zvakho-payments-v2.yasibomedia.workers.dev";
 
-    const ARTIST_KEYS = {
-      MDUSEVAN: "abc123",
-      VUSAMANGENA: "xyz456",
-      ABSOLL: "key789"
-    };
+    const TOKEN_KEY = "zvakho_artist_token";
+    const USER_KEY = "zvakho_artist_user";
 
-    const params = new URLSearchParams(window.location.search);
-    const artistId = (params.get("artist") || "MDUSEVAN").toUpperCase();
-    const artistKey = ARTIST_KEYS[artistId] || "";
+    let refreshTimer = null;
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || "";
+    }
+
+    function setToken(token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
+
+    function clearSession() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    }
+
+    function setUser(user) {
+      localStorage.setItem(USER_KEY, JSON.stringify(user || {}));
+      updateSignedInLabel(user);
+    }
+
+    function getUser() {
+      try {
+        return JSON.parse(localStorage.getItem(USER_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    }
+
+    function authHeaders(extra = {}) {
+      return {
+        ...extra,
+        Authorization: `Bearer ${getToken()}`
+      };
+    }
+
+    function showAuth() {
+      document.getElementById("authScreen").classList.remove("hidden");
+      document.getElementById("dashboardApp").classList.add("hidden");
+
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+    }
+
+    function showDashboard() {
+      document.getElementById("authScreen").classList.add("hidden");
+      document.getElementById("dashboardApp").classList.remove("hidden");
+      updateSignedInLabel(getUser());
+    }
+
+    function updateSignedInLabel(user) {
+      const target = document.getElementById("signedInAs");
+      if (!target) return;
+
+      const email = user?.email || "Signed in";
+      const artistId = user?.artist_id ? ` • ${user.artist_id}` : "";
+
+      target.textContent = `${email}${artistId}`;
+    }
+
+    function showAuthError(message) {
+      const box = document.getElementById("authError");
+      box.textContent = message || "Login failed.";
+      box.classList.add("show");
+    }
+
+    function clearAuthError() {
+      const box = document.getElementById("authError");
+      box.textContent = "";
+      box.classList.remove("show");
+    }
 
     function money(value) {
       return "$" + Number(value || 0).toFixed(2);
@@ -296,6 +525,15 @@
       } catch {
         return value;
       }
+    }
+
+    function escapeHTML(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
 
     function showError(message) {
@@ -314,13 +552,124 @@
       return String(row.payment_status || "").toLowerCase() === "paid";
     }
 
+    async function login(email, password) {
+      clearAuthError();
+
+      const loginBtn = document.getElementById("loginBtn");
+      loginBtn.disabled = true;
+      loginBtn.textContent = "Signing in…";
+
+      try {
+        const res = await fetch(`${API}/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (!data || data.status !== "success" || !data.token) {
+          throw new Error(data.message || "Login failed.");
+        }
+
+        if (!["artist", "owner", "admin"].includes(String(data.user?.role || "").toLowerCase())) {
+          throw new Error("This account cannot access the artist dashboard.");
+        }
+
+        setToken(data.token);
+        setUser(data.user || { email });
+
+        showDashboard();
+        loadDashboard();
+
+        if (!refreshTimer) {
+          refreshTimer = setInterval(loadDashboard, 20000);
+        }
+
+      } catch (err) {
+        showAuthError(err.message || "Login failed.");
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Sign in";
+      }
+    }
+
+    async function logout() {
+      try {
+        if (getToken()) {
+          await fetch(`${API}/logout`, {
+            method: "POST",
+            headers: authHeaders()
+          });
+        }
+      } catch {}
+
+      clearSession();
+      showAuth();
+    }
+
+    async function checkExistingSession() {
+      const token = getToken();
+
+      if (!token) {
+        showAuth();
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/me`, {
+          method: "GET",
+          headers: authHeaders()
+        });
+
+        const data = await res.json();
+
+        if (!data || data.status !== "success") {
+          clearSession();
+          showAuth();
+          return;
+        }
+
+        if (!["artist", "owner", "admin"].includes(String(data.user?.role || "").toLowerCase())) {
+          clearSession();
+          showAuth();
+          showAuthError("This account cannot access the artist dashboard.");
+          return;
+        }
+
+        setUser(data.user || {});
+        showDashboard();
+        loadDashboard();
+
+        if (!refreshTimer) {
+          refreshTimer = setInterval(loadDashboard, 20000);
+        }
+
+      } catch {
+        clearSession();
+        showAuth();
+      }
+    }
+
     async function loadDashboard() {
       hideError();
 
       try {
-        const url = `${API}/artist-dashboard?artist_id=${artistId}&key=${encodeURIComponent(artistKey)}`;
-        const res = await fetch(url);
+        const res = await fetch(`${API}/artist-dashboard`, {
+          method: "GET",
+          headers: authHeaders()
+        });
+
         const data = await res.json();
+
+        if (res.status === 401 || res.status === 403) {
+          clearSession();
+          showAuth();
+          showAuthError(data.message || "Session expired. Please sign in again.");
+          return;
+        }
 
         if (!data || data.status !== "success") {
           throw new Error(data.message || "Dashboard data could not be loaded.");
@@ -328,13 +677,6 @@
 
         const summary = data.summary || {};
         const rowsFromApi = data.recent_sales || [];
-
-        /* 
-          IMPORTANT:
-          We filter only by payment_status = paid.
-          We DO NOT require paynow_reference here because some current API versions
-          do not return paynow_reference inside recent_sales, even when D1 has it.
-        */
         const paidRows = rowsFromApi.filter(isPaid);
 
         const fallbackRevenue = Number(summary.total_revenue || 0);
@@ -344,9 +686,11 @@
         const fallbackSales = Number(summary.paid_orders || summary.total_sales || 0);
         const confirmedSales = paidRows.length > 0 ? paidRows.length : fallbackSales;
 
-        document.getElementById("artistName").textContent = data.artist_name || artistId;
+        document.getElementById("artistName").textContent = data.artist_name || data.artist_id || "Artist Dashboard";
         document.getElementById("revenue").textContent = money(confirmedRevenue);
         document.getElementById("sales").textContent = confirmedSales;
+        document.getElementById("pending").textContent = summary.pending_orders || 0;
+        document.getElementById("sevenDays").textContent = money(summary.revenue_7_days);
         document.getElementById("updatedAt").textContent = new Date().toLocaleString();
 
         const tbody = document.getElementById("recentSales");
@@ -370,16 +714,18 @@
         } else {
           tbody.innerHTML = paidRows.map(row => `
             <tr>
-              <td>${row.product_name || "Music purchase"}</td>
+              <td>${escapeHTML(row.product_name || "Music purchase")}</td>
               <td>${money(row.amount)}</td>
               <td><span class="status paid">Paid</span></td>
-              <td>${row.paynow_reference || "Recorded in Paynow"}</td>
+              <td>${escapeHTML(row.paynow_reference || "Recorded in Paynow")}</td>
               <td>${formatDate(row.paid_at || row.created_at)}</td>
             </tr>
           `).join("");
         }
 
-        if (confirmedSales > 0) {
+        if (Array.isArray(data.dashboard_guidance) && data.dashboard_guidance.length) {
+          document.getElementById("actionText").textContent = data.dashboard_guidance[0];
+        } else if (confirmedSales > 0) {
           document.getElementById("actionText").textContent =
             "Share your purchase link again today while your release has confirmed traction.";
         } else {
@@ -392,8 +738,19 @@
       }
     }
 
-    loadDashboard();
-    setInterval(loadDashboard, 20000);
+    document.getElementById("loginForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
+
+      login(email, password);
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+    document.getElementById("refreshBtn").addEventListener("click", loadDashboard);
+
+    checkExistingSession();
   </script>
 </body>
 </html>
