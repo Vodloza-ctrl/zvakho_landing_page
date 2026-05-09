@@ -10,6 +10,103 @@
   <link rel="stylesheet" href="/style.css">
   <script src="/config.js"></script>
   <title>ZVAKHO Owner Dashboard</title>
+
+  <style>
+    .auth-screen {
+      min-height: 72vh;
+      display: grid;
+      place-items: center;
+      padding: 60px 20px;
+    }
+
+    .auth-card {
+      width: min(460px, 100%);
+      background: #fffaf4;
+      border: 1px solid rgba(42, 26, 18, 0.12);
+      border-radius: 28px;
+      padding: 34px;
+      box-shadow: 0 24px 70px rgba(42, 26, 18, 0.08);
+    }
+
+    .auth-card h1 {
+      margin: 8px 0 10px;
+      font-size: clamp(28px, 4vw, 44px);
+      letter-spacing: -0.04em;
+    }
+
+    .auth-card p {
+      color: rgba(42, 26, 18, 0.68);
+      line-height: 1.65;
+      margin-bottom: 24px;
+    }
+
+    .auth-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .auth-form label {
+      display: grid;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 13px;
+      color: #2a1a12;
+    }
+
+    .auth-form input {
+      width: 100%;
+      border: 1px solid rgba(42, 26, 18, 0.16);
+      border-radius: 16px;
+      padding: 14px 14px;
+      background: #fff;
+      color: #2a1a12;
+      font: inherit;
+      outline: none;
+    }
+
+    .auth-form input:focus {
+      border-color: #2a1a12;
+      box-shadow: 0 0 0 4px rgba(192, 138, 62, 0.14);
+    }
+
+    .auth-error {
+      display: none;
+      background: rgba(180, 35, 24, 0.08);
+      border: 1px solid rgba(180, 35, 24, 0.18);
+      color: #8a1f17;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .auth-error.show {
+      display: block;
+    }
+
+    .dash-hidden {
+      display: none;
+    }
+
+    .dash-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .dash-user small {
+      color: rgba(42, 26, 18, 0.62);
+      font-weight: 800;
+    }
+
+    .btn.secondary {
+      background: #fffaf4;
+      color: #2a1a12;
+      border: 1px solid rgba(42, 26, 18, 0.16);
+    }
+  </style>
 </head>
 
 <body data-dashboard="admin">
@@ -30,7 +127,33 @@
     </div>
   </nav>
 
-  <main class="wrap dash">
+  <main id="authScreen" class="auth-screen wrap">
+    <section class="auth-card">
+      <div class="kicker">Owner Access</div>
+      <h1>Sign in to ZVAKHO</h1>
+      <p>
+        Use your owner account to access platform revenue, artist activity, fulfilment items, and operational controls.
+      </p>
+
+      <form id="loginForm" class="auth-form">
+        <div id="authError" class="auth-error"></div>
+
+        <label>
+          Email address
+          <input id="loginEmail" type="email" autocomplete="email" placeholder="junzatv@gmail.com" required>
+        </label>
+
+        <label>
+          Password
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password" required>
+        </label>
+
+        <button class="btn primary" id="loginBtn" type="submit">Sign in</button>
+      </form>
+    </section>
+  </main>
+
+  <main id="dashboardApp" class="wrap dash dash-hidden">
     <div class="dash-head">
       <div>
         <div class="kicker">Owner Dashboard</div>
@@ -40,7 +163,11 @@
         </p>
       </div>
 
-      <button class="btn primary" id="refreshBtn">Refresh Data</button>
+      <div class="dash-user">
+        <small id="signedInAs">Signed in</small>
+        <button class="btn secondary" id="logoutBtn">Logout</button>
+        <button class="btn primary" id="refreshBtn">Refresh Data</button>
+      </div>
     </div>
 
     <div class="metrics">
@@ -209,18 +336,83 @@
       (window.CONFIG && CONFIG.apiUrl) ||
       "https://zvakho-payments-v2.yasibomedia.workers.dev";
 
-    function getOwnerKey() {
-      if (window.CONFIG && CONFIG.ownerKey) return CONFIG.ownerKey;
+    const TOKEN_KEY = "zvakho_owner_token";
+    const USER_KEY = "zvakho_owner_user";
 
-      const saved = sessionStorage.getItem("zvakho_owner_key");
-      if (saved) return saved;
+    let refreshTimer = null;
 
-      const key = prompt("Enter owner dashboard key:");
-      if (key) sessionStorage.setItem("zvakho_owner_key", key.trim());
-      return key || "";
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || "";
     }
 
-    const OWNER_KEY = getOwnerKey();
+    function setToken(token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
+
+    function clearToken() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    }
+
+    function setUser(user) {
+      localStorage.setItem(USER_KEY, JSON.stringify(user || {}));
+      updateSignedInLabel(user);
+    }
+
+    function getUser() {
+      try {
+        return JSON.parse(localStorage.getItem(USER_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    }
+
+    function authHeaders(extra = {}) {
+      const token = getToken();
+
+      return {
+        ...extra,
+        Authorization: `Bearer ${token}`
+      };
+    }
+
+    function showAuth() {
+      document.getElementById("authScreen").classList.remove("dash-hidden");
+      document.getElementById("dashboardApp").classList.add("dash-hidden");
+
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+    }
+
+    function showDashboard() {
+      document.getElementById("authScreen").classList.add("dash-hidden");
+      document.getElementById("dashboardApp").classList.remove("dash-hidden");
+      updateSignedInLabel(getUser());
+    }
+
+    function updateSignedInLabel(user) {
+      const target = document.getElementById("signedInAs");
+      if (!target) return;
+
+      const email = user?.email || "Signed in";
+      const role = user?.role ? ` • ${user.role}` : "";
+
+      target.textContent = `${email}${role}`;
+    }
+
+    function showAuthError(message) {
+      const target = document.getElementById("authError");
+      target.textContent = message || "Login failed.";
+      target.classList.add("show");
+    }
+
+    function clearAuthError() {
+      const target = document.getElementById("authError");
+      target.textContent = "";
+      target.classList.remove("show");
+    }
 
     function money(value) {
       return "$" + Number(value || 0).toFixed(2);
@@ -228,6 +420,7 @@
 
     function formatDate(value) {
       if (!value) return "—";
+
       try {
         return new Date(value).toLocaleString();
       } catch {
@@ -252,6 +445,7 @@
       const status = String(value || "").toLowerCase();
 
       if (status === "paid" || status === "delivered") return "paid";
+
       if (
         status === "pending" ||
         status === "not_started" ||
@@ -408,11 +602,10 @@
       try {
         const res = await fetch(`${API}/update-fulfilment`, {
           method: "POST",
-          headers: {
+          headers: authHeaders({
             "Content-Type": "application/json"
-          },
+          }),
           body: JSON.stringify({
-            key: OWNER_KEY,
             payment_reference: paymentReference,
             fulfilment_status: nextStatus
           })
@@ -438,11 +631,19 @@
       try {
         document.getElementById("mUpdated").textContent = "Loading…";
 
-        const res = await fetch(
-          `${API}/owner-dashboard?key=${encodeURIComponent(OWNER_KEY)}`
-        );
+        const res = await fetch(`${API}/owner-dashboard`, {
+          method: "GET",
+          headers: authHeaders()
+        });
 
         const data = await res.json();
+
+        if (res.status === 401 || res.status === 403) {
+          clearToken();
+          showAuth();
+          showAuthError(data.message || "Session expired. Please sign in again.");
+          return;
+        }
 
         if (!data || data.status !== "success" || !data.summary) {
           throw new Error(data.message || "Dashboard data could not be loaded.");
@@ -476,6 +677,7 @@
         document.getElementById("mUpdated").textContent = "Failed";
 
         const fulfilmentBody = document.getElementById("fulfilmentBody");
+
         if (fulfilmentBody) {
           fulfilmentBody.innerHTML = `
             <tr>
@@ -492,6 +694,108 @@
       }
     }
 
+    async function login(email, password) {
+      clearAuthError();
+
+      const loginBtn = document.getElementById("loginBtn");
+      loginBtn.disabled = true;
+      loginBtn.textContent = "Signing in…";
+
+      try {
+        const res = await fetch(`${API}/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (!data || data.status !== "success" || !data.token) {
+          throw new Error(data.message || "Login failed.");
+        }
+
+        setToken(data.token);
+        setUser(data.user || { email });
+
+        showDashboard();
+        loadOwnerDashboard();
+
+        if (!refreshTimer) {
+          refreshTimer = setInterval(loadOwnerDashboard, 20000);
+        }
+
+      } catch (err) {
+        showAuthError(err.message || "Login failed.");
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Sign in";
+      }
+    }
+
+    async function logout() {
+      const token = getToken();
+
+      try {
+        if (token) {
+          await fetch(`${API}/logout`, {
+            method: "POST",
+            headers: authHeaders()
+          });
+        }
+      } catch {}
+
+      clearToken();
+      showAuth();
+    }
+
+    async function checkExistingSession() {
+      const token = getToken();
+
+      if (!token) {
+        showAuth();
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/me`, {
+          method: "GET",
+          headers: authHeaders()
+        });
+
+        const data = await res.json();
+
+        if (!data || data.status !== "success") {
+          clearToken();
+          showAuth();
+          return;
+        }
+
+        setUser(data.user || {});
+        showDashboard();
+        loadOwnerDashboard();
+
+        if (!refreshTimer) {
+          refreshTimer = setInterval(loadOwnerDashboard, 20000);
+        }
+
+      } catch {
+        clearToken();
+        showAuth();
+      }
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
+
+      login(email, password);
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", logout);
     document.getElementById("refreshBtn").addEventListener("click", loadOwnerDashboard);
 
     document.addEventListener("change", function (event) {
@@ -505,8 +809,7 @@
       updateFulfilmentStatus(paymentReference, nextStatus);
     });
 
-    loadOwnerDashboard();
-    setInterval(loadOwnerDashboard, 20000);
+    checkExistingSession();
   </script>
 </body>
 </html>
