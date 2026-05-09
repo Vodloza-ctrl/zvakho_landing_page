@@ -183,7 +183,7 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 18px;
       margin-bottom: 28px;
     }
@@ -216,7 +216,7 @@
     }
 
     .note-card {
-      grid-column: span 4;
+      grid-column: span 3;
       background: rgba(255,255,255,.035);
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -319,7 +319,7 @@
       display: none;
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 1000px) {
       .grid {
         grid-template-columns: repeat(2, 1fr);
       }
@@ -435,18 +435,8 @@
         <div class="value" id="zvakhoShare">$0.00</div>
       </div>
 
-      <div class="card payout-card">
-        <div class="label">Pending Value</div>
-        <div class="value" id="pendingRevenue">$0.00</div>
-      </div>
-
-      <div class="card payout-card">
-        <div class="label">Pending Artist Share</div>
-        <div class="value" id="pendingArtistShare">$0.00</div>
-      </div>
-
       <div class="note-card" id="payoutNote">
-        Payout estimate uses the ZVAKHO 80/20 music and VIP split. Merch payouts should be calculated separately after production costs.
+        Artist share is estimated from confirmed paid music/VIP sales only. Pending payments are not included until Paynow confirms payment. Merch payouts are calculated separately after production costs.
       </div>
     </div>
 
@@ -753,16 +743,6 @@
             ? Number(payout.estimated_zvakho_share || 0)
             : confirmedRevenue * 0.2;
 
-        const pendingRevenue =
-          payout.pending_revenue !== undefined
-            ? Number(payout.pending_revenue || 0)
-            : Number(summary.pending_revenue || 0);
-
-        const pendingArtistShare =
-          payout.estimated_pending_artist_share !== undefined
-            ? Number(payout.estimated_pending_artist_share || 0)
-            : pendingRevenue * 0.8;
-
         document.getElementById("artistName").textContent = data.artist_name || data.artist_id || "Artist Dashboard";
         document.getElementById("revenue").textContent = money(confirmedRevenue);
         document.getElementById("sales").textContent = confirmedSales;
@@ -771,12 +751,9 @@
 
         document.getElementById("artistShare").textContent = money(artistShare);
         document.getElementById("zvakhoShare").textContent = money(zvakhoShare);
-        document.getElementById("pendingRevenue").textContent = money(pendingRevenue);
-        document.getElementById("pendingArtistShare").textContent = money(pendingArtistShare);
 
         document.getElementById("payoutNote").textContent =
-          payout.note ||
-          "Payout estimate uses the ZVAKHO 80/20 music and VIP split. Merch payouts should be calculated separately after production costs.";
+          "Artist share is estimated from confirmed paid music/VIP sales only. Pending payments are not included until Paynow confirms payment. Merch payouts are calculated separately after production costs.";
 
         document.getElementById("updatedAt").textContent = new Date().toLocaleString();
 
