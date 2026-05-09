@@ -215,6 +215,82 @@
       letter-spacing: -.03em;
     }
 
+    .progress-card {
+      grid-column: span 3;
+      background:
+        radial-gradient(circle at top right, rgba(212,165,116,.14), transparent 34%),
+        linear-gradient(180deg, var(--card-2), var(--card));
+      border: 1px solid rgba(212,165,116,.24);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-end;
+      margin-bottom: 14px;
+    }
+
+    .progress-title {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .progress-percent {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+      color: var(--text);
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,.08);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), var(--gold-2));
+      border-radius: 999px;
+      transition: width .35s ease;
+    }
+
+    .progress-meta {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .mini-stat {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .mini-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .mini-value {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+    }
+
     .note-card {
       grid-column: span 3;
       background: rgba(255,255,255,.035);
@@ -324,6 +400,7 @@
         grid-template-columns: repeat(2, 1fr);
       }
 
+      .progress-card,
       .note-card {
         grid-column: span 2;
       }
@@ -347,8 +424,18 @@
         grid-template-columns: 1fr;
       }
 
+      .progress-card,
       .note-card {
         grid-column: span 1;
+      }
+
+      .progress-top {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .progress-meta {
+        grid-template-columns: 1fr;
       }
 
       th, td {
@@ -364,7 +451,7 @@
       <div class="eyebrow">ZVAKHO Artist Access</div>
       <h1>Artist Dashboard</h1>
       <p>
-        Sign in to view your confirmed revenue, paid sales, product performance, payout estimate, and recommended next actions.
+        Sign in to view your confirmed revenue, paid sales, payout progress, and recommended next actions.
       </p>
 
       <form id="loginForm" class="auth-form">
@@ -391,7 +478,7 @@
         <div class="eyebrow">ZVAKHO Artist Dashboard</div>
         <h1 id="artistName">Artist Dashboard</h1>
         <div class="subtitle">
-          Confirmed revenue, paid sales visibility, and estimated payout share.
+          Confirmed revenue, paid sales visibility, and payout progress.
         </div>
       </div>
 
@@ -416,11 +503,6 @@
       </div>
 
       <div class="card">
-        <div class="label">Pending Payments</div>
-        <div class="value" id="pending">0</div>
-      </div>
-
-      <div class="card">
         <div class="label">Last 7 Days</div>
         <div class="value" id="sevenDays">$0.00</div>
       </div>
@@ -435,8 +517,39 @@
         <div class="value" id="zvakhoShare">$0.00</div>
       </div>
 
+      <div class="card payout-card">
+        <div class="label">Payout Threshold</div>
+        <div class="value" id="payoutThreshold">$50.00</div>
+      </div>
+
+      <div class="progress-card">
+        <div class="progress-top">
+          <div>
+            <div class="progress-title">Payout Progress</div>
+            <div class="subtitle" id="progressText">You are $50.00 away from your next payout.</div>
+          </div>
+          <div class="progress-percent" id="payoutProgressPercent">0%</div>
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-fill" id="payoutProgressFill"></div>
+        </div>
+
+        <div class="progress-meta">
+          <div class="mini-stat">
+            <div class="mini-label">Amount Remaining</div>
+            <div class="mini-value" id="amountRemaining">$50.00</div>
+          </div>
+
+          <div class="mini-stat">
+            <div class="mini-label">Eligible for Payout</div>
+            <div class="mini-value" id="payoutEligible">No</div>
+          </div>
+        </div>
+      </div>
+
       <div class="note-card" id="payoutNote">
-        Artist share is estimated from confirmed paid music/VIP sales only. Pending payments are not included until Paynow confirms payment. Merch payouts are calculated separately after production costs.
+        Artist share is estimated from confirmed paid music/VIP sales only. Payouts are processed after the artist share reaches the $50.00 threshold. Merch payouts are calculated separately after production costs.
       </div>
     </div>
 
@@ -480,6 +593,7 @@
 
     const TOKEN_KEY = "zvakho_artist_token";
     const USER_KEY = "zvakho_artist_user";
+    const PAYOUT_THRESHOLD = 50;
 
     let refreshTimer = null;
 
@@ -743,17 +857,30 @@
             ? Number(payout.estimated_zvakho_share || 0)
             : confirmedRevenue * 0.2;
 
+        const payoutProgress = Math.min((artistShare / PAYOUT_THRESHOLD) * 100, 100);
+        const amountRemaining = Math.max(PAYOUT_THRESHOLD - artistShare, 0);
+        const eligible = artistShare >= PAYOUT_THRESHOLD;
+
         document.getElementById("artistName").textContent = data.artist_name || data.artist_id || "Artist Dashboard";
         document.getElementById("revenue").textContent = money(confirmedRevenue);
         document.getElementById("sales").textContent = confirmedSales;
-        document.getElementById("pending").textContent = summary.pending_orders || 0;
         document.getElementById("sevenDays").textContent = money(summary.revenue_7_days);
 
         document.getElementById("artistShare").textContent = money(artistShare);
         document.getElementById("zvakhoShare").textContent = money(zvakhoShare);
+        document.getElementById("payoutThreshold").textContent = money(PAYOUT_THRESHOLD);
+
+        document.getElementById("payoutProgressPercent").textContent = Math.round(payoutProgress) + "%";
+        document.getElementById("payoutProgressFill").style.width = payoutProgress + "%";
+        document.getElementById("amountRemaining").textContent = money(amountRemaining);
+        document.getElementById("payoutEligible").textContent = eligible ? "Yes" : "No";
+
+        document.getElementById("progressText").textContent = eligible
+          ? "You have reached the payout threshold."
+          : `You are ${money(amountRemaining)} away from your next payout.`;
 
         document.getElementById("payoutNote").textContent =
-          "Artist share is estimated from confirmed paid music/VIP sales only. Pending payments are not included until Paynow confirms payment. Merch payouts are calculated separately after production costs.";
+          "Artist share is estimated from confirmed paid music/VIP sales only. Payouts are processed after the artist share reaches the $50.00 threshold. Merch payouts are calculated separately after production costs.";
 
         document.getElementById("updatedAt").textContent = new Date().toLocaleString();
 
