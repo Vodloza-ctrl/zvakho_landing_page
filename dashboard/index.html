@@ -212,6 +212,19 @@
       font-size: 12px;
     }
 
+    .submission-file .btn {
+      margin-top: 8px;
+      width: auto;
+      min-width: 150px;
+    }
+
+    .submission-file-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
     .submission-review {
       display: grid;
       grid-template-columns: 220px 1fr auto;
@@ -884,6 +897,18 @@
                 Filename: ${escapeHTML(row.audio_filename || "—")}<br>
                 R2: ${escapeHTML(row.audio_r2_key || "—")}<br>
                 SHA256: ${escapeHTML(row.audio_sha256 || "—")}
+
+                <div class="submission-file-actions">
+                  <button
+                    class="btn secondary submission-file-btn"
+                    type="button"
+                    data-submission-id="${escapeHTML(row.submission_id)}"
+                    data-file-type="audio"
+                    data-action="download"
+                  >
+                    Download MP3
+                  </button>
+                </div>
               </div>
 
               <div class="submission-file">
@@ -891,6 +916,35 @@
                 Filename: ${escapeHTML(row.artwork_filename || "—")}<br>
                 R2: ${escapeHTML(row.artwork_r2_key || "—")}<br>
                 SHA256: ${escapeHTML(row.artwork_sha256 || "—")}
+
+                <div class="submission-file-actions">
+                  <button
+                    class="btn secondary submission-file-btn"
+                    type="button"
+                    data-submission-id="${escapeHTML(row.submission_id)}"
+                    data-file-type="artwork"
+                    data-action="open"
+                  >
+                    View Artwork
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="submission-file">
+              <strong>Legal rights record</strong>
+              Private R2 record containing rights confirmation, artist identity, IP address, user agent, file hashes, and timestamp.
+
+              <div class="submission-file-actions">
+                <button
+                  class="btn secondary submission-file-btn"
+                  type="button"
+                  data-submission-id="${escapeHTML(row.submission_id)}"
+                  data-file-type="legal"
+                  data-action="download"
+                >
+                  Download Rights Record
+                </button>
               </div>
             </div>
 
@@ -976,6 +1030,57 @@
             ${escapeHTML(err.message || "Could not load music submissions.")}
           </div>
         `;
+      }
+    }
+
+    async function handleSubmissionFile(submissionId, fileType, action) {
+      if (!submissionId || !fileType) return;
+
+      try {
+        const url =
+          `${SUBMISSIONS_API}/admin-submission-file?submission_id=${encodeURIComponent(submissionId)}&type=${encodeURIComponent(fileType)}`;
+
+        const res = await fetch(url, {
+          method: "GET",
+          headers: authHeaders()
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          clearToken();
+          showAuth();
+          showAuthError("Session expired. Please sign in again.");
+          return;
+        }
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.message || "File could not be loaded.");
+        }
+
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        const disposition = res.headers.get("Content-Disposition") || "";
+        const filenameMatch = disposition.match(/filename="([^"]+)"/i);
+        const filename = filenameMatch ? filenameMatch[1] : `${submissionId}-${fileType}`;
+
+        if (action === "open") {
+          window.open(objectUrl, "_blank", "noopener,noreferrer");
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+          return;
+        }
+
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+
+      } catch (err) {
+        alert(err.message || "File could not be loaded.");
       }
     }
 
@@ -1249,13 +1354,22 @@
     document.addEventListener("click", function (event) {
       const target = event.target;
 
-      if (!target.classList.contains("submission-update-btn")) return;
+      if (target.classList.contains("submission-update-btn")) {
+        const submissionId = target.dataset.submissionId || "";
+        const statusId = target.dataset.statusId || "";
+        const noteId = target.dataset.noteId || "";
 
-      const submissionId = target.dataset.submissionId || "";
-      const statusId = target.dataset.statusId || "";
-      const noteId = target.dataset.noteId || "";
+        updateSubmissionStatus(submissionId, statusId, noteId);
+        return;
+      }
 
-      updateSubmissionStatus(submissionId, statusId, noteId);
+      if (target.classList.contains("submission-file-btn")) {
+        const submissionId = target.dataset.submissionId || "";
+        const fileType = target.dataset.fileType || "";
+        const action = target.dataset.action || "download";
+
+        handleSubmissionFile(submissionId, fileType, action);
+      }
     });
 
     checkExistingSession();
