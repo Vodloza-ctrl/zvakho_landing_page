@@ -307,6 +307,213 @@
       text-transform: capitalize;
     }
 
+    .submissions-card {
+      grid-column: span 3;
+      background:
+        radial-gradient(circle at top left, rgba(98,182,106,.10), transparent 34%),
+        linear-gradient(180deg, var(--card-2), var(--card));
+      border: 1px solid rgba(212,165,116,.18);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+
+    .submissions-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .submissions-head h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      letter-spacing: -.03em;
+    }
+
+    .submissions-head p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .submissions-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .submission-latest {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .submission-status-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .submission-status-card h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: -.02em;
+    }
+
+    .submission-status-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .submission-meta-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .submission-mini {
+      background: rgba(255,255,255,.035);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .submission-mini span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 6px;
+    }
+
+    .submission-mini b {
+      color: var(--text);
+      font-size: 13px;
+      word-break: break-word;
+    }
+
+    .submission-note {
+      margin-top: 14px;
+      background: rgba(212,165,116,.08);
+      border: 1px solid rgba(212,165,116,.16);
+      border-radius: 14px;
+      padding: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .submission-status-help {
+      display: grid;
+      gap: 8px;
+    }
+
+    .submission-help-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      padding: 8px 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .submission-help-row:last-child {
+      border-bottom: none;
+    }
+
+    .submission-help-row b {
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .submissions-empty {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .submission-list {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .submission-list-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      background: rgba(255,255,255,.035);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 14px;
+    }
+
+    .submission-list-item strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .submission-list-item span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .submission-status-pill {
+      display: inline-block;
+      padding: 6px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .submission-status-pill.submitted {
+      background: rgba(212,165,116,.14);
+      color: var(--gold-2);
+    }
+
+    .submission-status-pill.under_review {
+      background: rgba(212,165,116,.14);
+      color: var(--gold-2);
+    }
+
+    .submission-status-pill.needs_fixes {
+      background: rgba(255,139,120,.12);
+      color: var(--danger);
+    }
+
+    .submission-status-pill.approved {
+      background: rgba(98,182,106,.14);
+      color: var(--success);
+    }
+
+    .submission-status-pill.live {
+      background: rgba(98,182,106,.18);
+      color: var(--success);
+    }
+
+    .submission-status-pill.rejected {
+      background: rgba(255,139,120,.12);
+      color: var(--danger);
+    }
+
     .payout-card {
       background:
         radial-gradient(circle at top right, rgba(212,165,116,.14), transparent 34%),
@@ -576,7 +783,8 @@
 
       .progress-card,
       .note-card,
-      .share-card {
+      .share-card,
+      .submissions-card {
         grid-column: span 2;
       }
 
@@ -615,12 +823,24 @@
       .progress-card,
       .note-card,
       .share-card,
-      .breakdown-card {
+      .breakdown-card,
+      .submissions-card {
         grid-column: span 1;
       }
 
-      .breakdown-grid {
+      .breakdown-grid,
+      .submission-latest,
+      .submission-meta-row,
+      .submission-list-item {
         grid-template-columns: 1fr;
+      }
+
+      .submissions-head {
+        flex-direction: column;
+      }
+
+      .submissions-actions {
+        width: 100%;
       }
 
       .progress-top {
@@ -791,6 +1011,25 @@
         </div>
       </div>
 
+      <div class="submissions-card">
+        <div class="submissions-head">
+          <div>
+            <div class="eyebrow">Music Submissions</div>
+            <h2>Submission Status</h2>
+            <p>Track your submitted music, review notes, and approval status directly from your dashboard.</p>
+          </div>
+
+          <div class="submissions-actions">
+            <a class="btn" href="/app/submit/">Submit New Music</a>
+            <a class="btn secondary" href="/app/submit/">View All Submissions</a>
+          </div>
+        </div>
+
+        <div id="submissionsPanel">
+          <div class="submissions-empty">Loading your music submissions…</div>
+        </div>
+      </div>
+
       <div class="share-card">
         <div class="share-head">
           <div>
@@ -854,6 +1093,7 @@
 
   <script>
     const API = "https://zvakho-payments-v2.yasibomedia.workers.dev";
+    const SUBMISSIONS_API = "https://zvakho-submissions-api.yasibomedia.workers.dev";
 
     const TOKEN_KEY = "zvakho_artist_token";
     const USER_KEY = "zvakho_artist_user";
@@ -1115,6 +1355,166 @@
       return money(amount * 0.8);
     }
 
+    function friendlySubmissionStatus(value) {
+      const status = String(value || "submitted").toLowerCase();
+
+      const labels = {
+        submitted: "Submitted",
+        under_review: "Under Review",
+        needs_fixes: "Needs Fixes",
+        approved: "Approved",
+        rejected: "Not Approved",
+        live: "Live on Store"
+      };
+
+      return labels[status] || status.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase());
+    }
+
+    function submissionStatusExplanation(value) {
+      const status = String(value || "submitted").toLowerCase();
+
+      const messages = {
+        submitted: "We received your music and it is waiting for review.",
+        under_review: "ZVAKHO is checking the audio, artwork, metadata, and rights confirmation.",
+        needs_fixes: "Please check the review note. Something needs to be corrected before approval.",
+        approved: "Your release has been approved for setup.",
+        rejected: "This submission was not approved. Check the review note for context.",
+        live: "Your release is live or ready for fans on ZVAKHO."
+      };
+
+      return messages[status] || "Your submission status has been updated.";
+    }
+
+    function renderSubmissionStatus(submissions) {
+      const panel = document.getElementById("submissionsPanel");
+      if (!panel) return;
+
+      const rows = Array.isArray(submissions) ? submissions : [];
+
+      if (!rows.length) {
+        panel.innerHTML = `
+          <div class="submissions-empty">
+            <strong>No music submissions yet.</strong><br>
+            Submit your next song so ZVAKHO can review the audio, artwork, metadata, and rights confirmation before release setup.
+            <br><br>
+            <a class="btn" href="/app/submit/">Submit Music</a>
+          </div>
+        `;
+        return;
+      }
+
+      const latest = rows[0];
+      const latestStatus = String(latest.submission_status || "submitted").toLowerCase();
+      const note = latest.review_note || "";
+
+      const recentList = rows.slice(0, 4).map(row => {
+        const status = String(row.submission_status || "submitted").toLowerCase();
+
+        return `
+          <div class="submission-list-item">
+            <div>
+              <strong>${escapeHTML(row.song_title || "Untitled submission")}</strong>
+              <span>${escapeHTML(row.release_type || "single")} • ${formatDate(row.created_at)}</span>
+            </div>
+            <span class="submission-status-pill ${escapeHTML(status)}">${escapeHTML(friendlySubmissionStatus(status))}</span>
+            <a class="btn secondary" href="/app/submit/">Details</a>
+          </div>
+        `;
+      }).join("");
+
+      panel.innerHTML = `
+        <div class="submission-latest">
+          <div class="submission-status-card">
+            <div class="eyebrow">Latest Submission</div>
+            <h3>${escapeHTML(latest.song_title || "Untitled submission")}</h3>
+            <p>${escapeHTML(submissionStatusExplanation(latestStatus))}</p>
+
+            <div class="submission-meta-row">
+              <div class="submission-mini">
+                <span>Status</span>
+                <b><span class="submission-status-pill ${escapeHTML(latestStatus)}">${escapeHTML(friendlySubmissionStatus(latestStatus))}</span></b>
+              </div>
+
+              <div class="submission-mini">
+                <span>Release Type</span>
+                <b>${escapeHTML(latest.release_type || "single")}</b>
+              </div>
+
+              <div class="submission-mini">
+                <span>Submitted</span>
+                <b>${formatDate(latest.created_at)}</b>
+              </div>
+            </div>
+
+            <div class="submission-note">
+              <strong>Review note:</strong><br>
+              ${note ? escapeHTML(note) : "No review note yet."}
+            </div>
+          </div>
+
+          <div class="submission-status-card">
+            <div class="eyebrow">Status Guide</div>
+            <div class="submission-status-help">
+              <div class="submission-help-row"><b>Submitted</b><span>We received your music.</span></div>
+              <div class="submission-help-row"><b>Under Review</b><span>We are checking your files and rights confirmation.</span></div>
+              <div class="submission-help-row"><b>Needs Fixes</b><span>Check the note and correct the issue.</span></div>
+              <div class="submission-help-row"><b>Approved</b><span>Your release is approved for setup.</span></div>
+              <div class="submission-help-row"><b>Live</b><span>Your release is active or ready for fans.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="submission-list">
+          ${recentList}
+        </div>
+      `;
+    }
+
+    async function loadSubmissionStatus() {
+      const panel = document.getElementById("submissionsPanel");
+      if (panel) {
+        panel.innerHTML = `<div class="submissions-empty">Loading your music submissions…</div>`;
+      }
+
+      try {
+        const res = await fetch(`${SUBMISSIONS_API}/my-submissions`, {
+          method: "GET",
+          headers: authHeaders()
+        });
+
+        const data = await res.json();
+
+        if (res.status === 401 || res.status === 403) {
+          if (panel) {
+            panel.innerHTML = `
+              <div class="submissions-empty">
+                Submission status could not load because the session expired. Please sign in again.
+              </div>
+            `;
+          }
+          return;
+        }
+
+        if (!data || data.status !== "success") {
+          throw new Error(data.message || "Could not load submissions.");
+        }
+
+        renderSubmissionStatus(data.submissions || []);
+
+      } catch (err) {
+        if (panel) {
+          panel.innerHTML = `
+            <div class="submissions-empty">
+              Submission status could not load right now. You can still open the full submission page.
+              <br><br>
+              <a class="btn secondary" href="/app/submit/">View Submissions</a>
+            </div>
+          `;
+        }
+      }
+    }
+
+
     function artistSlugFromId(artistId) {
       const value = String(artistId || "").trim().toUpperCase();
 
@@ -1342,6 +1742,7 @@
         const tbody = document.getElementById("recentSales");
 
         renderRevenueBreakdown(data, paidRows, confirmedRevenue, artistShare, zvakhoShare, confirmedSales);
+        loadSubmissionStatus();
 
         if (!paidRows.length && fallbackSales > 0) {
           tbody.innerHTML = `
