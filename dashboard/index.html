@@ -12,281 +12,140 @@
   <title>ZVAKHO Owner Dashboard</title>
 
   <style>
-    .auth-screen {
-      min-height: 72vh;
-      display: grid;
-      place-items: center;
-      padding: 60px 20px;
+    /* ── existing styles ── */
+    .auth-screen { min-height:72vh; display:grid; place-items:center; padding:60px 20px; }
+    .auth-card { width:min(460px,100%); background:#fffaf4; border:1px solid rgba(42,26,18,.12); border-radius:28px; padding:34px; box-shadow:0 24px 70px rgba(42,26,18,.08); }
+    .auth-card h1 { margin:8px 0 10px; font-size:clamp(28px,4vw,44px); letter-spacing:-.04em; }
+    .auth-card p { color:rgba(42,26,18,.68); line-height:1.65; margin-bottom:24px; }
+    .auth-form { display:grid; gap:14px; }
+    .auth-form label { display:grid; gap:8px; font-weight:800; font-size:13px; color:#2a1a12; }
+    .auth-form input { width:100%; border:1px solid rgba(42,26,18,.16); border-radius:16px; padding:14px; background:#fff; color:#2a1a12; font:inherit; outline:none; }
+    .auth-form input:focus { border-color:#2a1a12; box-shadow:0 0 0 4px rgba(192,138,62,.14); }
+    .auth-error { display:none; background:rgba(180,35,24,.08); border:1px solid rgba(180,35,24,.18); color:#8a1f17; border-radius:14px; padding:12px 14px; font-weight:800; font-size:13px; }
+    .auth-error.show { display:block; }
+    .dash-hidden { display:none; }
+    .dash-user { display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:flex-end; }
+    .dash-user small { color:rgba(42,26,18,.62); font-weight:800; }
+    .btn.secondary { background:#fffaf4; color:#2a1a12; border:1px solid rgba(42,26,18,.16); }
+    .submission-filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end; }
+    .submission-filters select { border:1px solid rgba(42,26,18,.16); border-radius:999px; padding:11px 14px; background:#fffaf4; color:#2a1a12; font:inherit; font-weight:800; outline:none; }
+    .submission-card { display:grid; gap:14px; padding:18px; border:1px solid rgba(42,26,18,.12); border-radius:22px; background:#fffaf4; margin-bottom:14px; }
+    .submission-top { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; flex-wrap:wrap; }
+    .submission-title strong { display:block; color:#2a1a12; font-size:18px; letter-spacing:-.02em; margin-bottom:6px; }
+    .submission-title span { color:rgba(42,26,18,.68); font-size:13px; line-height:1.55; display:block; }
+    .submission-meta-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .submission-meta { background:#fff; border:1px solid rgba(42,26,18,.1); border-radius:16px; padding:12px; }
+    .submission-meta small { display:block; color:rgba(42,26,18,.58); font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+    .submission-meta b { color:#2a1a12; font-size:13px; word-break:break-word; }
+    .submission-files { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .submission-file { background:rgba(42,26,18,.035); border:1px solid rgba(42,26,18,.1); border-radius:16px; padding:12px; font-size:12px; color:rgba(42,26,18,.72); line-height:1.55; word-break:break-word; }
+    .submission-file strong { display:block; color:#2a1a12; margin-bottom:6px; font-size:12px; }
+    .submission-file .btn { margin-top:8px; width:auto; min-width:150px; }
+    .submission-file-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .submission-review { display:grid; grid-template-columns:220px 1fr auto; gap:10px; align-items:start; }
+    .submission-review select, .submission-review textarea { width:100%; border:1px solid rgba(42,26,18,.16); border-radius:16px; padding:12px; background:#fff; color:#2a1a12; font:inherit; outline:none; }
+    .submission-review textarea { resize:vertical; min-height:46px; }
+    .submission-empty { padding:18px; border:1px solid rgba(42,26,18,.12); border-radius:18px; background:#fffaf4; color:rgba(42,26,18,.68); font-weight:800; }
+    .submission-count { color:rgba(42,26,18,.68); font-size:13px; font-weight:800; margin-top:6px; }
+
+    /* ── Artist Applications styles ── */
+    .applications-filters {
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end;
     }
-
-    .auth-card {
-      width: min(460px, 100%);
-      background: #fffaf4;
-      border: 1px solid rgba(42, 26, 18, 0.12);
-      border-radius: 28px;
-      padding: 34px;
-      box-shadow: 0 24px 70px rgba(42, 26, 18, 0.08);
+    .applications-filters select, .applications-filters input {
+      border:1px solid rgba(42,26,18,.16); border-radius:999px; padding:11px 14px;
+      background:#fffaf4; color:#2a1a12; font:inherit; font-weight:800; outline:none;
     }
-
-    .auth-card h1 {
-      margin: 8px 0 10px;
-      font-size: clamp(28px, 4vw, 44px);
-      letter-spacing: -0.04em;
+    .app-summary-bar {
+      display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:20px;
     }
-
-    .auth-card p {
-      color: rgba(42, 26, 18, 0.68);
-      line-height: 1.65;
-      margin-bottom: 24px;
+    .app-summary-tile {
+      background:#fffaf4; border:1px solid rgba(42,26,18,.12); border-radius:18px;
+      padding:16px 14px; text-align:center;
     }
-
-    .auth-form {
-      display: grid;
-      gap: 14px;
+    .app-summary-tile small {
+      display:block; color:rgba(42,26,18,.55); font-size:11px; font-weight:900;
+      text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px;
     }
-
-    .auth-form label {
-      display: grid;
-      gap: 8px;
-      font-weight: 800;
-      font-size: 13px;
-      color: #2a1a12;
+    .app-summary-tile strong { color:#2a1a12; font-size:22px; letter-spacing:-.03em; }
+    .application-card {
+      display:grid; gap:14px; padding:20px; border:1px solid rgba(42,26,18,.12);
+      border-radius:22px; background:#fffaf4; margin-bottom:14px;
+      transition:box-shadow .15s;
     }
-
-    .auth-form input {
-      width: 100%;
-      border: 1px solid rgba(42, 26, 18, 0.16);
-      border-radius: 16px;
-      padding: 14px 14px;
-      background: #fff;
-      color: #2a1a12;
-      font: inherit;
-      outline: none;
+    .application-card:hover { box-shadow:0 8px 32px rgba(42,26,18,.08); }
+    .application-card.status-shortlisted { border-left:4px solid #2a7a2a; }
+    .application-card.status-review      { border-left:4px solid #c08a1a; }
+    .application-card.status-rejected    { border-left:4px solid rgba(42,26,18,.2); opacity:.75; }
+    .app-card-top {
+      display:flex; justify-content:space-between; align-items:flex-start;
+      gap:14px; flex-wrap:wrap;
     }
-
-    .auth-form input:focus {
-      border-color: #2a1a12;
-      box-shadow: 0 0 0 4px rgba(192, 138, 62, 0.14);
+    .app-card-identity strong {
+      display:block; font-size:19px; letter-spacing:-.02em; color:#2a1a12; margin-bottom:4px;
     }
-
-    .auth-error {
-      display: none;
-      background: rgba(180, 35, 24, 0.08);
-      border: 1px solid rgba(180, 35, 24, 0.18);
-      color: #8a1f17;
-      border-radius: 14px;
-      padding: 12px 14px;
-      font-weight: 800;
-      font-size: 13px;
+    .app-card-identity span {
+      color:rgba(42,26,18,.62); font-size:13px; line-height:1.5;
     }
-
-    .auth-error.show {
-      display: block;
+    .app-card-right { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .score-badge {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:52px; height:52px; border-radius:50%; font-size:15px; font-weight:900;
+      letter-spacing:-.02em; flex-shrink:0;
     }
-
-    .dash-hidden {
-      display: none;
+    .score-badge.high   { background:#e8f5e9; color:#2a7a2a; border:2px solid #b5ddb5; }
+    .score-badge.medium { background:#fff8e1; color:#9a6e00; border:2px solid #f0d080; }
+    .score-badge.low    { background:rgba(42,26,18,.06); color:rgba(42,26,18,.5); border:2px solid rgba(42,26,18,.1); }
+    .app-tags { display:flex; flex-wrap:wrap; gap:6px; }
+    .app-tag {
+      background:rgba(42,26,18,.07); color:#2a1a12; border-radius:999px;
+      padding:4px 10px; font-size:11px; font-weight:800; white-space:nowrap;
     }
-
-    .dash-user {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
+    .app-tag.flag { background:rgba(180,35,24,.08); color:#8a1f17; }
+    .app-data-grid {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
     }
-
-    .dash-user small {
-      color: rgba(42, 26, 18, 0.62);
-      font-weight: 800;
+    .app-data-cell {
+      background:#fff; border:1px solid rgba(42,26,18,.09); border-radius:14px; padding:10px 12px;
     }
-
-    .btn.secondary {
-      background: #fffaf4;
-      color: #2a1a12;
-      border: 1px solid rgba(42, 26, 18, 0.16);
+    .app-data-cell small {
+      display:block; color:rgba(42,26,18,.5); font-size:10px; font-weight:900;
+      text-transform:uppercase; letter-spacing:.07em; margin-bottom:4px;
     }
-
-    .submission-filters {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: flex-end;
+    .app-data-cell b { color:#2a1a12; font-size:13px; word-break:break-all; }
+    .app-links { display:flex; gap:8px; flex-wrap:wrap; }
+    .app-link {
+      display:inline-flex; align-items:center; gap:5px;
+      background:rgba(42,26,18,.06); color:#2a1a12; border-radius:999px;
+      padding:7px 12px; font-size:12px; font-weight:800; text-decoration:none;
+      transition:background .12s;
     }
-
-    .submission-filters select {
-      border: 1px solid rgba(42, 26, 18, 0.16);
-      border-radius: 999px;
-      padding: 11px 14px;
-      background: #fffaf4;
-      color: #2a1a12;
-      font: inherit;
-      font-weight: 800;
-      outline: none;
+    .app-link:hover { background:rgba(42,26,18,.12); }
+    .app-action-row {
+      display:grid; grid-template-columns:200px 1fr auto auto; gap:10px; align-items:center;
     }
-
-    .submission-card {
-      display: grid;
-      gap: 14px;
-      padding: 18px;
-      border: 1px solid rgba(42, 26, 18, 0.12);
-      border-radius: 22px;
-      background: #fffaf4;
-      margin-bottom: 14px;
+    .app-action-row select {
+      border:1px solid rgba(42,26,18,.16); border-radius:14px; padding:11px 12px;
+      background:#fff; color:#2a1a12; font:inherit; font-weight:700; outline:none;
     }
-
-    .submission-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      align-items: flex-start;
-      flex-wrap: wrap;
+    .app-action-row textarea {
+      border:1px solid rgba(42,26,18,.16); border-radius:14px; padding:11px 12px;
+      background:#fff; color:#2a1a12; font:inherit; outline:none;
+      resize:vertical; min-height:42px; width:100%;
     }
+    .app-score-bar { height:4px; border-radius:2px; background:rgba(42,26,18,.08); margin-top:6px; }
+    .app-score-bar-fill { height:100%; border-radius:2px; background:#2a1a12; transition:width .4s; }
 
-    .submission-title strong {
-      display: block;
-      color: #2a1a12;
-      font-size: 18px;
-      letter-spacing: -0.02em;
-      margin-bottom: 6px;
+    @media (max-width:1000px) {
+      .submission-meta-grid, .app-data-grid { grid-template-columns:repeat(2,1fr); }
+      .submission-review, .app-action-row { grid-template-columns:1fr; }
+      .submission-files { grid-template-columns:1fr; }
+      .app-summary-bar { grid-template-columns:repeat(3,1fr); }
     }
-
-    .submission-title span {
-      color: rgba(42, 26, 18, 0.68);
-      font-size: 13px;
-      line-height: 1.55;
-      display: block;
-    }
-
-    .submission-meta-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-    }
-
-    .submission-meta {
-      background: #fff;
-      border: 1px solid rgba(42, 26, 18, 0.1);
-      border-radius: 16px;
-      padding: 12px;
-    }
-
-    .submission-meta small {
-      display: block;
-      color: rgba(42, 26, 18, 0.58);
-      font-size: 11px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      margin-bottom: 6px;
-    }
-
-    .submission-meta b {
-      color: #2a1a12;
-      font-size: 13px;
-      word-break: break-word;
-    }
-
-    .submission-files {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .submission-file {
-      background: rgba(42, 26, 18, 0.035);
-      border: 1px solid rgba(42, 26, 18, 0.1);
-      border-radius: 16px;
-      padding: 12px;
-      font-size: 12px;
-      color: rgba(42, 26, 18, 0.72);
-      line-height: 1.55;
-      word-break: break-word;
-    }
-
-    .submission-file strong {
-      display: block;
-      color: #2a1a12;
-      margin-bottom: 6px;
-      font-size: 12px;
-    }
-
-    .submission-file .btn {
-      margin-top: 8px;
-      width: auto;
-      min-width: 150px;
-    }
-
-    .submission-file-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 10px;
-    }
-
-    .submission-review {
-      display: grid;
-      grid-template-columns: 220px 1fr auto;
-      gap: 10px;
-      align-items: start;
-    }
-
-    .submission-review select,
-    .submission-review textarea {
-      width: 100%;
-      border: 1px solid rgba(42, 26, 18, 0.16);
-      border-radius: 16px;
-      padding: 12px;
-      background: #fff;
-      color: #2a1a12;
-      font: inherit;
-      outline: none;
-    }
-
-    .submission-review textarea {
-      resize: vertical;
-      min-height: 46px;
-    }
-
-    .submission-empty {
-      padding: 18px;
-      border: 1px solid rgba(42, 26, 18, 0.12);
-      border-radius: 18px;
-      background: #fffaf4;
-      color: rgba(42, 26, 18, 0.68);
-      font-weight: 800;
-    }
-
-    .submission-count {
-      color: rgba(42, 26, 18, 0.68);
-      font-size: 13px;
-      font-weight: 800;
-      margin-top: 6px;
-    }
-
-    @media (max-width: 1000px) {
-      .submission-meta-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .submission-review {
-        grid-template-columns: 1fr;
-      }
-
-      .submission-files {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 700px) {
-      .submission-meta-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .submission-filters {
-        justify-content: flex-start;
-      }
+    @media (max-width:700px) {
+      .submission-meta-grid, .app-data-grid { grid-template-columns:1fr; }
+      .submission-filters, .applications-filters { justify-content:flex-start; }
+      .app-summary-bar { grid-template-columns:repeat(2,1fr); }
     }
   </style>
 </head>
@@ -297,14 +156,12 @@
       <a class="brand" href="/">
         <img src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
       </a>
-
       <div class="nav-links">
         <a href="/#platform">Platform</a>
         <a href="/#artists">Artists</a>
         <a href="/#transaction">Live transaction</a>
         <a href="/#release">Releases</a>
       </div>
-
       <a class="btn primary" href="https://wa.me/263719362231?text=ZVAKHO">Request access</a>
     </div>
   </nav>
@@ -313,23 +170,11 @@
     <section class="auth-card">
       <div class="kicker">Owner Access</div>
       <h1>Sign in to ZVAKHO</h1>
-      <p>
-        Use your owner account to access platform revenue, artist activity, fulfilment items, music submissions, and operational controls.
-      </p>
-
+      <p>Use your owner account to access platform revenue, artist activity, fulfilment items, music submissions, and operational controls.</p>
       <form id="loginForm" class="auth-form">
         <div id="authError" class="auth-error"></div>
-
-        <label>
-          Email address
-          <input id="loginEmail" type="email" autocomplete="email" placeholder="junzatv@gmail.com" required>
-        </label>
-
-        <label>
-          Password
-          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password" required>
-        </label>
-
+        <label>Email address<input id="loginEmail" type="email" autocomplete="email" placeholder="junzatv@gmail.com" required></label>
+        <label>Password<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password" required></label>
         <button class="btn primary" id="loginBtn" type="submit">Sign in</button>
       </form>
     </section>
@@ -340,11 +185,8 @@
       <div>
         <div class="kicker">Owner Dashboard</div>
         <h1>Platform control panel</h1>
-        <p class="lead">
-          Operational visibility across artists, confirmed revenue, paid transactions, fulfilment items, music submissions, and recent platform activity.
-        </p>
+        <p class="lead">Operational visibility across artists, confirmed revenue, paid transactions, fulfilment items, music submissions, and recent platform activity.</p>
       </div>
-
       <div class="dash-user">
         <small id="signedInAs">Signed in</small>
         <button class="btn secondary" id="logoutBtn">Logout</button>
@@ -353,55 +195,16 @@
     </div>
 
     <div class="metrics">
-      <div class="metric">
-        <span>Total platform revenue</span>
-        <strong id="mRevenue">$0.00</strong>
-      </div>
-
-      <div class="metric">
-        <span>Confirmed paid orders</span>
-        <strong id="mOrders">0</strong>
-      </div>
-
-      <div class="metric">
-        <span>Active artists</span>
-        <strong id="mArtists">0</strong>
-      </div>
-
-      <div class="metric">
-        <span>Unique customers</span>
-        <strong id="mCustomers">0</strong>
-      </div>
-
-      <div class="metric">
-        <span>Today</span>
-        <strong id="mToday">$0.00</strong>
-      </div>
-
-      <div class="metric">
-        <span>Last 7 days</span>
-        <strong id="mSeven">$0.00</strong>
-      </div>
-
-      <div class="metric">
-        <span>Pending payments</span>
-        <strong id="mPending">0</strong>
-      </div>
-
-      <div class="metric">
-        <span>Fulfilment items</span>
-        <strong id="mFulfilment">0</strong>
-      </div>
-
-      <div class="metric">
-        <span>Music submissions</span>
-        <strong id="mSubmissions">0</strong>
-      </div>
-
-      <div class="metric">
-        <span>Last refresh</span>
-        <strong id="mUpdated">—</strong>
-      </div>
+      <div class="metric"><span>Total platform revenue</span><strong id="mRevenue">$0.00</strong></div>
+      <div class="metric"><span>Confirmed paid orders</span><strong id="mOrders">0</strong></div>
+      <div class="metric"><span>Active artists</span><strong id="mArtists">0</strong></div>
+      <div class="metric"><span>Unique customers</span><strong id="mCustomers">0</strong></div>
+      <div class="metric"><span>Today</span><strong id="mToday">$0.00</strong></div>
+      <div class="metric"><span>Last 7 days</span><strong id="mSeven">$0.00</strong></div>
+      <div class="metric"><span>Pending payments</span><strong id="mPending">0</strong></div>
+      <div class="metric"><span>Fulfilment items</span><strong id="mFulfilment">0</strong></div>
+      <div class="metric"><span>Music submissions</span><strong id="mSubmissions">0</strong></div>
+      <div class="metric"><span>Last refresh</span><strong id="mUpdated">—</strong></div>
     </div>
 
     <section class="dash-grid">
@@ -409,24 +212,62 @@
         <h3>Artist leaderboard</h3>
         <div id="artistLeaderboard" class="list"></div>
       </div>
-
       <div class="panel">
         <h3>Product leaderboard</h3>
         <div id="productLeaderboard" class="list"></div>
       </div>
     </section>
 
+    <!-- ══════════════════════════════════════════
+         ARTIST APPLICATIONS SECTION
+    ══════════════════════════════════════════ -->
+    <section class="dashboard-section">
+      <div class="section-head">
+        <div>
+          <div class="kicker">Artist Applications</div>
+          <h2>A&amp;R intake &amp; vetting queue</h2>
+          <p class="lead">
+            Automated fit scoring, risk flags, and ranked applicants from the ManyChat onboarding flow.
+            Only the highest-scoring applicants are shortlisted for onboarding.
+          </p>
+          <div id="applicationCount" class="submission-count">Loading applications…</div>
+        </div>
+        <div class="applications-filters">
+          <select id="appStatusFilter">
+            <option value="">All statuses</option>
+            <option value="shortlisted">Shortlisted</option>
+            <option value="review">Needs review</option>
+            <option value="rejected">Rejected</option>
+            <option value="onboarding_pending">Onboarding pending</option>
+            <option value="onboarded">Onboarded</option>
+          </select>
+          <button class="btn secondary" id="refreshApplicationsBtn">Refresh</button>
+        </div>
+      </div>
+
+      <!-- Summary tiles -->
+      <div id="appSummaryBar" class="app-summary-bar">
+        <div class="app-summary-tile"><small>Total</small><strong id="appTotal">—</strong></div>
+        <div class="app-summary-tile"><small>Shortlisted</small><strong id="appShortlisted">—</strong></div>
+        <div class="app-summary-tile"><small>Review</small><strong id="appReview">—</strong></div>
+        <div class="app-summary-tile"><small>Rejected</small><strong id="appRejected">—</strong></div>
+        <div class="app-summary-tile"><small>Avg score</small><strong id="appAvgScore">—</strong></div>
+      </div>
+
+      <div id="applicationsBody">
+        <div class="submission-empty">Loading artist applications…</div>
+      </div>
+    </section>
+
+    <!-- Music Submissions -->
     <section class="dashboard-section">
       <div class="section-head">
         <div>
           <div class="kicker">Music submissions</div>
           <h2>Artist music review queue</h2>
-          <p class="lead">
-            Review uploaded MP3 files, artwork, metadata, rights confirmation, and update approval status.
-          </p>
+          <p class="lead">Review uploaded MP3 files, artwork, metadata, rights confirmation, and update approval status.</p>
           <div id="submissionCount" class="submission-count">Loading submissions…</div>
         </div>
-
         <div class="submission-filters">
           <select id="submissionStatusFilter">
             <option value="">All statuses</option>
@@ -440,76 +281,43 @@
           <button class="btn secondary" id="refreshSubmissionsBtn">Refresh Submissions</button>
         </div>
       </div>
-
-      <div id="submissionsBody">
-        <div class="submission-empty">Loading music submissions…</div>
-      </div>
+      <div id="submissionsBody"><div class="submission-empty">Loading music submissions…</div></div>
     </section>
 
+    <!-- Fulfilment -->
     <section class="dashboard-section">
       <div class="section-head">
         <div>
           <div class="kicker">Fulfilment</div>
-          <h2>Merch & order items</h2>
-          <p class="lead">
-            Line-item view for merch, sizes, quantities, payment status, and fulfilment status.
-          </p>
+          <h2>Merch &amp; order items</h2>
+          <p class="lead">Line-item view for merch, sizes, quantities, payment status, and fulfilment status.</p>
         </div>
       </div>
-
       <div class="table-wrap">
         <table>
           <thead>
-            <tr>
-              <th>Date</th>
-              <th>Artist</th>
-              <th>Product</th>
-              <th>Color</th>
-              <th>Size</th>
-              <th>Qty</th>
-              <th>Amount</th>
-              <th>Payment</th>
-              <th>Fulfilment</th>
-              <th>Reference</th>
-            </tr>
+            <tr><th>Date</th><th>Artist</th><th>Product</th><th>Color</th><th>Size</th><th>Qty</th><th>Amount</th><th>Payment</th><th>Fulfilment</th><th>Reference</th></tr>
           </thead>
-          <tbody id="fulfilmentBody">
-            <tr>
-              <td colspan="10">Loading fulfilment items…</td>
-            </tr>
-          </tbody>
+          <tbody id="fulfilmentBody"><tr><td colspan="10">Loading fulfilment items…</td></tr></tbody>
         </table>
       </div>
     </section>
 
+    <!-- Revenue -->
     <section class="dashboard-section">
       <div class="section-head">
         <div>
           <div class="kicker">Confirmed revenue</div>
           <h2>Paid platform sales</h2>
-          <p class="lead">
-            Only transactions confirmed as paid are shown in this revenue table.
-          </p>
+          <p class="lead">Only transactions confirmed as paid are shown in this revenue table.</p>
         </div>
       </div>
-
       <div class="table-wrap">
         <table>
           <thead>
-            <tr>
-              <th>Date</th>
-              <th>Artist</th>
-              <th>Product</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Reference</th>
-            </tr>
+            <tr><th>Date</th><th>Artist</th><th>Product</th><th>Amount</th><th>Status</th><th>Reference</th></tr>
           </thead>
-          <tbody id="ordersBody">
-            <tr>
-              <td colspan="6">Loading confirmed platform sales…</td>
-            </tr>
-          </tbody>
+          <tbody id="ordersBody"><tr><td colspan="6">Loading confirmed platform sales…</td></tr></tbody>
         </table>
       </div>
     </section>
@@ -528,7 +336,6 @@
         <img class="footer-logo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
         <p>ZVAKHO is direct-to-fan commerce infrastructure for artists across African markets.</p>
       </div>
-
       <div>
         <strong>Access</strong>
         <p>
@@ -537,7 +344,6 @@
           <a href="/store/">Artist stores</a>
         </p>
       </div>
-
       <div>
         <strong>Portals</strong>
         <p>
@@ -549,60 +355,35 @@
   </footer>
 
   <script>
+    // ── API endpoints ──────────────────────────────────────────
     const API =
       (window.CONFIG && CONFIG.apiUrl) ||
       "https://zvakho-payments-v2.yasibomedia.workers.dev";
 
     const SUBMISSIONS_API = "https://zvakho-submissions-api.yasibomedia.workers.dev";
 
-    const TOKEN_KEY = "zvakho_owner_token";
-    const USER_KEY = "zvakho_owner_user";
+    // ▶ Point this at your deployed onboarding worker
+    const ONBOARDING_API = "https://zvakho-artist-onboarding.yasibomedia.workers.dev";
 
-    let refreshTimer = null;
+    const TOKEN_KEY   = "zvakho_owner_token";
+    const USER_KEY    = "zvakho_owner_user";
+    let refreshTimer  = null;
 
-    function getToken() {
-      return localStorage.getItem(TOKEN_KEY) || "";
-    }
+    // ── Auth helpers ───────────────────────────────────────────
+    function getToken()       { return localStorage.getItem(TOKEN_KEY) || ""; }
+    function setToken(t)      { localStorage.setItem(TOKEN_KEY, t); }
+    function clearToken()     { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); }
+    function setUser(u)       { localStorage.setItem(USER_KEY, JSON.stringify(u||{})); updateSignedInLabel(u); }
+    function getUser()        { try { return JSON.parse(localStorage.getItem(USER_KEY)||"{}"); } catch { return {}; } }
 
-    function setToken(token) {
-      localStorage.setItem(TOKEN_KEY, token);
-    }
-
-    function clearToken() {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-    }
-
-    function setUser(user) {
-      localStorage.setItem(USER_KEY, JSON.stringify(user || {}));
-      updateSignedInLabel(user);
-    }
-
-    function getUser() {
-      try {
-        return JSON.parse(localStorage.getItem(USER_KEY) || "{}");
-      } catch {
-        return {};
-      }
-    }
-
-    function authHeaders(extra = {}) {
-      const token = getToken();
-
-      return {
-        ...extra,
-        Authorization: `Bearer ${token}`
-      };
+    function authHeaders(extra={}) {
+      return { ...extra, Authorization: `Bearer ${getToken()}` };
     }
 
     function showAuth() {
       document.getElementById("authScreen").classList.remove("dash-hidden");
       document.getElementById("dashboardApp").classList.add("dash-hidden");
-
-      if (refreshTimer) {
-        clearInterval(refreshTimer);
-        refreshTimer = null;
-      }
+      if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
     }
 
     function showDashboard() {
@@ -612,763 +393,592 @@
     }
 
     function updateSignedInLabel(user) {
-      const target = document.getElementById("signedInAs");
-      if (!target) return;
-
+      const t = document.getElementById("signedInAs");
+      if (!t) return;
       const email = user?.email || "Signed in";
-      const role = user?.role ? ` • ${user.role}` : "";
-
-      target.textContent = `${email}${role}`;
+      const role  = user?.role  ? ` • ${user.role}` : "";
+      t.textContent = `${email}${role}`;
     }
 
-    function showAuthError(message) {
-      const target = document.getElementById("authError");
-      target.textContent = message || "Login failed.";
-      target.classList.add("show");
+    function showAuthError(msg) {
+      const t = document.getElementById("authError");
+      t.textContent = msg || "Login failed.";
+      t.classList.add("show");
     }
 
     function clearAuthError() {
-      const target = document.getElementById("authError");
-      target.textContent = "";
-      target.classList.remove("show");
+      const t = document.getElementById("authError");
+      t.textContent = "";
+      t.classList.remove("show");
     }
 
-    function money(value) {
-      return "$" + Number(value || 0).toFixed(2);
+    // ── Formatting helpers ────────────────────────────────────
+    function money(v)      { return "$" + Number(v||0).toFixed(2); }
+    function formatDate(v) { if (!v) return "—"; try { return new Date(v).toLocaleString(); } catch { return v; } }
+
+    function escapeHTML(v) {
+      return String(v??"")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;")
+        .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
     }
 
-    function formatDate(value) {
-      if (!value) return "—";
+    function isPaid(row)       { return String(row.payment_status||"").toLowerCase()==="paid"; }
+    function labelStatus(v)    { return String(v||"—").replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase()); }
 
-      try {
-        return new Date(value).toLocaleString();
-      } catch {
-        return value;
-      }
-    }
-
-    function escapeHTML(value) {
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    function isPaid(row) {
-      return String(row.payment_status || "").toLowerCase() === "paid";
-    }
-
-    function statusClass(value) {
-      const status = String(value || "").toLowerCase();
-
-      if (status === "paid" || status === "delivered" || status === "approved" || status === "live") return "paid";
-
-      if (
-        status === "pending" ||
-        status === "not_started" ||
-        status === "processing" ||
-        status === "ready_for_delivery" ||
-        status === "submitted" ||
-        status === "under_review" ||
-        status === "needs_fixes"
-      ) return "pending";
-
-      if (status === "cancelled" || status === "failed" || status === "error" || status === "rejected") return "failed";
-
+    function statusClass(v) {
+      const s = String(v||"").toLowerCase();
+      if (["paid","delivered","approved","live"].includes(s))                         return "paid";
+      if (["pending","not_started","processing","ready_for_delivery",
+           "submitted","under_review","needs_fixes"].includes(s))                     return "pending";
+      if (["cancelled","failed","error","rejected"].includes(s))                      return "failed";
       return "pending";
     }
 
-    function labelStatus(value) {
-      return String(value || "—")
-        .replaceAll("_", " ")
-        .replace(/\b\w/g, char => char.toUpperCase());
-    }
-
+    // ── Leaderboard ───────────────────────────────────────────
     function renderList(targetId, rows, emptyText, type) {
       const target = document.getElementById(targetId);
-
-      if (!rows || !rows.length) {
-        target.innerHTML = `<div class="empty">${emptyText}</div>`;
-        return;
-      }
-
-      target.innerHTML = rows.map((row, index) => {
-        const title =
-          type === "artist"
-            ? (row.artist_name || row.artist_id || "Artist")
-            : (row.product_name || "Product");
-
-        const meta =
-          type === "artist"
-            ? `${row.paid_orders || row.sales_count || 0} paid sale(s)`
-            : `${row.artist_name || row.artist_id || "Artist"} • ${row.sales_count || 0} sale(s)`;
-
-        return `
-          <div class="list-item">
-            <div>
-              <strong>${index + 1}. ${escapeHTML(title)}</strong>
-              <span>${escapeHTML(meta)}</span>
-            </div>
-            <b>${money(row.revenue)}</b>
-          </div>
-        `;
+      if (!rows||!rows.length) { target.innerHTML=`<div class="empty">${emptyText}</div>`; return; }
+      target.innerHTML = rows.map((row,i) => {
+        const title = type==="artist"
+          ? (row.artist_name||row.artist_id||"Artist")
+          : (row.product_name||"Product");
+        const meta = type==="artist"
+          ? `${row.paid_orders||row.sales_count||0} paid sale(s)`
+          : `${row.artist_name||row.artist_id||"Artist"} • ${row.sales_count||0} sale(s)`;
+        return `<div class="list-item"><div><strong>${i+1}. ${escapeHTML(title)}</strong><span>${escapeHTML(meta)}</span></div><b>${money(row.revenue)}</b></div>`;
       }).join("");
     }
 
+    // ── Orders ────────────────────────────────────────────────
     function renderOrders(rows) {
       const tbody = document.getElementById("ordersBody");
-      const paidRows = (rows || []).filter(isPaid);
-
-      if (!paidRows.length) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6">No confirmed paid sales yet.</td>
-          </tr>
-        `;
-        return;
-      }
-
-      tbody.innerHTML = paidRows.map(row => `
+      const paid  = (rows||[]).filter(isPaid);
+      if (!paid.length) { tbody.innerHTML=`<tr><td colspan="6">No confirmed paid sales yet.</td></tr>`; return; }
+      tbody.innerHTML = paid.map(r=>`
         <tr>
-          <td>${formatDate(row.paid_at || row.created_at)}</td>
-          <td>${escapeHTML(row.artist_name || row.artist_id || "—")}</td>
-          <td>${escapeHTML(row.product_name || "Music purchase")}</td>
-          <td>${money(row.amount)}</td>
+          <td>${formatDate(r.paid_at||r.created_at)}</td>
+          <td>${escapeHTML(r.artist_name||r.artist_id||"—")}</td>
+          <td>${escapeHTML(r.product_name||"Music purchase")}</td>
+          <td>${money(r.amount)}</td>
           <td><span class="status paid">Paid</span></td>
-          <td>${escapeHTML(row.payment_reference || "—")}</td>
-        </tr>
-      `).join("");
+          <td>${escapeHTML(r.payment_reference||"—")}</td>
+        </tr>`).join("");
     }
 
+    // ── Fulfilment ────────────────────────────────────────────
     function renderFulfilmentItems(rows) {
       const tbody = document.getElementById("fulfilmentBody");
       const countTarget = document.getElementById("mFulfilment");
-
-      const items = Array.isArray(rows) ? rows : [];
-
-      if (countTarget) {
-        countTarget.textContent = items.length;
-      }
-
-      if (!items.length) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="10">No fulfilment items yet.</td>
-          </tr>
-        `;
-        return;
-      }
-
+      const items = Array.isArray(rows)?rows:[];
+      if (countTarget) countTarget.textContent = items.length;
+      if (!items.length) { tbody.innerHTML=`<tr><td colspan="10">No fulfilment items yet.</td></tr>`; return; }
       tbody.innerHTML = items.map(item => {
-        const size =
-          item.size_label && item.size_code
-            ? `${item.size_label} (${item.size_code})`
-            : item.size_label || item.size_code || "—";
-
-        const paymentStatus = item.payment_status || "pending";
-        const fulfilmentStatus = item.fulfilment_status || "not_started";
-
-        return `
-          <tr>
-            <td>${formatDate(item.paid_at || item.order_created_at || item.created_at)}</td>
-            <td>${escapeHTML(item.artist_name || item.artist_id || "—")}</td>
-            <td>${escapeHTML(item.product_name || "—")}</td>
-            <td>${escapeHTML(item.color || "—")}</td>
-            <td>${escapeHTML(size)}</td>
-            <td>${Number(item.quantity || 1)}</td>
-            <td>${money(item.line_total || item.amount || 0)}</td>
-            <td>
-              <span class="status ${statusClass(paymentStatus)}">
-                ${escapeHTML(labelStatus(paymentStatus))}
-              </span>
-            </td>
-            <td>
-              <div class="fulfilment-actions">
-                <span class="status ${statusClass(fulfilmentStatus)}">
-                  ${escapeHTML(labelStatus(fulfilmentStatus))}
-                </span>
-
-                <select
-                  class="fulfilment-select"
-                  data-reference="${escapeHTML(item.payment_reference || "")}"
-                  data-current="${escapeHTML(fulfilmentStatus)}"
-                >
-                  <option value="not_started" ${fulfilmentStatus === "not_started" ? "selected" : ""}>Not started</option>
-                  <option value="processing" ${fulfilmentStatus === "processing" ? "selected" : ""}>Processing</option>
-                  <option value="ready_for_delivery" ${fulfilmentStatus === "ready_for_delivery" ? "selected" : ""}>Ready</option>
-                  <option value="delivered" ${fulfilmentStatus === "delivered" ? "selected" : ""}>Delivered</option>
-                  <option value="cancelled" ${fulfilmentStatus === "cancelled" ? "selected" : ""}>Cancelled</option>
-                </select>
-              </div>
-            </td>
-            <td>${escapeHTML(item.payment_reference || "—")}</td>
-          </tr>
-        `;
+        const size = item.size_label&&item.size_code
+          ? `${item.size_label} (${item.size_code})`
+          : item.size_label||item.size_code||"—";
+        const ps = item.payment_status||"pending";
+        const fs = item.fulfilment_status||"not_started";
+        return `<tr>
+          <td>${formatDate(item.paid_at||item.order_created_at||item.created_at)}</td>
+          <td>${escapeHTML(item.artist_name||item.artist_id||"—")}</td>
+          <td>${escapeHTML(item.product_name||"—")}</td>
+          <td>${escapeHTML(item.color||"—")}</td>
+          <td>${escapeHTML(size)}</td>
+          <td>${Number(item.quantity||1)}</td>
+          <td>${money(item.line_total||item.amount||0)}</td>
+          <td><span class="status ${statusClass(ps)}">${escapeHTML(labelStatus(ps))}</span></td>
+          <td>
+            <div class="fulfilment-actions">
+              <span class="status ${statusClass(fs)}">${escapeHTML(labelStatus(fs))}</span>
+              <select class="fulfilment-select"
+                data-reference="${escapeHTML(item.payment_reference||"")}"
+                data-current="${escapeHTML(fs)}">
+                <option value="not_started"        ${fs==="not_started"?"selected":""}>Not started</option>
+                <option value="processing"         ${fs==="processing"?"selected":""}>Processing</option>
+                <option value="ready_for_delivery" ${fs==="ready_for_delivery"?"selected":""}>Ready</option>
+                <option value="delivered"          ${fs==="delivered"?"selected":""}>Delivered</option>
+                <option value="cancelled"          ${fs==="cancelled"?"selected":""}>Cancelled</option>
+              </select>
+            </div>
+          </td>
+          <td>${escapeHTML(item.payment_reference||"—")}</td>
+        </tr>`;
       }).join("");
     }
 
+    // ── Submissions ───────────────────────────────────────────
     function renderSubmissions(rows) {
-      const target = document.getElementById("submissionsBody");
+      const target      = document.getElementById("submissionsBody");
       const countTarget = document.getElementById("mSubmissions");
       const labelTarget = document.getElementById("submissionCount");
-
-      const submissions = Array.isArray(rows) ? rows : [];
-
-      if (countTarget) {
-        countTarget.textContent = submissions.length;
-      }
-
-      if (labelTarget) {
-        labelTarget.textContent = `${submissions.length} submission(s) loaded`;
-      }
-
-      if (!submissions.length) {
-        target.innerHTML = `<div class="submission-empty">No music submissions found.</div>`;
-        return;
-      }
-
-      target.innerHTML = submissions.map(row => {
-        const status = row.submission_status || "submitted";
+      const subs = Array.isArray(rows)?rows:[];
+      if (countTarget) countTarget.textContent = subs.length;
+      if (labelTarget) labelTarget.textContent = `${subs.length} submission(s) loaded`;
+      if (!subs.length) { target.innerHTML=`<div class="submission-empty">No music submissions found.</div>`; return; }
+      target.innerHTML = subs.map(row => {
+        const status = row.submission_status||"submitted";
         const noteId = `note_${row.submission_id}`;
-        const selectId = `status_${row.submission_id}`;
-
+        const selId  = `status_${row.submission_id}`;
         return `
           <article class="submission-card">
             <div class="submission-top">
               <div class="submission-title">
-                <strong>${escapeHTML(row.song_title || "Untitled submission")}</strong>
-                <span>
-                  ${escapeHTML(row.artist_name || row.artist_id || "Artist")} •
-                  ${escapeHTML(row.artist_email || "No email")} •
-                  Submitted ${formatDate(row.created_at)}
-                </span>
+                <strong>${escapeHTML(row.song_title||"Untitled submission")}</strong>
+                <span>${escapeHTML(row.artist_name||row.artist_id||"Artist")} • ${escapeHTML(row.artist_email||"No email")} • Submitted ${formatDate(row.created_at)}</span>
               </div>
-
               <span class="status ${statusClass(status)}">${escapeHTML(labelStatus(status))}</span>
             </div>
-
             <div class="submission-meta-grid">
-              <div class="submission-meta">
-                <small>Artist ID</small>
-                <b>${escapeHTML(row.artist_id || "—")}</b>
-              </div>
-
-              <div class="submission-meta">
-                <small>Release Type</small>
-                <b>${escapeHTML(labelStatus(row.release_type || "single"))}</b>
-              </div>
-
-              <div class="submission-meta">
-                <small>Genre</small>
-                <b>${escapeHTML(row.genre || "—")}</b>
-              </div>
-
-              <div class="submission-meta">
-                <small>Price</small>
-                <b>${money(row.price || 0)}</b>
-              </div>
-
-              <div class="submission-meta">
-                <small>Explicit</small>
-                <b>${escapeHTML(labelStatus(row.explicit_content || "no"))}</b>
-              </div>
-
-              <div class="submission-meta">
-                <small>Rights Confirmed</small>
-                <b>${Number(row.rights_confirmed || 0) === 1 ? "Yes" : "No"}</b>
-              </div>
-
-              <div class="submission-meta">
-                <small>Permission To Sell</small>
-                <b>${Number(row.permission_to_sell || 0) === 1 ? "Yes" : "No"}</b>
-              </div>
-
-              <div class="submission-meta">
-                <small>Reviewed By</small>
-                <b>${escapeHTML(row.reviewed_by || "—")}</b>
-              </div>
+              <div class="submission-meta"><small>Artist ID</small><b>${escapeHTML(row.artist_id||"—")}</b></div>
+              <div class="submission-meta"><small>Release Type</small><b>${escapeHTML(labelStatus(row.release_type||"single"))}</b></div>
+              <div class="submission-meta"><small>Genre</small><b>${escapeHTML(row.genre||"—")}</b></div>
+              <div class="submission-meta"><small>Price</small><b>${money(row.price||0)}</b></div>
+              <div class="submission-meta"><small>Explicit</small><b>${escapeHTML(labelStatus(row.explicit_content||"no"))}</b></div>
+              <div class="submission-meta"><small>Rights Confirmed</small><b>${Number(row.rights_confirmed||0)===1?"Yes":"No"}</b></div>
+              <div class="submission-meta"><small>Permission To Sell</small><b>${Number(row.permission_to_sell||0)===1?"Yes":"No"}</b></div>
+              <div class="submission-meta"><small>Reviewed By</small><b>${escapeHTML(row.reviewed_by||"—")}</b></div>
             </div>
-
             <div class="submission-files">
               <div class="submission-file">
                 <strong>Audio file</strong>
-                Filename: ${escapeHTML(row.audio_filename || "—")}<br>
-                R2: ${escapeHTML(row.audio_r2_key || "—")}<br>
-                SHA256: ${escapeHTML(row.audio_sha256 || "—")}
-
+                Filename: ${escapeHTML(row.audio_filename||"—")}<br>
+                R2: ${escapeHTML(row.audio_r2_key||"—")}<br>
+                SHA256: ${escapeHTML(row.audio_sha256||"—")}
                 <div class="submission-file-actions">
-                  <button
-                    class="btn secondary submission-file-btn"
-                    type="button"
+                  <button class="btn secondary submission-file-btn" type="button"
                     data-submission-id="${escapeHTML(row.submission_id)}"
-                    data-file-type="audio"
-                    data-action="download"
-                  >
-                    Download MP3
-                  </button>
+                    data-file-type="audio" data-action="download">Download MP3</button>
                 </div>
               </div>
-
               <div class="submission-file">
                 <strong>Artwork file</strong>
-                Filename: ${escapeHTML(row.artwork_filename || "—")}<br>
-                R2: ${escapeHTML(row.artwork_r2_key || "—")}<br>
-                SHA256: ${escapeHTML(row.artwork_sha256 || "—")}
-
+                Filename: ${escapeHTML(row.artwork_filename||"—")}<br>
+                R2: ${escapeHTML(row.artwork_r2_key||"—")}<br>
+                SHA256: ${escapeHTML(row.artwork_sha256||"—")}
                 <div class="submission-file-actions">
-                  <button
-                    class="btn secondary submission-file-btn"
-                    type="button"
+                  <button class="btn secondary submission-file-btn" type="button"
                     data-submission-id="${escapeHTML(row.submission_id)}"
-                    data-file-type="artwork"
-                    data-action="open"
-                  >
-                    View Artwork
-                  </button>
+                    data-file-type="artwork" data-action="open">View Artwork</button>
                 </div>
               </div>
             </div>
-
             <div class="submission-file">
               <strong>Legal rights record</strong>
               Private R2 record containing rights confirmation, artist identity, IP address, user agent, file hashes, and timestamp.
-
               <div class="submission-file-actions">
-                <button
-                  class="btn secondary submission-file-btn"
-                  type="button"
+                <button class="btn secondary submission-file-btn" type="button"
                   data-submission-id="${escapeHTML(row.submission_id)}"
-                  data-file-type="legal"
-                  data-action="download"
-                >
-                  Download Rights Record
-                </button>
+                  data-file-type="legal" data-action="download">Download Rights Record</button>
               </div>
             </div>
-
             <div class="submission-file">
               <strong>Description / caption / credits</strong>
-              Producer: ${escapeHTML(row.producer_credits || "—")}<br>
-              Songwriter: ${escapeHTML(row.songwriter_credits || "—")}<br>
-              Description: ${escapeHTML(row.description || "—")}<br>
-              Marketing caption: ${escapeHTML(row.marketing_caption || "—")}<br>
-              Current review note: ${escapeHTML(row.review_note || "—")}
+              Producer: ${escapeHTML(row.producer_credits||"—")}<br>
+              Songwriter: ${escapeHTML(row.songwriter_credits||"—")}<br>
+              Description: ${escapeHTML(row.description||"—")}<br>
+              Marketing caption: ${escapeHTML(row.marketing_caption||"—")}<br>
+              Current review note: ${escapeHTML(row.review_note||"—")}
             </div>
-
             <div class="submission-review">
-              <select id="${selectId}" class="submission-status-select">
-                <option value="submitted" ${status === "submitted" ? "selected" : ""}>Submitted</option>
-                <option value="under_review" ${status === "under_review" ? "selected" : ""}>Under review</option>
-                <option value="needs_fixes" ${status === "needs_fixes" ? "selected" : ""}>Needs fixes</option>
-                <option value="approved" ${status === "approved" ? "selected" : ""}>Approved</option>
-                <option value="live" ${status === "live" ? "selected" : ""}>Live</option>
-                <option value="rejected" ${status === "rejected" ? "selected" : ""}>Rejected</option>
+              <select id="${selId}" class="submission-status-select">
+                <option value="submitted"    ${status==="submitted"?"selected":""}>Submitted</option>
+                <option value="under_review" ${status==="under_review"?"selected":""}>Under review</option>
+                <option value="needs_fixes"  ${status==="needs_fixes"?"selected":""}>Needs fixes</option>
+                <option value="approved"     ${status==="approved"?"selected":""}>Approved</option>
+                <option value="live"         ${status==="live"?"selected":""}>Live</option>
+                <option value="rejected"     ${status==="rejected"?"selected":""}>Rejected</option>
               </select>
-
-              <textarea id="${noteId}" placeholder="Review note for artist or internal record...">${escapeHTML(row.review_note || "")}</textarea>
-
-              <button
-                class="btn primary submission-update-btn"
-                type="button"
+              <textarea id="${noteId}" placeholder="Review note for artist or internal record...">${escapeHTML(row.review_note||"")}</textarea>
+              <button class="btn primary submission-update-btn" type="button"
                 data-submission-id="${escapeHTML(row.submission_id)}"
-                data-status-id="${selectId}"
-                data-note-id="${noteId}"
-              >
-                Update Status
-              </button>
+                data-status-id="${selId}" data-note-id="${noteId}">Update Status</button>
             </div>
-          </article>
-        `;
+          </article>`;
       }).join("");
     }
 
-    async function loadSubmissions() {
-      const target = document.getElementById("submissionsBody");
-      const statusFilter = document.getElementById("submissionStatusFilter")?.value || "";
-      const countTarget = document.getElementById("submissionCount");
+    // ══════════════════════════════════════════════════════════
+    // ARTIST APPLICATIONS
+    // ══════════════════════════════════════════════════════════
 
-      if (countTarget) {
-        countTarget.textContent = "Loading submissions…";
+    function scoreBadgeClass(score) {
+      if (score >= 80) return "high";
+      if (score >= 60) return "medium";
+      return "low";
+    }
+
+    function renderApplications(rows, summary) {
+      const target      = document.getElementById("applicationsBody");
+      const countTarget = document.getElementById("applicationCount");
+      const apps = Array.isArray(rows) ? rows : [];
+
+      if (countTarget) countTarget.textContent = `${apps.length} application(s) loaded`;
+
+      // Update summary tiles if summary data provided
+      if (summary) {
+        document.getElementById("appTotal").textContent       = summary.total_applications ?? "—";
+        document.getElementById("appShortlisted").textContent = summary.shortlisted         ?? "—";
+        document.getElementById("appReview").textContent      = summary.review              ?? "—";
+        document.getElementById("appRejected").textContent    = summary.rejected            ?? "—";
+        document.getElementById("appAvgScore").textContent    = summary.average_score       ?? "—";
       }
 
-      target.innerHTML = `<div class="submission-empty">Loading music submissions…</div>`;
+      if (!apps.length) {
+        target.innerHTML = `<div class="submission-empty">No applications found for this filter.</div>`;
+        return;
+      }
 
+      target.innerHTML = apps.map(app => {
+        const status      = app.vetting_status || "review";
+        const score       = Number(app.fit_score || 0);
+        const scoreClass  = scoreBadgeClass(score);
+
+        // Parse JSON arrays stored as strings
+        let platforms = [];
+        try { platforms = JSON.parse(app.active_platforms || "[]"); } catch {}
+
+        const tags  = (app.auto_tags  || "").split(",").map(t=>t.trim()).filter(Boolean);
+        const flags = (app.risk_flags || "").split(",").map(f=>f.trim()).filter(Boolean).filter(f=>f!=="none");
+
+        const selId  = `appStatus_${app.application_id}`;
+        const noteId = `appNote_${app.application_id}`;
+
+        return `
+          <article class="application-card status-${escapeHTML(status)}">
+            <div class="app-card-top">
+              <div class="app-card-identity">
+                <strong>${escapeHTML(app.artist_name || "Unknown Artist")}${app.stage_name && app.stage_name !== app.artist_name ? ` <span style="color:rgba(42,26,18,.5);font-weight:600;font-size:15px;">aka ${escapeHTML(app.stage_name)}</span>` : ""}</strong>
+                <span>
+                  ${escapeHTML(app.genre || "—")} • ${escapeHTML(app.city || "—")} •
+                  Applied ${formatDate(app.created_at)}
+                </span>
+              </div>
+              <div class="app-card-right">
+                <div>
+                  <div class="score-badge ${scoreClass}">${score}</div>
+                  <div class="app-score-bar">
+                    <div class="app-score-bar-fill" style="width:${score}%"></div>
+                  </div>
+                </div>
+                <span class="status ${statusClass(status)}">${escapeHTML(labelStatus(status))}</span>
+              </div>
+            </div>
+
+            <!-- Tags + Flags -->
+            ${tags.length || flags.length ? `
+            <div class="app-tags">
+              ${tags.map(t=>`<span class="app-tag">${escapeHTML(t.replaceAll("_"," "))}</span>`).join("")}
+              ${flags.map(f=>`<span class="app-tag flag">⚠ ${escapeHTML(f.replaceAll("_"," "))}</span>`).join("")}
+            </div>` : ""}
+
+            <!-- Data grid -->
+            <div class="app-data-grid">
+              <div class="app-data-cell"><small>Songs released</small><b>${escapeHTML(app.songs_released||"—")}</b></div>
+              <div class="app-data-cell"><small>Releases (12 mo)</small><b>${app.releases_12_months ?? "—"}</b></div>
+              <div class="app-data-cell"><small>Fan engagement</small><b>${escapeHTML(labelStatus(app.fan_engagement||"—"))}</b></div>
+              <div class="app-data-cell"><small>Fans pay</small><b>${escapeHTML(labelStatus(app.fans_pay||"—"))}</b></div>
+              <div class="app-data-cell"><small>Release frequency</small><b>${escapeHTML(labelStatus(app.release_frequency||"—"))}</b></div>
+              <div class="app-data-cell"><small>Audience size</small><b>${escapeHTML(app.audience_size||"—")}</b></div>
+              <div class="app-data-cell"><small>Platforms</small><b>${platforms.length ? platforms.join(", ") : "—"}</b></div>
+              <div class="app-data-cell"><small>Cover art / Fan channel</small><b>${Number(app.has_cover_art)?'Yes':'No'} / ${Number(app.has_fan_channel)?'Yes':'No'}</b></div>
+              <div class="app-data-cell"><small>Email</small><b>${escapeHTML(app.email||"—")}</b></div>
+              <div class="app-data-cell"><small>Phone</small><b>${escapeHTML(app.phone||"—")}</b></div>
+              <div class="app-data-cell"><small>Source</small><b>${escapeHTML(app.source||"—")}</b></div>
+              <div class="app-data-cell"><small>Application ID</small><b>${escapeHTML(app.application_id||"—")}</b></div>
+            </div>
+
+            <!-- Links -->
+            <div class="app-links">
+              ${app.music_link    ? `<a class="app-link" href="${escapeHTML(app.music_link)}"    target="_blank" rel="noopener">🎵 Music</a>`     : ""}
+              ${app.instagram_link? `<a class="app-link" href="${escapeHTML(app.instagram_link)}" target="_blank" rel="noopener">📸 Instagram</a>` : ""}
+              ${app.youtube_link  ? `<a class="app-link" href="${escapeHTML(app.youtube_link)}"  target="_blank" rel="noopener">▶ YouTube</a>`    : ""}
+              ${app.tiktok_link   ? `<a class="app-link" href="${escapeHTML(app.tiktok_link)}"   target="_blank" rel="noopener">🎵 TikTok</a>`    : ""}
+            </div>
+
+            <!-- Internal notes if present -->
+            ${app.notes ? `<div class="submission-file"><strong>Internal note</strong>${escapeHTML(app.notes)}</div>` : ""}
+
+            <!-- Action row -->
+            <div class="app-action-row">
+              <select id="${selId}">
+                <option value="shortlisted"       ${status==="shortlisted"?"selected":""}>Shortlisted</option>
+                <option value="review"            ${status==="review"?"selected":""}>Needs review</option>
+                <option value="rejected"          ${status==="rejected"?"selected":""}>Rejected</option>
+                <option value="onboarding_pending"${status==="onboarding_pending"?"selected":""}>Onboarding pending</option>
+                <option value="onboarded"         ${status==="onboarded"?"selected":""}>Onboarded</option>
+              </select>
+              <textarea id="${noteId}" placeholder="Internal note or reason…">${escapeHTML(app.notes||"")}</textarea>
+              <button class="btn primary app-update-btn" type="button"
+                data-application-id="${escapeHTML(app.application_id)}"
+                data-status-id="${selId}"
+                data-note-id="${noteId}">Update</button>
+              ${app.email ? `<a class="btn secondary" href="mailto:${escapeHTML(app.email)}" target="_blank">Email artist</a>` : ""}
+            </div>
+          </article>`;
+      }).join("");
+    }
+
+    async function loadApplications() {
+      const target       = document.getElementById("applicationsBody");
+      const statusFilter = document.getElementById("appStatusFilter")?.value || "";
+      const countTarget  = document.getElementById("applicationCount");
+
+      if (countTarget) countTarget.textContent = "Loading applications…";
+      target.innerHTML = `<div class="submission-empty">Loading artist applications…</div>`;
+
+      try {
+        // Load summary + list in parallel
+        const [listRes, summaryRes] = await Promise.all([
+          fetch(
+            statusFilter
+              ? `${ONBOARDING_API}/applications?status=${encodeURIComponent(statusFilter)}&limit=100`
+              : `${ONBOARDING_API}/applications?limit=100`,
+            { headers: authHeaders() }
+          ),
+          fetch(`${ONBOARDING_API}/dashboard`, { headers: authHeaders() })
+        ]);
+
+        const listData    = await listRes.json();
+        const summaryData = await summaryRes.json().catch(()=>null);
+
+        if (listRes.status === 401 || listRes.status === 403) {
+          clearToken(); showAuth();
+          showAuthError(listData.message || "Session expired. Please sign in again.");
+          return;
+        }
+
+        if (!listData || listData.status !== "success") {
+          throw new Error(listData.message || "Applications failed to load.");
+        }
+
+        renderApplications(
+          listData.applications || [],
+          summaryData?.summary  || null
+        );
+
+      } catch (err) {
+        if (countTarget) countTarget.textContent = "Failed to load applications";
+        target.innerHTML = `<div class="submission-empty">${escapeHTML(err.message||"Could not load applications.")}</div>`;
+      }
+    }
+
+    async function updateApplicationStatus(applicationId, statusId, noteId) {
+      const statusTarget = document.getElementById(statusId);
+      const noteTarget   = document.getElementById(noteId);
+      const nextStatus   = statusTarget?.value || "";
+      const notes        = noteTarget?.value   || "";
+
+      if (!applicationId || !nextStatus) return;
+
+      const confirmed = confirm(`Update application to "${labelStatus(nextStatus)}"?`);
+      if (!confirmed) return;
+
+      try {
+        const res = await fetch(`${ONBOARDING_API}/update-status`, {
+          method: "POST",
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ application_id: applicationId, vetting_status: nextStatus, notes })
+        });
+
+        const data = await res.json();
+        if (!data || data.status !== "success") {
+          alert(data.message || "Update failed."); return;
+        }
+
+        loadApplications();
+
+      } catch (err) {
+        alert(err.message || "Update failed.");
+      }
+    }
+
+    // ── Submissions loaders ───────────────────────────────────
+    async function loadSubmissions() {
+      const target       = document.getElementById("submissionsBody");
+      const statusFilter = document.getElementById("submissionStatusFilter")?.value || "";
+      const countTarget  = document.getElementById("submissionCount");
+      if (countTarget) countTarget.textContent = "Loading submissions…";
+      target.innerHTML = `<div class="submission-empty">Loading music submissions…</div>`;
       try {
         const url = statusFilter
           ? `${SUBMISSIONS_API}/admin-submissions?status=${encodeURIComponent(statusFilter)}`
           : `${SUBMISSIONS_API}/admin-submissions`;
-
-        const res = await fetch(url, {
-          method: "GET",
-          headers: authHeaders()
-        });
-
+        const res  = await fetch(url, { headers: authHeaders() });
         const data = await res.json();
-
-        if (res.status === 401 || res.status === 403) {
-          clearToken();
-          showAuth();
-          showAuthError(data.message || "Session expired. Please sign in again.");
-          return;
-        }
-
-        if (!data || data.status !== "success") {
-          throw new Error(data.message || "Submissions failed to load.");
-        }
-
-        renderSubmissions(data.submissions || []);
-
+        if (res.status===401||res.status===403) { clearToken(); showAuth(); showAuthError(data.message||"Session expired."); return; }
+        if (!data||data.status!=="success") throw new Error(data.message||"Submissions failed.");
+        renderSubmissions(data.submissions||[]);
       } catch (err) {
-        if (countTarget) {
-          countTarget.textContent = "Failed to load submissions";
-        }
-
-        target.innerHTML = `
-          <div class="submission-empty">
-            ${escapeHTML(err.message || "Could not load music submissions.")}
-          </div>
-        `;
+        if (countTarget) countTarget.textContent = "Failed to load";
+        target.innerHTML = `<div class="submission-empty">${escapeHTML(err.message||"Could not load submissions.")}</div>`;
       }
     }
 
     async function handleSubmissionFile(submissionId, fileType, action) {
-      if (!submissionId || !fileType) return;
-
+      if (!submissionId||!fileType) return;
       try {
-        const url =
-          `${SUBMISSIONS_API}/admin-submission-file?submission_id=${encodeURIComponent(submissionId)}&type=${encodeURIComponent(fileType)}`;
-
-        const res = await fetch(url, {
-          method: "GET",
-          headers: authHeaders()
-        });
-
-        if (res.status === 401 || res.status === 403) {
-          clearToken();
-          showAuth();
-          showAuthError("Session expired. Please sign in again.");
-          return;
-        }
-
-        if (!res.ok) {
-          const data = await res.json().catch(() => null);
-          throw new Error(data?.message || "File could not be loaded.");
-        }
-
+        const url = `${SUBMISSIONS_API}/admin-submission-file?submission_id=${encodeURIComponent(submissionId)}&type=${encodeURIComponent(fileType)}`;
+        const res = await fetch(url, { headers: authHeaders() });
+        if (res.status===401||res.status===403) { clearToken(); showAuth(); showAuthError("Session expired."); return; }
+        if (!res.ok) { const d=await res.json().catch(()=>null); throw new Error(d?.message||"File could not be loaded."); }
         const blob = await res.blob();
         const objectUrl = URL.createObjectURL(blob);
-
-        const disposition = res.headers.get("Content-Disposition") || "";
-        const filenameMatch = disposition.match(/filename="([^"]+)"/i);
-        const filename = filenameMatch ? filenameMatch[1] : `${submissionId}-${fileType}`;
-
-        if (action === "open") {
-          window.open(objectUrl, "_blank", "noopener,noreferrer");
-          setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
-          return;
-        }
-
+        const disp = res.headers.get("Content-Disposition")||"";
+        const m    = disp.match(/filename="([^"]+)"/i);
+        const filename = m ? m[1] : `${submissionId}-${fileType}`;
+        if (action==="open") { window.open(objectUrl,"_blank","noopener,noreferrer"); setTimeout(()=>URL.revokeObjectURL(objectUrl),60000); return; }
         const link = document.createElement("a");
-        link.href = objectUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
-
-      } catch (err) {
-        alert(err.message || "File could not be loaded.");
-      }
+        link.href = objectUrl; link.download = filename;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        setTimeout(()=>URL.revokeObjectURL(objectUrl),60000);
+      } catch (err) { alert(err.message||"File could not be loaded."); }
     }
 
     async function updateSubmissionStatus(submissionId, statusId, noteId) {
-      const statusTarget = document.getElementById(statusId);
-      const noteTarget = document.getElementById(noteId);
-
-      const nextStatus = statusTarget?.value || "";
-      const reviewNote = noteTarget?.value || "";
-
-      if (!submissionId || !nextStatus) return;
-
-      const confirmed = confirm(`Update submission to "${labelStatus(nextStatus)}"?`);
-
-      if (!confirmed) return;
-
+      const nextStatus  = document.getElementById(statusId)?.value  || "";
+      const reviewNote  = document.getElementById(noteId)?.value    || "";
+      if (!submissionId||!nextStatus) return;
+      if (!confirm(`Update submission to "${labelStatus(nextStatus)}"?`)) return;
       try {
-        const res = await fetch(`${SUBMISSIONS_API}/update-submission-status`, {
+        const res  = await fetch(`${SUBMISSIONS_API}/update-submission-status`, {
           method: "POST",
-          headers: authHeaders({
-            "Content-Type": "application/json"
-          }),
-          body: JSON.stringify({
-            submission_id: submissionId,
-            submission_status: nextStatus,
-            review_note: reviewNote
-          })
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ submission_id: submissionId, submission_status: nextStatus, review_note: reviewNote })
         });
-
         const data = await res.json();
-
-        if (!data || data.status !== "success") {
-          alert(data.message || "Submission update failed.");
-          return;
-        }
-
+        if (!data||data.status!=="success") { alert(data.message||"Submission update failed."); return; }
         loadSubmissions();
-
-      } catch (err) {
-        alert(err.message || "Submission update failed.");
-      }
+      } catch (err) { alert(err.message||"Submission update failed."); }
     }
 
     async function updateFulfilmentStatus(paymentReference, nextStatus) {
-      if (!paymentReference || !nextStatus) return;
-
-      const confirmed = confirm(
-        `Update fulfilment status to "${labelStatus(nextStatus)}"?`
-      );
-
-      if (!confirmed) {
-        loadOwnerDashboard();
-        return;
-      }
-
+      if (!paymentReference||!nextStatus) return;
+      if (!confirm(`Update fulfilment status to "${labelStatus(nextStatus)}"?`)) { loadOwnerDashboard(); return; }
       try {
-        const res = await fetch(`${API}/update-fulfilment`, {
+        const res  = await fetch(`${API}/update-fulfilment`, {
           method: "POST",
-          headers: authHeaders({
-            "Content-Type": "application/json"
-          }),
-          body: JSON.stringify({
-            payment_reference: paymentReference,
-            fulfilment_status: nextStatus
-          })
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ payment_reference: paymentReference, fulfilment_status: nextStatus })
         });
-
         const data = await res.json();
-
-        if (!data || data.status !== "success") {
-          alert(data.message || "Fulfilment update failed.");
-          loadOwnerDashboard();
-          return;
-        }
-
-        loadOwnerDashboard();
-
-      } catch (err) {
-        alert(err.message || "Fulfilment update failed.");
-        loadOwnerDashboard();
-      }
+        if (!data||data.status!=="success") { alert(data.message||"Fulfilment update failed."); }
+      } catch (err) { alert(err.message||"Fulfilment update failed."); }
+      loadOwnerDashboard();
     }
 
+    // ── Main dashboard load ───────────────────────────────────
     async function loadOwnerDashboard() {
       try {
         document.getElementById("mUpdated").textContent = "Loading…";
-
-        const res = await fetch(`${API}/owner-dashboard`, {
-          method: "GET",
-          headers: authHeaders()
-        });
-
+        const res  = await fetch(`${API}/owner-dashboard`, { headers: authHeaders() });
         const data = await res.json();
-
-        if (res.status === 401 || res.status === 403) {
-          clearToken();
-          showAuth();
-          showAuthError(data.message || "Session expired. Please sign in again.");
-          return;
-        }
-
-        if (!data || data.status !== "success" || !data.summary) {
-          throw new Error(data.message || "Dashboard data could not be loaded.");
-        }
-
-        const summary = data.summary;
-
-        document.getElementById("mRevenue").textContent = money(summary.total_revenue);
-        document.getElementById("mOrders").textContent = summary.paid_orders || 0;
-        document.getElementById("mArtists").textContent = summary.active_artists || 0;
-        document.getElementById("mCustomers").textContent = summary.unique_customers || 0;
-        document.getElementById("mToday").textContent = money(summary.today_revenue);
-        document.getElementById("mSeven").textContent = money(summary.revenue_7_days);
-        document.getElementById("mPending").textContent = summary.pending_orders || 0;
-        document.getElementById("mUpdated").textContent = new Date().toLocaleString();
-
-        const paidArtists = (data.artist_leaderboard || []).filter(row =>
-          Number(row.revenue || 0) > 0 || Number(row.paid_orders || 0) > 0
-        );
-
-        const paidProducts = (data.product_leaderboard || []).filter(row =>
-          Number(row.revenue || 0) > 0 || Number(row.sales_count || 0) > 0
-        );
-
-        renderList("artistLeaderboard", paidArtists, "No confirmed artist sales yet.", "artist");
+        if (res.status===401||res.status===403) { clearToken(); showAuth(); showAuthError(data.message||"Session expired."); return; }
+        if (!data||data.status!=="success"||!data.summary) throw new Error(data.message||"Dashboard failed.");
+        const s = data.summary;
+        document.getElementById("mRevenue").textContent   = money(s.total_revenue);
+        document.getElementById("mOrders").textContent    = s.paid_orders     || 0;
+        document.getElementById("mArtists").textContent   = s.active_artists  || 0;
+        document.getElementById("mCustomers").textContent = s.unique_customers || 0;
+        document.getElementById("mToday").textContent     = money(s.today_revenue);
+        document.getElementById("mSeven").textContent     = money(s.revenue_7_days);
+        document.getElementById("mPending").textContent   = s.pending_orders  || 0;
+        document.getElementById("mUpdated").textContent   = new Date().toLocaleString();
+        const paidArtists   = (data.artist_leaderboard||[]).filter(r=>Number(r.revenue||0)>0||Number(r.paid_orders||0)>0);
+        const paidProducts  = (data.product_leaderboard||[]).filter(r=>Number(r.revenue||0)>0||Number(r.sales_count||0)>0);
+        renderList("artistLeaderboard",  paidArtists,  "No confirmed artist sales yet.",  "artist");
         renderList("productLeaderboard", paidProducts, "No confirmed product sales yet.", "product");
-        renderFulfilmentItems(data.fulfilment_items || []);
-        renderOrders(data.recent_orders || []);
+        renderFulfilmentItems(data.fulfilment_items||[]);
+        renderOrders(data.recent_orders||[]);
         loadSubmissions();
-
+        loadApplications();
       } catch (err) {
         document.getElementById("mUpdated").textContent = "Failed";
-
-        const fulfilmentBody = document.getElementById("fulfilmentBody");
-
-        if (fulfilmentBody) {
-          fulfilmentBody.innerHTML = `
-            <tr>
-              <td colspan="10">${escapeHTML(err.message || "Fulfilment data failed to load.")}</td>
-            </tr>
-          `;
-        }
-
-        document.getElementById("ordersBody").innerHTML = `
-          <tr>
-            <td colspan="6">${escapeHTML(err.message || "Owner dashboard failed to load.")}</td>
-          </tr>
-        `;
-
+        document.getElementById("fulfilmentBody").innerHTML = `<tr><td colspan="10">${escapeHTML(err.message||"Failed.")}</td></tr>`;
+        document.getElementById("ordersBody").innerHTML     = `<tr><td colspan="6">${escapeHTML(err.message||"Failed.")}</td></tr>`;
         loadSubmissions();
+        loadApplications();
       }
     }
 
+    // ── Login / logout ────────────────────────────────────────
     async function login(email, password) {
       clearAuthError();
-
-      const loginBtn = document.getElementById("loginBtn");
-      loginBtn.disabled = true;
-      loginBtn.textContent = "Signing in…";
-
+      const btn = document.getElementById("loginBtn");
+      btn.disabled = true; btn.textContent = "Signing in…";
       try {
-        const res = await fetch(`${API}/login`, {
+        const res  = await fetch(`${API}/login`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password })
         });
-
         const data = await res.json();
-
-        if (!data || data.status !== "success" || !data.token) {
-          throw new Error(data.message || "Login failed.");
-        }
-
+        if (!data||data.status!=="success"||!data.token) throw new Error(data.message||"Login failed.");
         setToken(data.token);
-        setUser(data.user || { email });
-
+        setUser(data.user||{ email });
         showDashboard();
         loadOwnerDashboard();
-
-        if (!refreshTimer) {
-          refreshTimer = setInterval(loadOwnerDashboard, 20000);
-        }
-
+        if (!refreshTimer) refreshTimer = setInterval(loadOwnerDashboard, 20000);
       } catch (err) {
-        showAuthError(err.message || "Login failed.");
+        showAuthError(err.message||"Login failed.");
       } finally {
-        loginBtn.disabled = false;
-        loginBtn.textContent = "Sign in";
+        btn.disabled = false; btn.textContent = "Sign in";
       }
     }
 
     async function logout() {
       const token = getToken();
-
-      try {
-        if (token) {
-          await fetch(`${API}/logout`, {
-            method: "POST",
-            headers: authHeaders()
-          });
-        }
-      } catch {}
-
-      clearToken();
-      showAuth();
+      try { if (token) await fetch(`${API}/logout`, { method:"POST", headers:authHeaders() }); } catch {}
+      clearToken(); showAuth();
     }
 
     async function checkExistingSession() {
       const token = getToken();
-
-      if (!token) {
-        showAuth();
-        return;
-      }
-
+      if (!token) { showAuth(); return; }
       try {
-        const res = await fetch(`${API}/me`, {
-          method: "GET",
-          headers: authHeaders()
-        });
-
+        const res  = await fetch(`${API}/me`, { headers: authHeaders() });
         const data = await res.json();
-
-        if (!data || data.status !== "success") {
-          clearToken();
-          showAuth();
-          return;
-        }
-
-        setUser(data.user || {});
+        if (!data||data.status!=="success") { clearToken(); showAuth(); return; }
+        setUser(data.user||{});
         showDashboard();
         loadOwnerDashboard();
-
-        if (!refreshTimer) {
-          refreshTimer = setInterval(loadOwnerDashboard, 20000);
-        }
-
-      } catch {
-        clearToken();
-        showAuth();
-      }
+        if (!refreshTimer) refreshTimer = setInterval(loadOwnerDashboard, 20000);
+      } catch { clearToken(); showAuth(); }
     }
 
-    document.getElementById("loginForm").addEventListener("submit", function (event) {
-      event.preventDefault();
-
-      const email = document.getElementById("loginEmail").value.trim();
-      const password = document.getElementById("loginPassword").value;
-
-      login(email, password);
+    // ── Event listeners ───────────────────────────────────────
+    document.getElementById("loginForm").addEventListener("submit", e => {
+      e.preventDefault();
+      login(
+        document.getElementById("loginEmail").value.trim(),
+        document.getElementById("loginPassword").value
+      );
     });
 
     document.getElementById("logoutBtn").addEventListener("click", logout);
     document.getElementById("refreshBtn").addEventListener("click", loadOwnerDashboard);
     document.getElementById("refreshSubmissionsBtn").addEventListener("click", loadSubmissions);
     document.getElementById("submissionStatusFilter").addEventListener("change", loadSubmissions);
+    document.getElementById("refreshApplicationsBtn").addEventListener("click", loadApplications);
+    document.getElementById("appStatusFilter").addEventListener("change", loadApplications);
 
-    document.addEventListener("change", function (event) {
-      const target = event.target;
-
-      if (!target.classList.contains("fulfilment-select")) return;
-
-      const paymentReference = target.dataset.reference || "";
-      const nextStatus = target.value;
-
-      updateFulfilmentStatus(paymentReference, nextStatus);
+    document.addEventListener("change", e => {
+      if (!e.target.classList.contains("fulfilment-select")) return;
+      updateFulfilmentStatus(e.target.dataset.reference||"", e.target.value);
     });
 
-    document.addEventListener("click", function (event) {
-      const target = event.target;
+    document.addEventListener("click", e => {
+      const t = e.target;
 
-      if (target.classList.contains("submission-update-btn")) {
-        const submissionId = target.dataset.submissionId || "";
-        const statusId = target.dataset.statusId || "";
-        const noteId = target.dataset.noteId || "";
-
-        updateSubmissionStatus(submissionId, statusId, noteId);
+      if (t.classList.contains("submission-update-btn")) {
+        updateSubmissionStatus(t.dataset.submissionId||"", t.dataset.statusId||"", t.dataset.noteId||"");
         return;
       }
-
-      if (target.classList.contains("submission-file-btn")) {
-        const submissionId = target.dataset.submissionId || "";
-        const fileType = target.dataset.fileType || "";
-        const action = target.dataset.action || "download";
-
-        handleSubmissionFile(submissionId, fileType, action);
+      if (t.classList.contains("submission-file-btn")) {
+        handleSubmissionFile(t.dataset.submissionId||"", t.dataset.fileType||"", t.dataset.action||"download");
+        return;
+      }
+      if (t.classList.contains("app-update-btn")) {
+        updateApplicationStatus(t.dataset.applicationId||"", t.dataset.statusId||"", t.dataset.noteId||"");
       }
     });
 
