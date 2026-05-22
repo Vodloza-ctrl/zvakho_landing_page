@@ -8,18 +8,7 @@
 (function(){
   const host = window.location.hostname.toLowerCase();
   const subdomain = host.split(".")[0];
-
-  const reservedSubdomains = [
-    "www",
-    "zvakho",
-    "store",
-    "api",
-    "assets",
-    "admin",
-    "dashboard",
-    "portal"
-  ];
-
+  const reservedSubdomains = ["www","zvakho","store","api","assets","admin","dashboard","portal"];
   if (
     host.endsWith("zvakho.co.zw") &&
     !reservedSubdomains.includes(subdomain) &&
@@ -40,14 +29,8 @@
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
   const h = location.hostname.split('.')[0].toLowerCase();
-
-  if(h === 'admin' && location.pathname === '/') {
-    location.replace('/dashboard/');
-  }
-
-  if((h === 'dashboard' || h === 'portal') && location.pathname === '/') {
-    location.replace('/app/');
-  }
+  if(h === 'admin' && location.pathname === '/') location.replace('/dashboard/');
+  if((h === 'dashboard' || h === 'portal') && location.pathname === '/') location.replace('/app/');
 });
 </script>
 
@@ -68,11 +51,10 @@ body.z-modal-open{overflow:hidden}
   backdrop-filter:blur(12px);
   z-index:9999;
 }
-
 .z-modal.is-open{display:flex}
 
 .z-modal-card{
-  width:min(720px,100%);
+  width:min(760px,100%);
   max-height:92vh;
   overflow:auto;
   background:var(--bg);
@@ -95,11 +77,7 @@ body.z-modal-open{overflow:hidden}
   gap:18px;
   margin-bottom:20px;
 }
-
-.z-modal-brand img{
-  width:130px;
-  height:auto;
-}
+.z-modal-brand img{width:130px;height:auto;}
 
 .z-modal-pill{
   display:inline-flex;
@@ -129,36 +107,45 @@ body.z-modal-open{overflow:hidden}
   cursor:pointer;
 }
 
-.z-modal h2{
-  font-size:clamp(30px,4vw,46px);
-  letter-spacing:-.04em;
-  margin:0 0 12px;
-}
+.z-modal h2{font-size:clamp(28px,4vw,42px);letter-spacing:-.04em;margin:0 0 12px;}
+.z-modal-intro{max-width:58ch;color:var(--body);margin:0;font-size:15px;line-height:1.6;}
 
-.z-modal-intro{
-  max-width:58ch;
-  color:var(--body);
-  margin:0;
-  font-size:16px;
-}
+.z-modal-form{padding:24px 26px 26px;}
 
-.z-modal-form{
-  padding:24px 26px 26px;
-}
-
-.z-form-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:14px;
-}
-
-.z-field{
+/* Progress steps */
+.z-steps{
   display:flex;
-  flex-direction:column;
-  gap:7px;
+  gap:0;
+  margin-bottom:26px;
+  border-radius:12px;
+  overflow:hidden;
+  border:1px solid var(--line);
 }
+.z-step{
+  flex:1;
+  padding:10px 8px;
+  text-align:center;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:rgba(42,26,18,.45);
+  background:#fff;
+  border-right:1px solid var(--line);
+  transition:all .2s;
+}
+.z-step:last-child{border-right:0;}
+.z-step.active{background:#2a1a12;color:#fff;}
+.z-step.done{background:#e8f5e9;color:#2a7a2a;}
 
-.z-field.full{grid-column:1/-1}
+/* Form pages */
+.z-page{display:none;}
+.z-page.active{display:block;}
+
+.z-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+
+.z-field{display:flex;flex-direction:column;gap:7px;}
+.z-field.full{grid-column:1/-1;}
 
 .z-field span{
   color:var(--ink);
@@ -180,12 +167,34 @@ body.z-modal-open{overflow:hidden}
   font:inherit;
   outline:none;
 }
-
 .z-field input:focus,
 .z-field select:focus{
   border-color:var(--gold);
   box-shadow:0 0 0 4px rgba(185,130,46,.12);
 }
+
+/* Platform checkboxes */
+.z-platform-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+.z-platform-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:11px 12px;
+  background:#fff;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:700;
+  transition:all .15s;
+}
+.z-platform-item:hover{border-color:rgba(42,26,18,.3);}
+.z-platform-item input[type=checkbox]{width:16px;height:16px;accent-color:#2a1a12;flex-shrink:0;}
+.z-platform-item.checked{border-color:#2a1a12;background:#f8f4ee;}
 
 .z-modal-note{
   margin:18px 0 0;
@@ -195,6 +204,7 @@ body.z-modal-open{overflow:hidden}
   background:#fff8eb;
   color:#6b4c18;
   font-size:14px;
+  line-height:1.6;
 }
 
 .z-modal-actions{
@@ -208,34 +218,48 @@ body.z-modal-open{overflow:hidden}
   margin:16px 0 0;
   font-weight:800;
   font-size:14px;
+  line-height:1.6;
 }
+.z-modal-response.success{color:#1f7a3a;}
+.z-modal-response.review{color:#8a5a08;}
+.z-modal-response.rejected{color:#7f4d22;}
+.z-modal-response.error{color:#9b1c1c;}
 
-.z-modal-response.success{color:#1f7a3a}
-.z-modal-response.review{color:#8a5a08}
-.z-modal-response.waitlist{color:#7f4d22}
-.z-modal-response.error{color:#9b1c1c}
+/* Score display on success/review */
+.z-score-reveal{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  margin-top:12px;
+  padding:12px 16px;
+  border-radius:14px;
+  background:#f0f7f0;
+  border:1px solid #b5ddb5;
+}
+.z-score-num{
+  font-size:28px;
+  font-weight:900;
+  color:#2a7a2a;
+  letter-spacing:-.04em;
+}
+.z-score-label{font-size:13px;color:#3a6a3a;font-weight:700;}
 
 .footer-link{
-  appearance:none;
-  border:0;
-  background:transparent;
-  padding:0;
-  margin:0;
-  color:inherit;
-  font:inherit;
-  cursor:pointer;
-  text-align:left;
+  appearance:none;border:0;background:transparent;
+  padding:0;margin:0;color:inherit;font:inherit;
+  cursor:pointer;text-align:left;
 }
-
-.footer-link:hover{color:var(--ink)}
+.footer-link:hover{color:var(--ink);}
 
 @media(max-width:720px){
-  .z-modal{padding:14px;align-items:flex-start}
-  .z-modal-card{max-height:96vh;border-radius:20px}
-  .z-form-grid{grid-template-columns:1fr}
-  .z-modal-top,.z-modal-form{padding-left:20px;padding-right:20px}
-  .z-modal-brand{padding-right:44px}
-  .z-modal-actions .btn{width:100%}
+  .z-modal{padding:14px;align-items:flex-start;}
+  .z-modal-card{max-height:96vh;border-radius:20px;}
+  .z-form-grid{grid-template-columns:1fr;}
+  .z-platform-grid{grid-template-columns:repeat(2,1fr);}
+  .z-modal-top,.z-modal-form{padding-left:20px;padding-right:20px;}
+  .z-modal-brand{padding-right:44px;}
+  .z-modal-actions .btn{width:100%;}
+  .z-steps .z-step{font-size:9px;padding:8px 4px;}
 }
 </style>
 </head>
@@ -244,9 +268,7 @@ body.z-modal-open{overflow:hidden}
 
 <nav class="nav">
   <div class="wrap nav-inner">
-    <a class="brand" href="/">
-      <img src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
-    </a>
+    <a class="brand" href="/"><img src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO"></a>
     <div class="nav-links">
       <a href="/#platform">Platform</a>
       <a href="/#artists">Artists</a>
@@ -274,7 +296,6 @@ body.z-modal-open{overflow:hidden}
         <span>Transparent transaction records</span>
       </div>
     </div>
-
     <div class="demo-card" id="transaction">
       <video controls playsinline preload="metadata" poster="/assets/video/live-purchase-poster.jpg" src="/assets/video/live-purchase-demo.mp4"></video>
       <div class="demo-caption">
@@ -323,7 +344,7 @@ body.z-modal-open{overflow:hidden}
   <div class="wrap">
     <div class="section-head">
       <h2>Active artists on ZVAKHO</h2>
-      <p>Selected artists currently connected to ZVAKHO’s direct-to-fan music commerce system.</p>
+      <p>Selected artists currently connected to ZVAKHO's direct-to-fan music commerce system.</p>
     </div>
     <div class="artist-grid" id="artistsGrid"></div>
   </div>
@@ -387,122 +408,251 @@ body.z-modal-open{overflow:hidden}
   </div>
 </footer>
 
-<!-- ARTIST ONBOARDING MODAL -->
+<!-- ═══════════════════════════════════════════════
+     ARTIST ONBOARDING MODAL — V2 (matches worker)
+═══════════════════════════════════════════════ -->
 <div id="artistOnboardingModal" class="z-modal" aria-hidden="true">
   <div class="z-modal-card" role="dialog" aria-modal="true" aria-labelledby="artistModalTitle">
 
-    <button class="z-modal-close" type="button" data-close-onboarding aria-label="Close application">×</button>
+    <button class="z-modal-close" type="button" data-close-onboarding aria-label="Close">×</button>
 
     <div class="z-modal-top">
       <div class="z-modal-brand">
         <img src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
-        <span class="z-modal-pill">Controlled artist rollout</span>
+        <span class="z-modal-pill">Selective artist intake</span>
       </div>
-
       <div class="eyebrow">Artist access gate</div>
       <h2 id="artistModalTitle">Apply for ZVAKHO access.</h2>
       <p class="z-modal-intro">
-        This application filters for artists who actively promote, sell directly to fans, and can commit to disciplined release campaigns.
+        ZVAKHO is not an open upload platform. This application assesses whether your project is ready for direct-to-fan commerce. Answer honestly — the scoring is automatic.
       </p>
     </div>
 
-    <form id="artistApplicationForm" class="z-modal-form">
-      <div class="z-form-grid">
+    <form id="artistApplicationForm" class="z-modal-form" novalidate>
 
-        <label class="z-field">
-          <span>Stage name</span>
-          <input id="stage_name" name="stage_name" placeholder="e.g. Mdu Sevan" required>
-        </label>
-
-        <label class="z-field">
-          <span>Genre</span>
-          <input id="genre" name="genre" placeholder="e.g. Afro Fusion" required>
-        </label>
-
-        <label class="z-field">
-          <span>City / base</span>
-          <input id="city" name="city" placeholder="e.g. Bulawayo" required>
-        </label>
-
-        <label class="z-field">
-          <span>Promotion behavior</span>
-          <select id="promotion_behavior" name="promotion_behavior" required>
-            <option value="">Select one</option>
-            <option>I actively promote on WhatsApp and social media</option>
-            <option>I post occasionally</option>
-            <option>I rely on platforms</option>
-          </select>
-        </label>
-
-        <label class="z-field">
-          <span>Weekly direct fan reach</span>
-          <select id="weekly_reach" name="weekly_reach" required>
-            <option value="">Select one</option>
-            <option>0-100</option>
-            <option>100-500</option>
-            <option>500-1000</option>
-            <option>1000+</option>
-          </select>
-        </label>
-
-        <label class="z-field">
-          <span>Direct selling readiness</span>
-          <select id="direct_selling" name="direct_selling" required>
-            <option value="">Select one</option>
-            <option>Yes</option>
-            <option>Not sure</option>
-            <option>No</option>
-          </select>
-        </label>
-
-        <label class="z-field">
-          <span>Promotion commitment</span>
-          <select id="weekly_commitment" name="weekly_commitment" required>
-            <option value="">Can you promote 2–4 times weekly?</option>
-            <option>Yes</option>
-            <option>Maybe</option>
-            <option>No</option>
-          </select>
-        </label>
-
-        <label class="z-field">
-          <span>Main goal</span>
-          <select id="main_goal" name="main_goal" required>
-            <option value="">Select one</option>
-            <option>Make money from my fans</option>
-            <option>Grow audience</option>
-            <option>Go viral</option>
-          </select>
-        </label>
-
-        <label class="z-field full">
-          <span>Music / social link</span>
-          <input id="links" name="links" placeholder="Instagram, YouTube, Spotify, Audiomack, etc." required>
-        </label>
-
+      <!-- Step indicator -->
+      <div class="z-steps">
+        <div class="z-step active" id="step1Label">1. Basics</div>
+        <div class="z-step" id="step2Label">2. Releases</div>
+        <div class="z-step" id="step3Label">3. Audience</div>
+        <div class="z-step" id="step4Label">4. Links</div>
       </div>
 
-      <div class="z-modal-note">
-        <strong>Before you apply:</strong> ZVAKHO is not a passive upload platform. Artists are expected to promote weekly and direct fans into their purchase flow.
+      <!-- PAGE 1 — Basic info -->
+      <div class="z-page active" id="zPage1">
+        <div class="z-form-grid">
+
+          <label class="z-field">
+            <span>Stage name *</span>
+            <input id="z_stage_name" name="stage_name" placeholder="e.g. Mdu Sevan" required>
+          </label>
+
+          <label class="z-field">
+            <span>Genre *</span>
+            <input id="z_genre" name="genre" placeholder="e.g. Afro Fusion" required>
+          </label>
+
+          <label class="z-field">
+            <span>City / base *</span>
+            <input id="z_city" name="city" placeholder="e.g. Bulawayo" required>
+          </label>
+
+          <label class="z-field">
+            <span>Email address *</span>
+            <input id="z_email" name="email" type="email" placeholder="your@email.com" required>
+          </label>
+
+          <label class="z-field">
+            <span>WhatsApp number *</span>
+            <input id="z_phone" name="phone" type="tel" placeholder="e.g. 0771234567" required>
+          </label>
+
+          <label class="z-field">
+            <span>Release frequency</span>
+            <select id="z_release_frequency" name="release_frequency" required>
+              <option value="">How often do you release?</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="occasionally">Every few months</option>
+              <option value="rarely">Rarely</option>
+            </select>
+          </label>
+
+        </div>
+
+        <div class="z-modal-actions">
+          <button class="btn primary" type="button" id="nextBtn1">Continue →</button>
+          <button class="btn" type="button" data-close-onboarding>Cancel</button>
+        </div>
+        <p class="z-modal-response" id="errPage1" aria-live="polite"></p>
       </div>
 
-      <div class="z-modal-actions">
-        <button id="submitApplicationBtn" class="btn primary" type="submit">Submit application</button>
-        <button class="btn" type="button" data-close-onboarding>Cancel</button>
+      <!-- PAGE 2 — Release history -->
+      <div class="z-page" id="zPage2">
+        <div class="z-form-grid">
+
+          <label class="z-field">
+            <span>Total songs released publicly *</span>
+            <select id="z_songs_released" name="songs_released" required>
+              <option value="">Select range</option>
+              <option value="0-2">0 – 2 songs</option>
+              <option value="3-5">3 – 5 songs</option>
+              <option value="6-15">6 – 15 songs</option>
+              <option value="15+">15+ songs</option>
+            </select>
+          </label>
+
+          <label class="z-field">
+            <span>Releases in the last 12 months *</span>
+            <select id="z_releases_12_months" name="releases_12_months" required>
+              <option value="">Select number</option>
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6+</option>
+            </select>
+          </label>
+
+          <label class="z-field">
+            <span>Do you have cover artwork for your releases? *</span>
+            <select id="z_has_cover_art" name="has_cover_art" required>
+              <option value="">Select</option>
+              <option value="true">Yes, always</option>
+              <option value="false">No</option>
+            </select>
+          </label>
+
+          <label class="z-field">
+            <span>Do you have a direct fan contact channel? *</span>
+            <select id="z_has_fan_channel" name="has_fan_channel" required>
+              <option value="">e.g. WhatsApp group, newsletter</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </label>
+
+        </div>
+
+        <div class="z-modal-actions">
+          <button class="btn primary" type="button" id="nextBtn2">Continue →</button>
+          <button class="btn" type="button" id="backBtn2">← Back</button>
+        </div>
+        <p class="z-modal-response" id="errPage2" aria-live="polite"></p>
       </div>
 
-      <p id="responseMsg" class="z-modal-response" aria-live="polite"></p>
+      <!-- PAGE 3 — Audience -->
+      <div class="z-page" id="zPage3">
+        <div class="z-form-grid">
+
+          <label class="z-field">
+            <span>Current audience size *</span>
+            <select id="z_audience_size" name="audience_size" required>
+              <option value="">Select range</option>
+              <option value="0-100">Under 100</option>
+              <option value="100-500">100 – 500</option>
+              <option value="500-1000">500 – 1,000</option>
+              <option value="1000+">1,000+</option>
+            </select>
+          </label>
+
+          <label class="z-field">
+            <span>Fan engagement when you post *</span>
+            <select id="z_fan_engagement" name="fan_engagement" required>
+              <option value="">Select one</option>
+              <option value="immediately">Fans engage immediately and share</option>
+              <option value="moderate">Moderate engagement</option>
+              <option value="low">Very low engagement</option>
+              <option value="none">Almost no engagement</option>
+            </select>
+          </label>
+
+          <label class="z-field full">
+            <span>Would fans pay directly for your music or exclusives? *</span>
+            <select id="z_fans_pay" name="fans_pay" required>
+              <option value="">Select one</option>
+              <option value="yes">Yes, definitely</option>
+              <option value="probably">Probably</option>
+              <option value="not_sure">Not sure</option>
+              <option value="no">No</option>
+            </select>
+          </label>
+
+          <div class="z-field full">
+            <span>Active platforms (select all that apply) *</span>
+            <div class="z-platform-grid" id="platformGrid">
+              <label class="z-platform-item"><input type="checkbox" value="instagram" name="active_platforms"> Instagram</label>
+              <label class="z-platform-item"><input type="checkbox" value="tiktok"     name="active_platforms"> TikTok</label>
+              <label class="z-platform-item"><input type="checkbox" value="youtube"    name="active_platforms"> YouTube</label>
+              <label class="z-platform-item"><input type="checkbox" value="audiomack"  name="active_platforms"> Audiomack</label>
+              <label class="z-platform-item"><input type="checkbox" value="spotify"    name="active_platforms"> Spotify</label>
+              <label class="z-platform-item"><input type="checkbox" value="facebook"   name="active_platforms"> Facebook</label>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="z-modal-actions">
+          <button class="btn primary" type="button" id="nextBtn3">Continue →</button>
+          <button class="btn" type="button" id="backBtn3">← Back</button>
+        </div>
+        <p class="z-modal-response" id="errPage3" aria-live="polite"></p>
+      </div>
+
+      <!-- PAGE 4 — Links + submit -->
+      <div class="z-page" id="zPage4">
+        <div class="z-form-grid">
+
+          <label class="z-field full">
+            <span>Main music link * (Spotify, Audiomack, YouTube, etc.)</span>
+            <input id="z_music_link" name="music_link" type="url" placeholder="https://audiomack.com/yourname" required>
+          </label>
+
+          <label class="z-field">
+            <span>Instagram profile</span>
+            <input id="z_instagram_link" name="instagram_link" type="url" placeholder="https://instagram.com/yourname">
+          </label>
+
+          <label class="z-field">
+            <span>YouTube channel</span>
+            <input id="z_youtube_link" name="youtube_link" type="url" placeholder="https://youtube.com/@yourname">
+          </label>
+
+          <label class="z-field">
+            <span>TikTok profile</span>
+            <input id="z_tiktok_link" name="tiktok_link" type="url" placeholder="https://tiktok.com/@yourname">
+          </label>
+
+        </div>
+
+        <div class="z-modal-note">
+          <strong>Final check:</strong> Make sure your music link is public and working. Applications without a valid music link are automatically rejected. ZVAKHO is selective — we assess execution, not potential.
+        </div>
+
+        <div class="z-modal-actions">
+          <button id="submitApplicationBtn" class="btn primary" type="submit">Submit application</button>
+          <button class="btn" type="button" id="backBtn4">← Back</button>
+        </div>
+
+        <p id="responseMsg" class="z-modal-response" aria-live="polite"></p>
+      </div>
+
     </form>
   </div>
 </div>
 
 <script>
 (function(){
-  const modal = document.getElementById('artistOnboardingModal');
-  const form = document.getElementById('artistApplicationForm');
-  const msg = document.getElementById('responseMsg');
+  const ONBOARDING_API = 'https://zvakho-artist-onboarding.yasibomedia.workers.dev';
+
+  const modal     = document.getElementById('artistOnboardingModal');
+  const form      = document.getElementById('artistApplicationForm');
+  const msg       = document.getElementById('responseMsg');
   const submitBtn = document.getElementById('submitApplicationBtn');
 
+  // ── Modal open / close ────────────────────────────────────
   function openModal(){
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden','false');
@@ -513,88 +663,249 @@ body.z-modal-open{overflow:hidden}
     modal.classList.remove('is-open');
     modal.setAttribute('aria-hidden','true');
     document.body.classList.remove('z-modal-open');
+    // Reset to page 1 after close
+    setTimeout(resetForm, 300);
   }
 
-  document.querySelectorAll('[data-open-onboarding]').forEach(btn=>{
-    btn.addEventListener('click', openModal);
+  document.querySelectorAll('[data-open-onboarding]').forEach(b => b.addEventListener('click', openModal));
+  document.querySelectorAll('[data-close-onboarding]').forEach(b => b.addEventListener('click', closeModal));
+  modal.addEventListener('click', e => { if(e.target === modal) closeModal(); });
+  window.addEventListener('keydown', e => { if(e.key === 'Escape' && modal.classList.contains('is-open')) closeModal(); });
+
+  // ── Multi-step navigation ─────────────────────────────────
+  let currentPage = 1;
+  const totalPages = 4;
+
+  function goToPage(n){
+    for(let i = 1; i <= totalPages; i++){
+      const page  = document.getElementById(`zPage${i}`);
+      const label = document.getElementById(`step${i}Label`);
+      if(!page || !label) continue;
+      page.classList.toggle('active', i === n);
+      label.classList.remove('active','done');
+      if(i === n)  label.classList.add('active');
+      if(i < n)    label.classList.add('done');
+    }
+    currentPage = n;
+    // Scroll modal to top
+    const card = modal.querySelector('.z-modal-card');
+    if(card) card.scrollTop = 0;
+  }
+
+  function resetForm(){
+    form.reset();
+    // Uncheck platform checkboxes
+    document.querySelectorAll('#platformGrid .z-platform-item').forEach(l => l.classList.remove('checked'));
+    // Clear error messages
+    ['errPage1','errPage2','errPage3'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el){ el.textContent = ''; el.className = 'z-modal-response'; }
+    });
+    if(msg){ msg.textContent = ''; msg.className = 'z-modal-response'; }
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit application';
+    goToPage(1);
+  }
+
+  function showPageError(pageNum, text){
+    const el = document.getElementById(`errPage${pageNum}`);
+    if(!el) return;
+    el.textContent = text;
+    el.className = 'z-modal-response error';
+  }
+
+  // ── Validation helpers ────────────────────────────────────
+  function validatePage1(){
+    const stage = document.getElementById('z_stage_name').value.trim();
+    const genre = document.getElementById('z_genre').value.trim();
+    const city  = document.getElementById('z_city').value.trim();
+    const email = document.getElementById('z_email').value.trim();
+    const phone = document.getElementById('z_phone').value.trim();
+    const freq  = document.getElementById('z_release_frequency').value;
+    if(!stage) return 'Please enter your stage name.';
+    if(!genre) return 'Please enter your genre.';
+    if(!city)  return 'Please enter your city.';
+    if(!email || !email.includes('@')) return 'Please enter a valid email address.';
+    if(!phone) return 'Please enter your WhatsApp number.';
+    if(!freq)  return 'Please select your release frequency.';
+    return null;
+  }
+
+  function validatePage2(){
+    const songs    = document.getElementById('z_songs_released').value;
+    const releases = document.getElementById('z_releases_12_months').value;
+    const art      = document.getElementById('z_has_cover_art').value;
+    const channel  = document.getElementById('z_has_fan_channel').value;
+    if(!songs)    return 'Please select how many songs you have released.';
+    if(releases === '') return 'Please select releases in the last 12 months.';
+    if(!art)      return 'Please answer the cover art question.';
+    if(!channel)  return 'Please answer the fan channel question.';
+    return null;
+  }
+
+  function validatePage3(){
+    const audience    = document.getElementById('z_audience_size').value;
+    const engagement  = document.getElementById('z_fan_engagement').value;
+    const fansPay     = document.getElementById('z_fans_pay').value;
+    const platforms   = Array.from(document.querySelectorAll('#platformGrid input[type=checkbox]:checked'));
+    if(!audience)   return 'Please select your audience size.';
+    if(!engagement) return 'Please select your fan engagement level.';
+    if(!fansPay)    return 'Please answer the fans pay question.';
+    if(!platforms.length) return 'Please select at least one active platform.';
+    return null;
+  }
+
+  function validatePage4(){
+    const musicLink = document.getElementById('z_music_link').value.trim();
+    if(!musicLink || musicLink.length < 10) return 'Please enter your main music link.';
+    return null;
+  }
+
+  // ── Step button handlers ──────────────────────────────────
+  document.getElementById('nextBtn1').addEventListener('click', () => {
+    const err = validatePage1();
+    if(err){ showPageError(1, err); return; }
+    document.getElementById('errPage1').textContent = '';
+    goToPage(2);
   });
 
-  document.querySelectorAll('[data-close-onboarding]').forEach(btn=>{
-    btn.addEventListener('click', closeModal);
+  document.getElementById('nextBtn2').addEventListener('click', () => {
+    const err = validatePage2();
+    if(err){ showPageError(2, err); return; }
+    document.getElementById('errPage2').textContent = '';
+    goToPage(3);
   });
 
-  modal.addEventListener('click', function(e){
-    if(e.target === modal) closeModal();
+  document.getElementById('backBtn2').addEventListener('click', () => goToPage(1));
+
+  document.getElementById('nextBtn3').addEventListener('click', () => {
+    const err = validatePage3();
+    if(err){ showPageError(3, err); return; }
+    document.getElementById('errPage3').textContent = '';
+    goToPage(4);
   });
 
-  window.addEventListener('keydown', function(e){
-    if(e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
+  document.getElementById('backBtn3').addEventListener('click', () => goToPage(2));
+  document.getElementById('backBtn4').addEventListener('click', () => goToPage(3));
+
+  // ── Platform checkbox visual feedback ─────────────────────
+  document.querySelectorAll('#platformGrid .z-platform-item').forEach(label => {
+    label.addEventListener('change', () => {
+      label.classList.toggle('checked', label.querySelector('input').checked);
+    });
   });
 
+  // ── Form submit ───────────────────────────────────────────
   form.addEventListener('submit', async function(e){
     e.preventDefault();
 
-    const data = {
-      source: 'website',
-      stage_name: document.getElementById('stage_name').value.trim(),
-      genre: document.getElementById('genre').value.trim(),
-      city: document.getElementById('city').value.trim(),
-      promotion_behavior: document.getElementById('promotion_behavior').value,
-      weekly_reach: document.getElementById('weekly_reach').value,
-      direct_selling: document.getElementById('direct_selling').value,
-      weekly_commitment: document.getElementById('weekly_commitment').value,
-      main_goal: document.getElementById('main_goal').value,
-      links: document.getElementById('links').value.trim()
+    const pageErr = validatePage4();
+    if(pageErr){
+      msg.textContent = pageErr;
+      msg.className = 'z-modal-response error';
+      return;
+    }
+
+    // Collect active platforms
+    const activePlatforms = Array.from(
+      document.querySelectorAll('#platformGrid input[type=checkbox]:checked')
+    ).map(cb => cb.value);
+
+    const payload = {
+      source:              'website',
+      stage_name:          document.getElementById('z_stage_name').value.trim(),
+      artist_name:         document.getElementById('z_stage_name').value.trim(),
+      genre:               document.getElementById('z_genre').value.trim(),
+      city:                document.getElementById('z_city').value.trim(),
+      email:               document.getElementById('z_email').value.trim().toLowerCase(),
+      phone:               document.getElementById('z_phone').value.trim(),
+      release_frequency:   document.getElementById('z_release_frequency').value,
+      songs_released:      document.getElementById('z_songs_released').value,
+      releases_12_months:  parseInt(document.getElementById('z_releases_12_months').value) || 0,
+      has_cover_art:       document.getElementById('z_has_cover_art').value === 'true',
+      has_fan_channel:     document.getElementById('z_has_fan_channel').value === 'true',
+      audience_size:       document.getElementById('z_audience_size').value,
+      fan_engagement:      document.getElementById('z_fan_engagement').value,
+      fans_pay:            document.getElementById('z_fans_pay').value,
+      active_platforms:    activePlatforms,
+      music_link:          document.getElementById('z_music_link').value.trim(),
+      instagram_link:      document.getElementById('z_instagram_link').value.trim(),
+      youtube_link:        document.getElementById('z_youtube_link').value.trim(),
+      tiktok_link:         document.getElementById('z_tiktok_link').value.trim()
     };
 
     msg.className = 'z-modal-response';
-    msg.textContent = 'Submitting your application...';
+    msg.textContent = 'Submitting your application…';
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting...';
+    submitBtn.textContent = 'Submitting…';
 
     try {
-      const res = await fetch('https://zvakho-artist-onboarding.yasibomedia.workers.dev/apply', {
-        method: 'POST',
+      const res    = await fetch(`${ONBOARDING_API}/apply`, {
+        method:  'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(data)
+        body:    JSON.stringify(payload)
       });
 
       const result = await res.json();
 
-      if(!res.ok || result.status === 'error'){
+      // Hard reject or error
+      if(result.status === 'error'){
         throw new Error(result.message || 'Application could not be submitted.');
       }
 
-      if(result.qualification_status === 'accepted'){
-        msg.classList.add('success');
-        msg.textContent = 'You qualify. Redirecting to WhatsApp onboarding...';
+      const status = result.vetting_status;
+      const score  = result.fit_score ?? null;
 
-        setTimeout(function(){
-          window.location.href = 'https://wa.me/263719362231?text=ONBOARD_ACCEPTED';
-        }, 1400);
-      }
-
-      else if(result.qualification_status === 'review'){
-        msg.classList.add('review');
-        msg.textContent = 'Application received. Your profile needs review before onboarding.';
+      if(result.status === 'rejected' || status === 'rejected'){
+        msg.className = 'z-modal-response rejected';
+        msg.innerHTML = `
+          Thank you for applying to ZVAKHO. At this stage your project is not yet aligned with the platform direction.<br>
+          <small style="opacity:.75">Continue building consistency and reapply when you have more releases and an active audience.</small>
+        `;
         submitBtn.disabled = false;
         submitBtn.textContent = 'Submit application';
+        return;
       }
 
-      else {
-        msg.classList.add('waitlist');
-        msg.textContent = 'Application received. ZVAKHO is currently prioritising artists with active weekly promotion.';
+      if(status === 'shortlisted'){
+        msg.className = 'z-modal-response success';
+        msg.innerHTML = `
+          Your application has been shortlisted. Our team will contact you on WhatsApp to begin onboarding.
+          ${score !== null ? `<div class="z-score-reveal"><span class="z-score-num">${score}</span><span class="z-score-label">/ 100 fit score</span></div>` : ''}
+        `;
+        submitBtn.style.display = 'none';
+        // Auto-redirect to WhatsApp after 2.5s
+        setTimeout(()=>{
+          window.location.href = 'https://wa.me/263719362231?text=ONBOARD_SHORTLISTED';
+        }, 2500);
+        return;
+      }
+
+      if(status === 'review'){
+        msg.className = 'z-modal-response review';
+        msg.innerHTML = `
+          Application received. Your profile is under review — we will be in touch once the assessment is complete.
+          ${score !== null ? `<div class="z-score-reveal" style="background:#fff8e1;border-color:#f0d080;"><span class="z-score-num" style="color:#8a6000;">${score}</span><span class="z-score-label" style="color:#6a5000;">/ 100 fit score</span></div>` : ''}
+        `;
         submitBtn.disabled = false;
         submitBtn.textContent = 'Submit application';
+        return;
       }
 
-    } catch(error) {
-      msg.classList.add('error');
-      msg.textContent = 'Something went wrong. Please try again.';
+      // Fallback
+      msg.className = 'z-modal-response review';
+      msg.textContent = result.message || 'Application received. We will be in touch.';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit application';
+
+    } catch(error){
+      msg.className = 'z-modal-response error';
+      msg.textContent = error.message || 'Something went wrong. Please try again.';
       submitBtn.disabled = false;
       submitBtn.textContent = 'Submit application';
     }
   });
+
 })();
 </script>
 
