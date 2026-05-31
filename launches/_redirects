@@ -1,0 +1,6 @@
+# Route all /launches/:slug paths to the launches index page
+# Cloudflare Pages will serve the HTML; JS then reads the slug from the URL
+/launches/*   /launches/index.html   200
+
+# Catch-all SPA fallback for any other deep paths
+/*            /index.html            200
