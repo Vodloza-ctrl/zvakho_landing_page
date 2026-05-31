@@ -157,9 +157,9 @@
       position: absolute; inset: 0;
       background: linear-gradient(
         to bottom,
-        rgba(10,10,10,.25) 0%,
-        rgba(10,10,10,.45) 40%,
-        rgba(10,10,10,.92) 85%,
+        rgba(0,0,0,.15) 0%,
+        rgba(0,0,0,.35) 40%,
+        rgba(0,0,0,.75) 75%,
         var(--bg) 100%
       );
     }
@@ -939,10 +939,45 @@ function render(d) {
 
 function applyTheme(theme) {
   const root = document.documentElement;
+
   if (theme.primary_color)   root.style.setProperty("--bg", theme.primary_color);
   if (theme.accent_color)    root.style.setProperty("--accent", theme.accent_color);
   if (theme.text_color)      root.style.setProperty("--text", theme.text_color);
-  if (theme.secondary_color) root.style.setProperty("--surface", adjustBrightness(theme.primary_color, 12));
+
+  // Detect light vs dark background so --muted, --line, --surface
+  // are always readable regardless of theme.
+  const isLight = theme.primary_color
+    ? isLightColor(theme.primary_color)
+    : false;
+
+  if (isLight) {
+    // Light theme: darken surface slightly, use dark-based muted/line
+    root.style.setProperty("--surface",  adjustBrightness(theme.primary_color, -10));
+    root.style.setProperty("--muted",    "rgba(0,0,0,.5)");
+    root.style.setProperty("--line",     "rgba(0,0,0,.12)");
+    // Ensure text is always dark on light background
+    if (!theme.text_color || isLightColor(theme.text_color)) {
+      root.style.setProperty("--text", "#111111");
+    }
+  } else {
+    // Dark theme: lighten surface slightly, keep white-based muted/line
+    root.style.setProperty("--surface",  adjustBrightness(theme.primary_color || "#111111", 12));
+    root.style.setProperty("--muted",    "rgba(240,236,228,.55)");
+    root.style.setProperty("--line",     "rgba(255,255,255,.1)");
+  }
+}
+
+// Returns true if a hex colour is perceived as light (luminance > 50%)
+function isLightColor(hex) {
+  try {
+    const h = String(hex).replace("#", "");
+    const r = parseInt(h.slice(0, 2), 16) / 255;
+    const g = parseInt(h.slice(2, 4), 16) / 255;
+    const b = parseInt(h.slice(4, 6), 16) / 255;
+    // Perceived luminance formula (WCAG)
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luminance > 0.5;
+  } catch { return false; }
 }
 
 function adjustBrightness(hex, amount) {
