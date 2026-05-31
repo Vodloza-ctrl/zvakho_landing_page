@@ -801,14 +801,28 @@ let status_interval    = null;
 // ── Slug detection ────────────────────────────────────────────────────────
 
 function slugFromURL() {
+  // 1. Query string: ?slug=demo  or  ?launch=demo  or  ?l=demo
   const p = new URLSearchParams(location.search);
   const q = p.get("slug") || p.get("launch") || p.get("l");
   if (q) return q.trim().toLowerCase();
 
+  // 2. Path-based slug detection
+  //    Handles ALL of these URL shapes:
+  //      /launches/demo          (Cloudflare Pages folder: /launches/)
+  //      /launch/demo            (bare /launch/)
+  //      /l/demo                 (short alias)
+  //      /demo                   (root-level, e.g. custom domain per-artist)
   const parts = location.pathname.split("/").filter(Boolean);
-  // expects /launch/slug or /l/slug
-  if ((parts[0] === "launch" || parts[0] === "l") && parts[1]) return parts[1].toLowerCase();
-  if (parts[0] && parts[0] !== "launch") return parts[0].toLowerCase();
+  const FOLDER_NAMES = new Set(["launches", "launch", "l"]);
+
+  if (parts.length >= 2 && FOLDER_NAMES.has(parts[0])) {
+    // /launches/demo  →  parts = ["launches","demo"]  →  slug = "demo"
+    return parts[1].toLowerCase();
+  }
+  if (parts.length === 1 && !FOLDER_NAMES.has(parts[0])) {
+    // /demo  →  parts = ["demo"]  →  slug = "demo"
+    return parts[0].toLowerCase();
+  }
   return "";
 }
 
