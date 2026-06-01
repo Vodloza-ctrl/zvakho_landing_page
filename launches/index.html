@@ -134,29 +134,6 @@
       padding: 4px 10px;
       border-radius: 6px;
     }
-    .nav-cart-btn {
-      background: transparent;
-      border: 1px solid var(--line);
-      color: var(--text);
-      width: 40px; height: 40px;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
-      font-size: 18px;
-      position: relative;
-      transition: border-color .2s, background .2s;
-    }
-    .nav-cart-btn:hover { background: rgba(255,255,255,.06); border-color: var(--accent); }
-    .cart-badge {
-      position: absolute; top: -8px; right: -8px;
-      background: var(--accent);
-      color: #000;
-      font-size: 11px;
-      font-weight: 700;
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-    }
 
     /* ── HERO ────────────────────────────────────────────────────────── */
     .hero {
@@ -197,11 +174,6 @@
     .artist-eyebrow {
       display: flex; align-items: center; gap: 10px;
       margin-bottom: 16px;
-      background: rgba(0,0,0,.35);
-      padding: 8px 12px;
-      border-radius: 8px;
-      width: fit-content;
-      backdrop-filter: blur(8px);
     }
     .artist-avatar {
       width: 36px; height: 36px;
@@ -235,11 +207,6 @@
       letter-spacing: -.01em;
       text-transform: uppercase;
       margin-bottom: 16px;
-      background: rgba(0,0,0,.35);
-      padding: 16px 20px;
-      border-radius: 12px;
-      backdrop-filter: blur(8px);
-      width: fit-content;
     }
     .hero-title em {
       font-style: normal;
@@ -252,11 +219,6 @@
       font-size: 15px;
       line-height: 1.65;
       margin-bottom: 28px;
-      background: rgba(0,0,0,.35);
-      padding: 12px 16px;
-      border-radius: 8px;
-      backdrop-filter: blur(8px);
-      width: fit-content;
     }
 
     /* ── SOCIAL PROOF BAR ────────────────────────────────────────────── */
@@ -270,10 +232,6 @@
       font-size: 13px; font-weight: 600;
       letter-spacing: .08em; text-transform: uppercase;
       color: var(--muted);
-      background: rgba(0,0,0,.35);
-      padding: 8px 12px;
-      border-radius: 8px;
-      backdrop-filter: blur(8px);
     }
     .proof-dot {
       width: 6px; height: 6px;
@@ -497,313 +455,49 @@
     .product-price {
       font-family: var(--font-disp);
       font-weight: 900;
-      font-size: 18px;
-      color: var(--accent);
+      font-size: 22px;
+      color: var(--text);
     }
+
     .preorder-meta {
-      font-size: 11px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase;
       color: var(--muted);
-      font-weight: 600;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      margin-top: 4px;
+      margin-top: 6px;
     }
     .preorder-meta.scarce { color: #f87171; }
 
-    /* ── VARIANT PICKER ─────────────────────────────────────────────── */
-    .variant-section {
-      margin-bottom: 16px;
-    }
-    .variant-label {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
-      display: block;
-    }
-    .variant-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-      gap: 8px;
-    }
-    .variant-btn {
-      aspect-ratio: 1;
-      border: 2px solid var(--line);
-      border-radius: 8px;
-      background: transparent;
-      color: var(--text);
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      transition: all .2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 4px;
-    }
-    .variant-btn:hover { border-color: var(--accent); }
-    .variant-btn.active {
-      border-color: var(--accent);
-      background: rgba(245,164,0,.15);
-      color: var(--accent);
-    }
-
-    /* ── CART SIDEBAR ────────────────────────────────────────────────── */
-    .cart-sidebar {
-      position: fixed;
-      right: 0;
-      top: 0;
-      width: 100%;
-      max-width: 400px;
-      height: 100vh;
-      background: var(--surface);
-      border-left: 1px solid var(--line);
-      z-index: 100;
-      transform: translateX(100%);
-      transition: transform .3s ease;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .cart-sidebar.open { transform: translateX(0); }
-    .cart-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 20px;
-      border-bottom: 1px solid var(--line);
-      flex-shrink: 0;
-    }
-    .cart-title {
-      font-family: var(--font-disp);
-      font-weight: 700;
-      font-size: 18px;
-      text-transform: uppercase;
-    }
-    .cart-close {
-      background: transparent;
-      border: none;
-      color: var(--text);
-      font-size: 24px;
-      cursor: pointer;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .cart-items {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-    }
-    .cart-item {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--line);
-    }
-    .cart-item-img {
-      width: 60px;
-      height: 60px;
-      border-radius: 8px;
-      overflow: hidden;
-      flex-shrink: 0;
-      background: rgba(255,255,255,.04);
-    }
-    .cart-item-img img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .cart-item-info {
-      flex: 1;
-    }
-    .cart-item-name {
-      font-weight: 600;
-      font-size: 14px;
-      margin-bottom: 4px;
-    }
-    .cart-item-variant {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    .cart-item-price {
-      font-family: var(--font-disp);
-      font-weight: 700;
-      color: var(--accent);
-    }
-    .cart-item-remove {
-      background: transparent;
-      border: none;
-      color: #f87171;
-      cursor: pointer;
-      font-size: 14px;
-      padding: 4px 8px;
-      border-radius: 4px;
-      transition: background .2s;
-    }
-    .cart-item-remove:hover { background: rgba(248,113,113,.1); }
-    .cart-empty {
-      text-align: center;
-      color: var(--muted);
-      padding: 40px 20px;
-    }
-    .cart-footer {
-      padding: 20px;
-      border-top: 1px solid var(--line);
-      flex-shrink: 0;
-    }
-    .cart-total {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      font-size: 16px;
-      font-weight: 600;
-    }
-    .cart-total-price {
-      font-family: var(--font-disp);
-      font-weight: 900;
-      font-size: 20px;
-      color: var(--accent);
-    }
-    .cart-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.5);
-      z-index: 99;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity .3s, visibility .3s;
-    }
-    .cart-overlay.open {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    /* ── FLOATING AUDIO PLAYER ──────────────────────────────────────── */
-    .audio-player {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px 16px;
-      z-index: 90;
-      display: none;
-      flex-direction: column;
-      gap: 10px;
-      width: 280px;
-      box-shadow: 0 10px 40px rgba(0,0,0,.3);
-      backdrop-filter: blur(20px);
-    }
-    .audio-player.visible { display: flex; }
-    .audio-player-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .audio-player-title {
-      font-family: var(--font-disp);
-      font-weight: 700;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-    }
-    .audio-player-close {
-      background: transparent;
-      border: none;
-      color: var(--text);
-      cursor: pointer;
-      font-size: 16px;
-      padding: 0;
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .audio-player-controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .audio-player-btn {
-      background: var(--accent);
-      border: none;
-      color: #000;
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      transition: background .2s;
-    }
-    .audio-player-btn:hover { background: color-mix(in srgb, var(--accent) 85%, #fff); }
-    audio {
-      width: 100%;
-      height: 30px;
-    }
-
-    /* ── CONDITIONAL VIDEO SECTION ──────────────────────────────────── */
-    .video-section {
-      padding: 64px 0;
-      border-top: 1px solid var(--line);
-      display: none;
-    }
-    .video-section.visible { display: block; }
-    .video-container {
-      position: relative;
-      aspect-ratio: 16 / 9;
-      border-radius: var(--radius);
-      overflow: hidden;
-      background: rgba(255,255,255,.04);
-    }
-    .video-container iframe,
-    .video-container video {
-      width: 100%;
-      height: 100%;
-    }
-
-    /* ── MODAL ──────────────────────────────────────────────────────── */
+    /* ── PREORDER MODAL ──────────────────────────────────────────────── */
     .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.7);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 200;
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.75);
+      backdrop-filter: blur(8px);
+      display: flex; align-items: flex-end; justify-content: center;
       opacity: 0; visibility: hidden;
-      transition: opacity .3s, visibility .3s;
-      padding: 20px;
+      transition: opacity .25s, visibility .25s;
+    }
+    @media (min-width: 600px) {
+      .modal-overlay { align-items: center; }
     }
     .modal-overlay.open { opacity: 1; visibility: visible; }
+
     .modal {
       background: var(--surface);
       border: 1px solid var(--line);
-      border-radius: var(--radius);
-      max-width: 500px;
+      border-radius: 24px 24px 0 0;
       width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 32px;
-      animation: modalSlide .3s ease;
+      max-width: 480px;
+      padding: 32px 24px calc(32px + var(--safe-b));
+      transform: translateY(40px);
+      transition: transform .3s cubic-bezier(.16,1,.3,1);
     }
-    @keyframes modalSlide {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+    @media (min-width: 600px) {
+      .modal { border-radius: 24px; }
     }
+    .modal-overlay.open .modal { transform: translateY(0); }
+
     .modal-header {
       display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 16px;
       margin-bottom: 24px;
     }
     .modal-title {
@@ -922,12 +616,6 @@
       color: #4ade80; margin-bottom: 4px;
     }
     .success-text { font-size: 14px; color: var(--muted); }
-
-    /* ── RESPONSIVE ─────────────────────────────────────────────────── */
-    @media (max-width: 768px) {
-      .cart-sidebar { max-width: 100%; }
-      .audio-player { width: calc(100% - 40px); right: 20px; left: 20px; }
-    }
   </style>
 </head>
 
@@ -964,13 +652,7 @@
       <div class="nav-logo" id="nav-logo">
         <!-- filled by JS -->
       </div>
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div class="nav-badge" id="nav-badge">Exclusive Launch</div>
-        <button class="nav-cart-btn" id="nav-cart-btn" onclick="toggleCart()">
-          🛒
-          <div class="cart-badge" id="cart-badge" style="display:none;">0</div>
-        </button>
-      </div>
+      <div class="nav-badge" id="nav-badge">Exclusive Launch</div>
     </div>
   </nav>
 
@@ -1055,17 +737,6 @@
     </div>
   </section>
 
-  <!-- Conditional Video Section -->
-  <section id="video-section" class="video-section">
-    <div class="shell">
-      <div class="section-label" id="video-label">Behind The Scenes</div>
-      <h2 class="section-title" id="video-title">Watch Now</h2>
-      <div class="video-container" id="video-container">
-        <!-- filled by JS -->
-      </div>
-    </div>
-  </section>
-
   <!-- Artist Bio -->
   <section id="bio-section">
     <div class="shell">
@@ -1085,41 +756,6 @@
 
 </div><!-- /#page -->
 
-<!-- Cart Sidebar -->
-<div class="cart-overlay" id="cart-overlay" onclick="closeCart()"></div>
-<div class="cart-sidebar" id="cart-sidebar">
-  <div class="cart-header">
-    <div class="cart-title">Your Cart</div>
-    <button class="cart-close" onclick="closeCart()">✕</button>
-  </div>
-  <div class="cart-items" id="cart-items">
-    <div class="cart-empty">Your cart is empty</div>
-  </div>
-  <div class="cart-footer">
-    <div class="cart-total">
-      <span>Total</span>
-      <span class="cart-total-price" id="cart-total">$0.00</span>
-    </div>
-    <button class="btn btn-primary" style="width:100%;" onclick="proceedToCheckout()">
-      Proceed to Checkout
-    </button>
-  </div>
-</div>
-
-<!-- Floating Audio Player -->
-<div class="audio-player" id="audio-player">
-  <div class="audio-player-header">
-    <div class="audio-player-title" id="audio-title">Now Playing</div>
-    <button class="audio-player-close" onclick="closeAudioPlayer()">✕</button>
-  </div>
-  <audio id="audio-element" controls></audio>
-  <div class="audio-player-controls">
-    <button class="audio-player-btn" onclick="playPreviousTrack()">⏮</button>
-    <button class="audio-player-btn" id="play-pause-btn" onclick="togglePlayPause()">▶</button>
-    <button class="audio-player-btn" onclick="playNextTrack()">⏭</button>
-  </div>
-</div>
-
 <!-- Preorder Modal -->
 <div class="modal-overlay" id="preorder-modal" onclick="closeModal(event)">
   <div class="modal">
@@ -1130,10 +766,6 @@
       </div>
       <button class="modal-close" onclick="closePreorderModal()">✕</button>
     </div>
-
-    <!-- Variant Picker in Modal -->
-    <div id="modal-variants" style="display:none; margin-bottom:20px;"></div>
-
     <div class="modal-fields">
       <input class="form-input" type="text" id="modal-name" placeholder="Your name" autocomplete="name" />
       <input class="form-input" type="tel"  id="modal-phone" placeholder="+263 7XX XXX XXX" autocomplete="tel" />
@@ -1161,27 +793,34 @@
 const CONFIG = window.ZVAKHO_CONFIG || {};
 const API    = String(CONFIG.apiBase || "").replace(/\/$/, "");
 
-let PAGE_DATA   = null;
-let ACTIVE_PRODUCT = null;
-let SELECTED_VARIANT = {};
-let CART = [];
+let PAGE_DATA   = null;   // Full /page response
+let ACTIVE_PRODUCT = null; // Product selected for preorder
 let countdown_interval = null;
 let status_interval    = null;
 
 // ── Slug detection ────────────────────────────────────────────────────────
 
 function slugFromURL() {
+  // 1. Query string: ?slug=demo  or  ?launch=demo  or  ?l=demo
   const p = new URLSearchParams(location.search);
   const q = p.get("slug") || p.get("launch") || p.get("l");
   if (q) return q.trim().toLowerCase();
 
+  // 2. Path-based slug detection
+  //    Handles ALL of these URL shapes:
+  //      /launches/demo          (Cloudflare Pages folder: /launches/)
+  //      /launch/demo            (bare /launch/)
+  //      /l/demo                 (short alias)
+  //      /demo                   (root-level, e.g. custom domain per-artist)
   const parts = location.pathname.split("/").filter(Boolean);
   const FOLDER_NAMES = new Set(["launches", "launch", "l"]);
 
   if (parts.length >= 2 && FOLDER_NAMES.has(parts[0])) {
+    // /launches/demo  →  parts = ["launches","demo"]  →  slug = "demo"
     return parts[1].toLowerCase();
   }
   if (parts.length === 1 && !FOLDER_NAMES.has(parts[0])) {
+    // /demo  →  parts = ["demo"]  →  slug = "demo"
     return parts[0].toLowerCase();
   }
   return "";
@@ -1222,27 +861,33 @@ async function init() {
 }
 
 function showError() {
+  document.getElementById("loading-screen").classList.add("hidden");
   document.getElementById("error-screen").style.display = "flex";
 }
 
 // ── Render ────────────────────────────────────────────────────────────────
 
 function render(d) {
-  const { campaign, artist, theme, countdown, products, supporter_count, video_url } = d;
+  const { campaign, artist, theme, countdown, products, supporter_count } = d;
 
+  // Apply theme CSS vars
   applyTheme(theme);
 
+  // Document title + OG
   document.title = `${campaign.title} — ${artist.artist_name} × ZVAKHO`;
   document.getElementById("og-title").content = document.title;
   document.getElementById("og-image").content = campaign.cover_image || "";
 
+  // Ticker
   buildTicker(theme.ticker_text || `${artist.artist_name} • ${campaign.title} • ZVAKHO •`);
 
+  // Nav logo
   const navLogo = document.getElementById("nav-logo");
   navLogo.innerHTML = theme.logo_url
     ? `<img src="${esc(theme.logo_url)}" alt="${esc(artist.artist_name)}" />`
     : `<span class="nav-logo-text">${esc(artist.artist_name)}</span>`;
 
+  // Hero media
   const heroMedia = document.getElementById("hero-media");
   if (campaign.hero_video_url) {
     heroMedia.innerHTML = `
@@ -1253,12 +898,14 @@ function render(d) {
     heroMedia.innerHTML = `<img src="${esc(campaign.cover_image)}" alt="${esc(campaign.title)}" loading="eager" />`;
   }
 
+  // Artist eyebrow
   document.getElementById("artist-eyebrow").innerHTML = `
     ${artist.profile_image_url ? `<div class="artist-avatar"><img src="${esc(artist.profile_image_url)}" alt="${esc(artist.artist_name)}" /></div>` : ""}
     <span class="artist-eyebrow-name">${esc(artist.artist_name)}</span>
     ${artist.genre ? `<span class="genre-pill">${esc(artist.genre)}</span>` : ""}
   `;
 
+  // Hero title (capitalise and italicise last word for drama)
   const words = campaign.title.split(" ");
   const last  = words.pop();
   document.getElementById("hero-title").innerHTML =
@@ -1266,41 +913,28 @@ function render(d) {
 
   document.getElementById("hero-desc").textContent = campaign.description || artist.tagline || "";
 
+  // Social proof
   buildSocialProof(supporter_count, campaign.supporter_count_visible);
 
+  // Countdown
   if (countdown.enabled && !countdown.launched) {
     document.getElementById("countdown-section").style.display = "block";
   } else if (countdown.launched) {
     document.getElementById("countdown-section").classList.add("launched");
   }
 
+  // Capture form
   document.getElementById("capture-headline").textContent = campaign.capture_headline;
   document.getElementById("capture-subtext").textContent  = campaign.capture_subtext;
 
+  // Products
   if (products.length) {
     document.getElementById("products-section").style.display = "block";
     renderProducts(products, campaign);
   }
 
-  // Conditional video section
-  if (video_url) {
-    const videoSection = document.getElementById("video-section");
-    videoSection.classList.add("visible");
-    const container = document.getElementById("video-container");
-    if (video_url.includes("youtube.com") || video_url.includes("youtu.be")) {
-      const videoId = extractYouTubeId(video_url);
-      container.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-    } else {
-      container.innerHTML = `<video controls><source src="${esc(video_url)}" type="video/mp4" /></video>`;
-    }
-  }
-
+  // Bio
   renderBio(artist);
-}
-
-function extractYouTubeId(url) {
-  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  return match ? match[1] : "";
 }
 
 function applyTheme(theme) {
@@ -1310,36 +944,44 @@ function applyTheme(theme) {
   if (theme.accent_color)    root.style.setProperty("--accent", theme.accent_color);
   if (theme.text_color)      root.style.setProperty("--text", theme.text_color);
 
+  // Detect light vs dark background so --muted, --line, --surface
+  // are always readable regardless of theme.
   const isLight = theme.primary_color
     ? isLightColor(theme.primary_color)
     : false;
 
   if (isLight) {
+    // Light theme: darken surface slightly, use dark-based muted/line
     root.style.setProperty("--surface",  adjustBrightness(theme.primary_color, -10));
     root.style.setProperty("--muted",    "rgba(0,0,0,.5)");
     root.style.setProperty("--line",     "rgba(0,0,0,.12)");
+    // Ensure text is always dark on light background
     if (!theme.text_color || isLightColor(theme.text_color)) {
       root.style.setProperty("--text", "#111111");
     }
   } else {
+    // Dark theme: lighten surface slightly, keep white-based muted/line
     root.style.setProperty("--surface",  adjustBrightness(theme.primary_color || "#111111", 12));
     root.style.setProperty("--muted",    "rgba(240,236,228,.55)");
     root.style.setProperty("--line",     "rgba(255,255,255,.1)");
   }
 }
 
+// Returns true if a hex colour is perceived as light (luminance > 50%)
 function isLightColor(hex) {
   try {
     const h = String(hex).replace("#", "");
     const r = parseInt(h.slice(0, 2), 16) / 255;
     const g = parseInt(h.slice(2, 4), 16) / 255;
     const b = parseInt(h.slice(4, 6), 16) / 255;
+    // Perceived luminance formula (WCAG)
     const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     return luminance > 0.5;
   } catch { return false; }
 }
 
 function adjustBrightness(hex, amount) {
+  // Very lightweight — just lightens/darkens a hex string
   try {
     const h = hex.replace("#", "");
     const [r, g, b] = [0, 2, 4].map(i => Math.min(255, parseInt(h.slice(i, i+2), 16) + amount));
@@ -1350,7 +992,7 @@ function adjustBrightness(hex, amount) {
 function buildTicker(text) {
   const track = document.getElementById("ticker-track");
   const items = Array(8).fill(text).map(t => `<span>${t}</span>`).join("");
-  track.innerHTML = items + items;
+  track.innerHTML = items + items; // duplicate for seamless loop
 }
 
 function buildSocialProof(count, visible) {
@@ -1421,6 +1063,7 @@ function renderBio(artist) {
     </div>
   `;
 
+  // Footer socials mirror
   const fs = document.getElementById("footer-socials");
   fs.innerHTML = socials.map(s =>
     `<a href="${esc(s.url)}" class="social-link" target="_blank" rel="noopener">${esc(s.label)}</a>`
@@ -1466,6 +1109,7 @@ function tickCountdown() {
   if (remaining === 0) {
     clearInterval(countdown_interval);
     document.getElementById("countdown-section").classList.add("launched");
+    // Refresh page data to pick up newly unlocked products
     if (PAGE_DATA) location.reload();
   }
 }
@@ -1479,11 +1123,13 @@ function startStatusPoll(slug) {
       const data = await res.json();
       if (data.status !== "success") return;
 
+      // Update supporter count live
       const el = document.getElementById("supporter-count");
       if (el && data.supporter_count !== null) {
         el.textContent = Number(data.supporter_count).toLocaleString();
       }
 
+      // Update countdown if out of sync
       if (data.countdown?.ms_remaining > 0 && cd_target_ms === null) {
         startCountdown(data.countdown);
       }
@@ -1522,9 +1168,11 @@ async function submitCapture() {
     const data = await res.json();
 
     if (res.ok && data.status === "success") {
+      // Show success state
       document.getElementById("capture-form-wrap").style.display = "none";
       document.getElementById("capture-success").style.display = "block";
 
+      // WhatsApp follow-up
       if (data.whatsapp_redirect) {
         const wa = document.getElementById("wa-follow-wrap");
         const waBtn = document.getElementById("wa-follow-btn");
@@ -1532,6 +1180,7 @@ async function submitCapture() {
         wa.style.display = "block";
       }
 
+      // Update supporter count
       const el = document.getElementById("supporter-count");
       if (el && data.supporter_count !== null) {
         el.textContent = Number(data.supporter_count).toLocaleString();
@@ -1549,169 +1198,6 @@ async function submitCapture() {
   }
 }
 
-// ── Variant Picker ─────────────────────────────────────────────────────────
-
-function renderVariantPicker(product) {
-  if (!product.variants || product.variants.length === 0) return "";
-
-  const variantsByType = {};
-  product.variants.forEach(v => {
-    if (!variantsByType[v.type]) variantsByType[v.type] = [];
-    variantsByType[v.type].push(v);
-  });
-
-  let html = "";
-  Object.entries(variantsByType).forEach(([type, variants]) => {
-    html += `
-      <div class="variant-section">
-        <label class="variant-label">${esc(type)}</label>
-        <div class="variant-grid">
-          ${variants.map((v, i) => `
-            <button type="button" class="variant-btn ${i === 0 ? "active" : ""}" 
-              onclick="selectVariant('${esc(product.product_id)}', '${esc(type)}', '${esc(v.value)}', this)">
-              ${esc(v.value)}
-            </button>
-          `).join("")}
-        </div>
-      </div>
-    `;
-    if (!SELECTED_VARIANT[product.product_id]) {
-      SELECTED_VARIANT[product.product_id] = {};
-    }
-    SELECTED_VARIANT[product.product_id][type] = variants[0].value;
-  });
-
-  return html;
-}
-
-function selectVariant(productId, type, value, btn) {
-  if (!SELECTED_VARIANT[productId]) SELECTED_VARIANT[productId] = {};
-  SELECTED_VARIANT[productId][type] = value;
-
-  document.querySelectorAll(`[onclick*="selectVariant('${productId}', '${type}'"]`).forEach(b => {
-    b.classList.remove("active");
-  });
-  btn.classList.add("active");
-}
-
-// ── Cart Management ────────────────────────────────────────────────────────
-
-function toggleCart() {
-  const sidebar = document.getElementById("cart-sidebar");
-  const overlay = document.getElementById("cart-overlay");
-  sidebar.classList.toggle("open");
-  overlay.classList.toggle("open");
-  if (sidebar.classList.contains("open")) {
-    document.body.style.overflow = "hidden";
-  } else {
-    document.body.style.overflow = "";
-  }
-}
-
-function closeCart() {
-  document.getElementById("cart-sidebar").classList.remove("open");
-  document.getElementById("cart-overlay").classList.remove("open");
-  document.body.style.overflow = "";
-}
-
-function addToCart(product, variant) {
-  CART.push({
-    product_id: product.product_id,
-    product_name: product.product_name,
-    image: product.image,
-    price: product.price || 0,
-    price_label: product.price_label,
-    variant: variant || {}
-  });
-  updateCartUI();
-  toggleCart();
-}
-
-function removeFromCart(index) {
-  CART.splice(index, 1);
-  updateCartUI();
-}
-
-function updateCartUI() {
-  const itemsContainer = document.getElementById("cart-items");
-  const badge = document.getElementById("cart-badge");
-  const total = document.getElementById("cart-total");
-
-  badge.textContent = CART.length;
-  badge.style.display = CART.length > 0 ? "flex" : "none";
-
-  if (CART.length === 0) {
-    itemsContainer.innerHTML = '<div class="cart-empty">Your cart is empty</div>';
-    total.textContent = "$0.00";
-    return;
-  }
-
-  let totalPrice = 0;
-  itemsContainer.innerHTML = CART.map((item, i) => {
-    totalPrice += item.price;
-    const variantStr = Object.entries(item.variant).map(([k, v]) => `${k}: ${v}`).join(" • ");
-    return `
-      <div class="cart-item">
-        <div class="cart-item-img">
-          <img src="${esc(item.image)}" alt="${esc(item.product_name)}" />
-        </div>
-        <div class="cart-item-info">
-          <div class="cart-item-name">${esc(item.product_name)}</div>
-          ${variantStr ? `<div class="cart-item-variant">${esc(variantStr)}</div>` : ""}
-          <div class="cart-item-price">${item.price_label}</div>
-        </div>
-        <button class="cart-item-remove" onclick="removeFromCart(${i})">Remove</button>
-      </div>
-    `;
-  }).join("");
-
-  total.textContent = `$${totalPrice.toFixed(2)}`;
-}
-
-function proceedToCheckout() {
-  if (CART.length === 0) return;
-  // Redirect to checkout or payment gateway
-  console.log("Proceeding to checkout with cart:", CART);
-  // TODO: Implement actual checkout flow
-}
-
-// ── Audio Player ────────────────────────────────────────────────────────────
-
-function showAudioPlayer(audioUrl, title) {
-  const player = document.getElementById("audio-player");
-  const audio = document.getElementById("audio-element");
-  document.getElementById("audio-title").textContent = title || "Now Playing";
-  audio.src = audioUrl;
-  player.classList.add("visible");
-}
-
-function closeAudioPlayer() {
-  const player = document.getElementById("audio-player");
-  const audio = document.getElementById("audio-element");
-  audio.pause();
-  player.classList.remove("visible");
-}
-
-function togglePlayPause() {
-  const audio = document.getElementById("audio-element");
-  const btn = document.getElementById("play-pause-btn");
-  if (audio.paused) {
-    audio.play();
-    btn.textContent = "⏸";
-  } else {
-    audio.pause();
-    btn.textContent = "▶";
-  }
-}
-
-function playNextTrack() {
-  console.log("Next track");
-}
-
-function playPreviousTrack() {
-  console.log("Previous track");
-}
-
 // ── Preorder Modal ────────────────────────────────────────────────────────
 
 function openPreorderModal(productId) {
@@ -1720,7 +1206,6 @@ function openPreorderModal(productId) {
   if (!product) return;
 
   ACTIVE_PRODUCT = product;
-  SELECTED_VARIANT[productId] = {};
 
   document.getElementById("modal-product-name").textContent = product.product_name;
   document.getElementById("modal-product-type").textContent = product.product_type;
@@ -1730,16 +1215,7 @@ function openPreorderModal(productId) {
   document.getElementById("modal-submit-btn").disabled = false;
   document.getElementById("modal-submit-btn").textContent = "Confirm Preorder";
 
-  // Render variant picker
-  const variantsHtml = renderVariantPicker(product);
-  const variantsContainer = document.getElementById("modal-variants");
-  if (variantsHtml) {
-    variantsContainer.innerHTML = variantsHtml;
-    variantsContainer.style.display = "block";
-  } else {
-    variantsContainer.style.display = "none";
-  }
-
+  // Pre-fill phone from capture form if entered
   const capPhone = document.getElementById("capture-phone").value.trim();
   const capEmail = document.getElementById("capture-email").value.trim();
   if (capPhone) document.getElementById("modal-phone").value = capPhone;
@@ -1785,8 +1261,7 @@ async function submitPreorder() {
         phone,
         email,
         product_id: ACTIVE_PRODUCT.product_id,
-        quantity: 1,
-        variant: SELECTED_VARIANT[ACTIVE_PRODUCT.product_id] || {}
+        quantity: 1
       })
     });
     const data = await res.json();
@@ -1796,6 +1271,7 @@ async function submitPreorder() {
       msg.textContent = `Preorder confirmed! Ref: ${data.preorder_id}`;
       btn.textContent = "Done ✓";
 
+      // Update product preorder count on card
       const card = document.querySelector(`.product-card[data-id="${ACTIVE_PRODUCT.product_id}"]`);
       if (card) {
         const meta = card.querySelector(".preorder-meta");
