@@ -134,6 +134,29 @@
       padding: 4px 10px;
       border-radius: 6px;
     }
+    .nav-cart-btn {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 8px;
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer;
+      font-family: var(--font-disp);
+      font-weight: 700;
+      font-size: 13px;
+      text-transform: uppercase;
+      position: relative;
+      transition: border-color .2s, background .2s;
+    }
+    .nav-cart-btn:hover { background: rgba(255,255,255,.06); border-color: var(--accent); }
+    .cart-count {
+      background: var(--accent);
+      color: #000;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
 
     /* ── HERO ────────────────────────────────────────────────────────── */
     .hero {
@@ -174,6 +197,11 @@
     .artist-eyebrow {
       display: flex; align-items: center; gap: 10px;
       margin-bottom: 16px;
+      background: rgba(0,0,0,.35);
+      padding: 8px 12px;
+      border-radius: 8px;
+      width: fit-content;
+      backdrop-filter: blur(8px);
     }
     .artist-avatar {
       width: 36px; height: 36px;
@@ -207,6 +235,11 @@
       letter-spacing: -.01em;
       text-transform: uppercase;
       margin-bottom: 16px;
+      background: rgba(0,0,0,.35);
+      padding: 16px 20px;
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
+      width: fit-content;
     }
     .hero-title em {
       font-style: normal;
@@ -219,6 +252,11 @@
       font-size: 15px;
       line-height: 1.65;
       margin-bottom: 28px;
+      background: rgba(0,0,0,.35);
+      padding: 12px 16px;
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
+      width: fit-content;
     }
 
     /* ── SOCIAL PROOF BAR ────────────────────────────────────────────── */
@@ -232,6 +270,10 @@
       font-size: 13px; font-weight: 600;
       letter-spacing: .08em; text-transform: uppercase;
       color: var(--muted);
+      background: rgba(0,0,0,.35);
+      padding: 8px 12px;
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
     }
     .proof-dot {
       width: 6px; height: 6px;
@@ -455,49 +497,138 @@
     .product-price {
       font-family: var(--font-disp);
       font-weight: 900;
-      font-size: 22px;
-      color: var(--text);
+      font-size: 18px;
+      color: var(--accent);
     }
-
     .preorder-meta {
-      font-size: 11px; font-weight: 700;
-      letter-spacing: .1em; text-transform: uppercase;
+      font-size: 11px;
       color: var(--muted);
-      margin-top: 6px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-top: 4px;
     }
     .preorder-meta.scarce { color: #f87171; }
 
-    /* ── PREORDER MODAL ──────────────────────────────────────────────── */
-    .modal-overlay {
-      position: fixed; inset: 0; z-index: 200;
-      background: rgba(0,0,0,.75);
-      backdrop-filter: blur(8px);
-      display: flex; align-items: flex-end; justify-content: center;
-      opacity: 0; visibility: hidden;
-      transition: opacity .25s, visibility .25s;
+    /* ── VARIANT PICKER ─────────────────────────────────────────────── */
+    .variant-picker-wrap { margin-bottom: 24px; }
+    .variant-row { margin-bottom: 16px; }
+    .variant-label {
+      font-size: 11px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+      display: block;
     }
-    @media (min-width: 600px) {
-      .modal-overlay { align-items: center; }
+    .variant-options { display: flex; flex-wrap: wrap; gap: 8px; }
+    
+    .swatch-btn {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 2px solid transparent; cursor: pointer;
+      padding: 2px; transition: border-color .2s;
+    }
+    .swatch-btn.active { border-color: var(--accent); }
+    .swatch-inner { width: 100%; height: 100%; border-radius: 50%; border: 1px solid rgba(255,255,255,.1); }
+
+    .size-btn {
+      min-width: 44px; height: 36px; border-radius: 6px;
+      background: var(--surface); border: 1px solid var(--line);
+      color: var(--text); font-family: var(--font-disp);
+      font-weight: 700; font-size: 13px; cursor: pointer;
+      transition: all .2s;
+    }
+    .size-btn:hover { border-color: var(--accent); }
+    .size-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+    /* ── CART SIDEBAR ────────────────────────────────────────────────── */
+    .cart-sidebar {
+      position: fixed; right: 0; top: 0; width: 100%; max-width: 400px;
+      height: 100vh; background: var(--surface); border-left: 1px solid var(--line);
+      z-index: 100; transform: translateX(100%); transition: transform .3s ease;
+      display: flex; flex-direction: column;
+    }
+    .cart-sidebar.open { transform: translateX(0); }
+    .cart-header {
+      padding: 20px; border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .cart-title { font-family: var(--font-disp); font-weight: 700; font-size: 18px; text-transform: uppercase; }
+    .cart-close { background: transparent; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
+    
+    .cart-items { flex: 1; overflow-y: auto; padding: 20px; }
+    .cart-item {
+      display: flex; gap: 12px; margin-bottom: 16px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .cart-item-img { width: 64px; height: 64px; border-radius: 8px; overflow: hidden; background: #000; }
+    .cart-item-img img { width: 100%; height: 100%; object-fit: cover; }
+    .cart-item-info { flex: 1; }
+    .cart-item-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+    .cart-item-variant { font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .cart-item-price { font-family: var(--font-disp); font-weight: 700; color: var(--accent); }
+    .cart-item-remove { background: transparent; border: none; color: #f87171; font-size: 12px; cursor: pointer; margin-top: 4px; padding: 0; }
+
+    .cart-footer { padding: 20px; border-top: 1px solid var(--line); }
+    .cart-total-row { display: flex; justify-content: space-between; margin-bottom: 16px; font-weight: 700; font-size: 16px; }
+    .cart-total-price { color: var(--accent); font-family: var(--font-disp); font-size: 20px; }
+
+    .cart-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      z-index: 99; opacity: 0; visibility: hidden; transition: .3s;
+    }
+    .cart-overlay.open { opacity: 1; visibility: visible; }
+
+    /* ── AUDIO PLAYER ────────────────────────────────────────────────── */
+    .audio-player {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      width: min(400px, calc(100% - 40px)); background: var(--surface);
+      border: 1px solid var(--line); border-radius: 12px; padding: 12px;
+      z-index: 90; display: none; align-items: center; gap: 12px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.4); backdrop-filter: blur(20px);
+    }
+    .audio-player.visible { display: flex; }
+    .audio-thumb { width: 40px; height: 40px; border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+    .audio-info { flex: 1; min-width: 0; }
+    .audio-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .audio-artist { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    .audio-ctrl {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--accent);
+      color: #000; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── VIDEO SECTION ───────────────────────────────────────────────── */
+    .video-section { padding: 64px 0; border-top: 1px solid var(--line); display: none; }
+    .video-section.visible { display: block; }
+    .video-wrap { position: relative; aspect-ratio: 16/9; border-radius: 20px; overflow: hidden; background: #000; }
+    .video-wrap iframe, .video-wrap video { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+    /* ── MODAL ──────────────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+      opacity: 0; visibility: hidden;
+      transition: opacity .3s, visibility .3s;
+      padding: 20px;
     }
     .modal-overlay.open { opacity: 1; visibility: visible; }
-
     .modal {
       background: var(--surface);
       border: 1px solid var(--line);
-      border-radius: 24px 24px 0 0;
+      border-radius: var(--radius);
+      max-width: 500px;
       width: 100%;
-      max-width: 480px;
-      padding: 32px 24px calc(32px + var(--safe-b));
-      transform: translateY(40px);
-      transition: transform .3s cubic-bezier(.16,1,.3,1);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 32px;
+      animation: modalSlide .3s ease;
     }
-    @media (min-width: 600px) {
-      .modal { border-radius: 24px; }
+    @keyframes modalSlide {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
-    .modal-overlay.open .modal { transform: translateY(0); }
-
     .modal-header {
       display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px;
       margin-bottom: 24px;
     }
     .modal-title {
@@ -626,7 +757,7 @@
   <div class="loader-mark"></div>
 </div>
 
-<!-- Error Screen (hidden by default) -->
+<!-- Error Screen -->
 <div id="error-screen" style="display:none; min-height:100vh; align-items:center; justify-content:center; text-align:center; padding:40px 20px;">
   <div>
     <div style="font-family:var(--font-disp);font-size:72px;font-weight:900;opacity:.15">404</div>
@@ -636,44 +767,35 @@
   </div>
 </div>
 
-<!-- MAIN PAGE (filled by JS) -->
+<!-- MAIN PAGE -->
 <div id="page" style="display:none;">
 
-  <!-- Ticker -->
   <div class="ticker-bar" id="ticker-bar">
-    <div class="ticker-track" id="ticker-track">
-      <!-- filled by JS -->
-    </div>
+    <div class="ticker-track" id="ticker-track"></div>
   </div>
 
-  <!-- Nav -->
   <nav class="launch-nav">
     <div class="shell launch-nav-inner">
-      <div class="nav-logo" id="nav-logo">
-        <!-- filled by JS -->
+      <div class="nav-logo" id="nav-logo"></div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="nav-badge" id="nav-badge">Exclusive Launch</div>
+        <button class="nav-cart-btn" onclick="toggleCart()">
+          Cart <span class="cart-count" id="cart-count">0</span>
+        </button>
       </div>
-      <div class="nav-badge" id="nav-badge">Exclusive Launch</div>
     </div>
   </nav>
 
-  <!-- Hero -->
   <section class="hero" id="hero-section">
-    <div class="hero-media" id="hero-media">
-      <!-- filled by JS -->
-    </div>
+    <div class="hero-media" id="hero-media"></div>
     <div class="hero-content shell">
-      <div class="artist-eyebrow" id="artist-eyebrow">
-        <!-- filled by JS -->
-      </div>
+      <div class="artist-eyebrow" id="artist-eyebrow"></div>
       <h1 class="hero-title" id="hero-title">—</h1>
       <p class="hero-desc" id="hero-desc"></p>
-      <div class="social-proof" id="social-proof-bar">
-        <!-- filled by JS -->
-      </div>
+      <div class="social-proof" id="social-proof-bar"></div>
     </div>
   </section>
 
-  <!-- Countdown -->
   <section id="countdown-section" style="display:none;">
     <div class="shell">
       <div class="countdown-label">Dropping In</div>
@@ -686,30 +808,19 @@
     </div>
   </section>
 
-  <!-- Fan Capture -->
   <section id="capture-section">
     <div class="shell">
       <div class="section-label">Get Early Access</div>
       <h2 class="section-title" id="capture-headline">Be First To Know</h2>
-      <p class="section-sub" id="capture-subtext">Drop your details and we'll hit you when it's live.</p>
-
+      <p class="section-sub" id="capture-subtext"></p>
       <div id="capture-form-wrap">
         <form class="capture-form" id="capture-form" onsubmit="return false;">
-          <div class="form-field">
-            <input class="form-input" type="tel" id="capture-phone"
-              placeholder="+263 7XX XXX XXX" autocomplete="tel" />
-          </div>
-          <div class="form-field">
-            <input class="form-input" type="email" id="capture-email"
-              placeholder="Email (optional)" autocomplete="email" />
-          </div>
-          <button class="btn btn-primary" id="capture-btn" type="button" onclick="submitCapture()">
-            Notify Me
-          </button>
+          <div class="form-field"><input class="form-input" type="tel" id="capture-phone" placeholder="+263 7XX XXX XXX" /></div>
+          <div class="form-field"><input class="form-input" type="email" id="capture-email" placeholder="Email (optional)" /></div>
+          <button class="btn btn-primary" id="capture-btn" type="button" onclick="submitCapture()">Notify Me</button>
         </form>
         <div class="form-message" id="capture-msg"></div>
       </div>
-
       <div id="capture-success" style="display:none;">
         <div class="success-banner">
           <div class="success-icon">✓</div>
@@ -718,17 +829,10 @@
             <div class="success-text" id="capture-success-text">We'll let you know the moment it drops.</div>
           </div>
         </div>
-        <div id="wa-follow-wrap" style="margin-top:16px; display:none;">
-          <a class="btn btn-wa" id="wa-follow-btn" href="#" target="_blank" rel="noopener">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            Continue on WhatsApp
-          </a>
-        </div>
       </div>
     </div>
   </section>
 
-  <!-- Products -->
   <section id="products-section" style="display:none;">
     <div class="shell">
       <div class="section-label">What's Dropping</div>
@@ -737,16 +841,20 @@
     </div>
   </section>
 
-  <!-- Artist Bio -->
-  <section id="bio-section">
+  <section id="video-section" class="video-section">
     <div class="shell">
-      <div class="bio-grid" id="bio-grid">
-        <!-- filled by JS -->
-      </div>
+      <div class="section-label">Launch Trailer</div>
+      <h2 class="section-title">Experience The Vision</h2>
+      <div class="video-wrap" id="video-container"></div>
     </div>
   </section>
 
-  <!-- Footer -->
+  <section id="bio-section">
+    <div class="shell">
+      <div class="bio-grid" id="bio-grid"></div>
+    </div>
+  </section>
+
   <footer>
     <div class="shell launch-footer">
       <div class="footer-brand">Powered by <a href="https://zvakho.co.zw" target="_blank">ZVAKHO</a></div>
@@ -754,555 +862,358 @@
     </div>
   </footer>
 
-</div><!-- /#page -->
+</div>
 
-<!-- Preorder Modal -->
-<div class="modal-overlay" id="preorder-modal" onclick="closeModal(event)">
+<!-- Cart Sidebar -->
+<div class="cart-overlay" id="cart-overlay" onclick="toggleCart()"></div>
+<div class="cart-sidebar" id="cart-sidebar">
+  <div class="cart-header">
+    <div class="cart-title">Your Cart</div>
+    <button class="cart-close" onclick="toggleCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cart-items"></div>
+  <div class="cart-footer">
+    <div class="cart-total-row">
+      <span>Total</span>
+      <span class="cart-total-price" id="cart-total">$0.00</span>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="checkout()">Checkout</button>
+  </div>
+</div>
+
+<!-- Audio Player -->
+<div class="audio-player" id="audio-player">
+  <div class="audio-thumb" id="audio-thumb"></div>
+  <div class="audio-info">
+    <div class="audio-name" id="audio-name">Track Name</div>
+    <div class="audio-artist" id="audio-artist">Artist Name</div>
+  </div>
+  <button class="audio-ctrl" id="audio-play-btn" onclick="toggleAudio()">▶</button>
+  <audio id="audio-el" loop></audio>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="product-modal" onclick="closeModal(event)">
   <div class="modal">
     <div class="modal-header">
       <div>
-        <div class="modal-title" id="modal-product-name">Preorder</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:4px;" id="modal-product-type"></div>
+        <div class="modal-title" id="modal-name">Product Name</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px;" id="modal-type"></div>
       </div>
-      <button class="modal-close" onclick="closePreorderModal()">✕</button>
+      <button class="modal-close" onclick="closeProductModal()">✕</button>
     </div>
-    <div class="modal-fields">
-      <input class="form-input" type="text" id="modal-name" placeholder="Your name" autocomplete="name" />
-      <input class="form-input" type="tel"  id="modal-phone" placeholder="+263 7XX XXX XXX" autocomplete="tel" />
-      <input class="form-input" type="email" id="modal-email" placeholder="Email address" autocomplete="email" />
+
+    <div class="variant-picker-wrap" id="variant-picker"></div>
+
+    <div class="modal-fields" id="preorder-fields">
+      <input class="form-input" type="text" id="cust-name" placeholder="Your name" />
+      <input class="form-input" type="tel" id="cust-phone" placeholder="+263 7XX XXX XXX" />
+      <input class="form-input" type="email" id="cust-email" placeholder="Email address" />
     </div>
+
     <div class="modal-total">
       <span class="modal-total-label">Total</span>
       <span class="modal-total-price" id="modal-price">$0.00</span>
     </div>
-    <button class="btn btn-primary" style="width:100%;" id="modal-submit-btn" onclick="submitPreorder()">
-      Confirm Preorder
+
+    <button class="btn btn-primary" style="width:100%" id="modal-btn" onclick="handleModalAction()">
+      Confirm
     </button>
     <div class="form-message" id="modal-msg" style="margin-top:10px;text-align:center;"></div>
-    <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:12px;">
-      Secure payment • Fulfilled on release
-    </p>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════════════
-// LAUNCH PAGE JS
-// ═══════════════════════════════════════════════════════════════════════════
-
 const CONFIG = window.ZVAKHO_CONFIG || {};
 const API    = String(CONFIG.apiBase || "").replace(/\/$/, "");
 
-let PAGE_DATA   = null;   // Full /page response
-let ACTIVE_PRODUCT = null; // Product selected for preorder
-let countdown_interval = null;
-let status_interval    = null;
-
-// ── Slug detection ────────────────────────────────────────────────────────
+let PAGE_DATA = null;
+let ACTIVE_P  = null;
+let SELECTED  = { color: null, size: null };
+let CART      = [];
 
 function slugFromURL() {
-  // 1. Query string: ?slug=demo  or  ?launch=demo  or  ?l=demo
   const p = new URLSearchParams(location.search);
   const q = p.get("slug") || p.get("launch") || p.get("l");
   if (q) return q.trim().toLowerCase();
-
-  // 2. Path-based slug detection
-  //    Handles ALL of these URL shapes:
-  //      /launches/demo          (Cloudflare Pages folder: /launches/)
-  //      /launch/demo            (bare /launch/)
-  //      /l/demo                 (short alias)
-  //      /demo                   (root-level, e.g. custom domain per-artist)
   const parts = location.pathname.split("/").filter(Boolean);
-  const FOLDER_NAMES = new Set(["launches", "launch", "l"]);
-
-  if (parts.length >= 2 && FOLDER_NAMES.has(parts[0])) {
-    // /launches/demo  →  parts = ["launches","demo"]  →  slug = "demo"
-    return parts[1].toLowerCase();
-  }
-  if (parts.length === 1 && !FOLDER_NAMES.has(parts[0])) {
-    // /demo  →  parts = ["demo"]  →  slug = "demo"
-    return parts[0].toLowerCase();
-  }
+  const FOLDERS = new Set(["launches", "launch", "l"]);
+  if (parts.length >= 2 && FOLDERS.has(parts[0])) return parts[1].toLowerCase();
+  if (parts.length === 1 && !FOLDERS.has(parts[0])) return parts[0].toLowerCase();
   return "";
 }
 
-// ── Escape ────────────────────────────────────────────────────────────────
-
 function esc(v) {
-  return String(v || "")
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  return String(v || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
-
-// ── Main load ─────────────────────────────────────────────────────────────
 
 async function init() {
   const slug = slugFromURL();
   if (!slug) { showError(); return; }
-
   try {
-    const res  = await fetch(`${API}/launch/${slug}/page`, { cache: "no-store" });
+    const res = await fetch(`${API}/launch/${slug}/page`, { cache: "no-store" });
     const data = await res.json();
-
     if (!res.ok || data.status === "error") { showError(); return; }
-
     PAGE_DATA = data;
     render(data);
     startCountdown(data.countdown);
-    startStatusPoll(slug);
-
     document.getElementById("loading-screen").classList.add("hidden");
     document.getElementById("page").style.display = "block";
-
-  } catch (err) {
-    console.error(err);
-    showError();
-  }
+  } catch (e) { console.error(e); showError(); }
 }
 
-function showError() {
-  document.getElementById("loading-screen").classList.add("hidden");
-  document.getElementById("error-screen").style.display = "flex";
-}
-
-// ── Render ────────────────────────────────────────────────────────────────
+function showError() { document.getElementById("error-screen").style.display = "flex"; }
 
 function render(d) {
-  const { campaign, artist, theme, countdown, products, supporter_count } = d;
-
-  // Apply theme CSS vars
+  const { campaign, artist, theme, products, supporter_count } = d;
   applyTheme(theme);
-
-  // Document title + OG
   document.title = `${campaign.title} — ${artist.artist_name} × ZVAKHO`;
-  document.getElementById("og-title").content = document.title;
-  document.getElementById("og-image").content = campaign.cover_image || "";
+  
+  const track = document.getElementById("ticker-track");
+  const txt = theme.ticker_text || `${artist.artist_name} • ${campaign.title} • ZVAKHO •`;
+  const items = Array(8).fill(`<span>${txt}</span>`).join("");
+  track.innerHTML = items + items;
 
-  // Ticker
-  buildTicker(theme.ticker_text || `${artist.artist_name} • ${campaign.title} • ZVAKHO •`);
-
-  // Nav logo
   const navLogo = document.getElementById("nav-logo");
-  navLogo.innerHTML = theme.logo_url
-    ? `<img src="${esc(theme.logo_url)}" alt="${esc(artist.artist_name)}" />`
-    : `<span class="nav-logo-text">${esc(artist.artist_name)}</span>`;
+  navLogo.innerHTML = theme.logo_url ? `<img src="${esc(theme.logo_url)}" />` : `<span class="nav-logo-text">${esc(artist.artist_name)}</span>`;
 
-  // Hero media
   const heroMedia = document.getElementById("hero-media");
   if (campaign.hero_video_url) {
-    heroMedia.innerHTML = `
-      <video autoplay muted loop playsinline poster="${esc(campaign.cover_image)}">
-        <source src="${esc(campaign.hero_video_url)}" type="video/mp4" />
-      </video>`;
-  } else if (campaign.cover_image) {
-    heroMedia.innerHTML = `<img src="${esc(campaign.cover_image)}" alt="${esc(campaign.title)}" loading="eager" />`;
+    heroMedia.innerHTML = `<video autoplay muted loop playsinline poster="${esc(campaign.cover_image)}"><source src="${esc(campaign.hero_video_url)}" type="video/mp4" /></video>`;
+  } else {
+    heroMedia.innerHTML = `<img src="${esc(campaign.cover_image)}" loading="eager" />`;
   }
 
-  // Artist eyebrow
   document.getElementById("artist-eyebrow").innerHTML = `
-    ${artist.profile_image_url ? `<div class="artist-avatar"><img src="${esc(artist.profile_image_url)}" alt="${esc(artist.artist_name)}" /></div>` : ""}
+    ${artist.profile_image_url ? `<div class="artist-avatar"><img src="${esc(artist.profile_image_url)}" /></div>` : ""}
     <span class="artist-eyebrow-name">${esc(artist.artist_name)}</span>
     ${artist.genre ? `<span class="genre-pill">${esc(artist.genre)}</span>` : ""}
   `;
 
-  // Hero title (capitalise and italicise last word for drama)
   const words = campaign.title.split(" ");
-  const last  = words.pop();
-  document.getElementById("hero-title").innerHTML =
-    `${words.join(" ")} <em>${esc(last)}</em>`;
-
+  const last = words.pop();
+  document.getElementById("hero-title").innerHTML = `${words.join(" ")} <em>${esc(last)}</em>`;
   document.getElementById("hero-desc").textContent = campaign.description || artist.tagline || "";
 
-  // Social proof
-  buildSocialProof(supporter_count, campaign.supporter_count_visible);
-
-  // Countdown
-  if (countdown.enabled && !countdown.launched) {
-    document.getElementById("countdown-section").style.display = "block";
-  } else if (countdown.launched) {
-    document.getElementById("countdown-section").classList.add("launched");
+  const bar = document.getElementById("social-proof-bar");
+  if (campaign.supporter_count_visible && supporter_count > 0) {
+    bar.innerHTML = `<div class="proof-item"><div class="proof-dot"></div><span id="supporter-count">${supporter_count.toLocaleString()}</span>&nbsp;fans in</div>`;
   }
 
-  // Capture form
   document.getElementById("capture-headline").textContent = campaign.capture_headline;
-  document.getElementById("capture-subtext").textContent  = campaign.capture_subtext;
+  document.getElementById("capture-subtext").textContent = campaign.capture_subtext;
 
-  // Products
   if (products.length) {
     document.getElementById("products-section").style.display = "block";
-    renderProducts(products, campaign);
-  }
-
-  // Bio
-  renderBio(artist);
-}
-
-function applyTheme(theme) {
-  const root = document.documentElement;
-
-  if (theme.primary_color)   root.style.setProperty("--bg", theme.primary_color);
-  if (theme.accent_color)    root.style.setProperty("--accent", theme.accent_color);
-  if (theme.text_color)      root.style.setProperty("--text", theme.text_color);
-
-  // Detect light vs dark background so --muted, --line, --surface
-  // are always readable regardless of theme.
-  const isLight = theme.primary_color
-    ? isLightColor(theme.primary_color)
-    : false;
-
-  if (isLight) {
-    // Light theme: darken surface slightly, use dark-based muted/line
-    root.style.setProperty("--surface",  adjustBrightness(theme.primary_color, -10));
-    root.style.setProperty("--muted",    "rgba(0,0,0,.5)");
-    root.style.setProperty("--line",     "rgba(0,0,0,.12)");
-    // Ensure text is always dark on light background
-    if (!theme.text_color || isLightColor(theme.text_color)) {
-      root.style.setProperty("--text", "#111111");
-    }
-  } else {
-    // Dark theme: lighten surface slightly, keep white-based muted/line
-    root.style.setProperty("--surface",  adjustBrightness(theme.primary_color || "#111111", 12));
-    root.style.setProperty("--muted",    "rgba(240,236,228,.55)");
-    root.style.setProperty("--line",     "rgba(255,255,255,.1)");
-  }
-}
-
-// Returns true if a hex colour is perceived as light (luminance > 50%)
-function isLightColor(hex) {
-  try {
-    const h = String(hex).replace("#", "");
-    const r = parseInt(h.slice(0, 2), 16) / 255;
-    const g = parseInt(h.slice(2, 4), 16) / 255;
-    const b = parseInt(h.slice(4, 6), 16) / 255;
-    // Perceived luminance formula (WCAG)
-    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    return luminance > 0.5;
-  } catch { return false; }
-}
-
-function adjustBrightness(hex, amount) {
-  // Very lightweight — just lightens/darkens a hex string
-  try {
-    const h = hex.replace("#", "");
-    const [r, g, b] = [0, 2, 4].map(i => Math.min(255, parseInt(h.slice(i, i+2), 16) + amount));
-    return `#${[r, g, b].map(c => c.toString(16).padStart(2, "0")).join("")}`;
-  } catch { return hex; }
-}
-
-function buildTicker(text) {
-  const track = document.getElementById("ticker-track");
-  const items = Array(8).fill(text).map(t => `<span>${t}</span>`).join("");
-  track.innerHTML = items + items; // duplicate for seamless loop
-}
-
-function buildSocialProof(count, visible) {
-  const bar = document.getElementById("social-proof-bar");
-  let html = "";
-  if (visible && count > 0) {
-    html += `<div class="proof-item"><div class="proof-dot"></div><span id="supporter-count">${count.toLocaleString()}</span>&nbsp;fans in</div>`;
-  }
-  bar.innerHTML = html;
-}
-
-function renderProducts(products, campaign) {
-  const grid = document.getElementById("products-grid");
-  grid.innerHTML = products.map(p => {
-    const badgeClass = { merch: "badge-merch", music: "badge-music", vip: "badge-vip" }[p.product_type] || "badge-default";
-    const scarce = p.preorder_count > 0 && p.limited_release && p.stock !== null && (p.stock - p.preorder_count) < 10;
-
-    return `
-      <div class="product-card" data-id="${esc(p.product_id)}">
-        <div class="product-img">
-          <img src="${esc(p.image)}" alt="${esc(p.product_name)}" loading="lazy" />
-        </div>
-        <div class="product-body">
-          <div class="product-type-badge ${badgeClass}">${esc(p.product_type)}</div>
-          <div class="product-name">${esc(p.product_name)}</div>
-          <div class="product-desc">${esc(p.description)}</div>
-          <div class="product-footer">
-            <div>
+    const grid = document.getElementById("products-grid");
+    grid.innerHTML = products.map(p => {
+      const b = { merch: "badge-merch", music: "badge-music", vip: "badge-vip" }[p.product_type] || "badge-default";
+      return `
+        <div class="product-card">
+          <div class="product-img"><img src="${esc(p.image)}" /></div>
+          <div class="product-body">
+            <div class="product-type-badge ${b}">${esc(p.product_type)}</div>
+            <div class="product-name">${esc(p.product_name)}</div>
+            <div class="product-desc">${esc(p.description)}</div>
+            <div class="product-footer">
               <div class="product-price">${p.price_label}</div>
-              ${p.preorder_count > 0 ? `<div class="preorder-meta ${scarce ? "scarce" : ""}">${p.preorder_count} preordered${scarce ? " — almost gone" : ""}</div>` : ""}
+              <button class="btn btn-primary" onclick="openProduct('${p.product_id}')">
+                ${p.product_type === 'merch' ? 'Add to Cart' : 'Preorder'}
+              </button>
             </div>
-            ${campaign.preorder_enabled && p.preorder_enabled !== false
-              ? `<button class="btn btn-primary" onclick="openPreorderModal('${esc(p.product_id)}')">Preorder</button>`
-              : `<button class="btn btn-ghost" disabled>Coming Soon</button>`
-            }
           </div>
         </div>
-      </div>
-    `;
-  }).join("");
-}
+      `;
+    }).join("");
 
-function renderBio(artist) {
-  const grid = document.getElementById("bio-grid");
-  const socials = [
-    { url: artist.instagram_url, label: "Instagram" },
-    { url: artist.tiktok_url,    label: "TikTok" },
-    { url: artist.youtube_url,   label: "YouTube" }
-  ].filter(s => s.url);
+    // Conditional Audio Player
+    const audioP = products.find(p => p.preview_url);
+    if (audioP) {
+      const player = document.getElementById("audio-player");
+      player.classList.add("visible");
+      document.getElementById("audio-name").textContent = audioP.product_name;
+      document.getElementById("audio-artist").textContent = artist.artist_name;
+      document.getElementById("audio-thumb").innerHTML = `<img src="${esc(audioP.image)}" />`;
+      document.getElementById("audio-el").src = audioP.preview_url;
+    }
+  }
 
-  grid.innerHTML = `
-    ${artist.profile_image_url ? `
-      <div class="bio-avatar">
-        <img src="${esc(artist.profile_image_url)}" alt="${esc(artist.artist_name)}" />
-      </div>` : ""}
+  if (campaign.hero_video_url) {
+    const v = document.getElementById("video-section");
+    v.classList.add("visible");
+    document.getElementById("video-container").innerHTML = `<video controls poster="${esc(campaign.cover_image)}"><source src="${esc(campaign.hero_video_url)}" type="video/mp4" /></video>`;
+  }
+
+  const bio = document.getElementById("bio-grid");
+  bio.innerHTML = `
+    ${artist.profile_image_url ? `<div class="bio-avatar"><img src="${esc(artist.profile_image_url)}" /></div>` : ""}
     <div>
       <div class="bio-name">${esc(artist.artist_name)}</div>
-      ${artist.genre ? `<div class="bio-genre">${esc(artist.genre)}</div>` : ""}
-      ${artist.bio   ? `<p class="bio-text">${esc(artist.bio)}</p>` : ""}
-      ${socials.length ? `
-        <div class="social-links">
-          ${socials.map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener" class="social-link">${esc(s.label)}</a>`).join("")}
-          ${artist.whatsapp_number ? `
-            <a href="https://wa.me/${artist.whatsapp_number.replace(/\D/g,'')}" target="_blank" rel="noopener" class="social-link btn-wa" style="border-color:#128C7E;">
-              WhatsApp
-            </a>` : ""}
-        </div>` : ""}
+      <div class="bio-genre">${esc(artist.genre)}</div>
+      <p class="bio-text">${esc(artist.bio)}</p>
     </div>
   `;
-
-  // Footer socials mirror
-  const fs = document.getElementById("footer-socials");
-  fs.innerHTML = socials.map(s =>
-    `<a href="${esc(s.url)}" class="social-link" target="_blank" rel="noopener">${esc(s.label)}</a>`
-  ).join("");
 }
 
-// ── Countdown ─────────────────────────────────────────────────────────────
-
-let cd_target_ms = null;
-
-function startCountdown(countdown) {
-  if (!countdown.enabled || countdown.launched) return;
-  cd_target_ms = Date.now() + countdown.ms_remaining;
-  tickCountdown();
-  countdown_interval = setInterval(tickCountdown, 1000);
+function applyTheme(t) {
+  const r = document.documentElement;
+  if (t.primary_color) r.style.setProperty("--bg", t.primary_color);
+  if (t.accent_color)  r.style.setProperty("--accent", t.accent_color);
+  if (t.text_color)    r.style.setProperty("--text", t.text_color);
+  const isL = isLight(t.primary_color || "#0a0a0a");
+  r.style.setProperty("--surface", isL ? adjust(t.primary_color, -10) : adjust(t.primary_color || "#0a0a0a", 12));
+  r.style.setProperty("--muted", isL ? "rgba(0,0,0,.5)" : "rgba(240,236,228,.55)");
+  r.style.setProperty("--line", isL ? "rgba(0,0,0,.12)" : "rgba(255,255,255,.1)");
 }
 
-function tickCountdown() {
-  const remaining = Math.max(0, cd_target_ms - Date.now());
-  const s = Math.floor(remaining / 1000);
-
-  const days  = Math.floor(s / 86400);
-  const hours = Math.floor((s % 86400) / 3600);
-  const mins  = Math.floor((s % 3600) / 60);
-  const secs  = s % 60;
-
-  const set = (id, val) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const str = String(val).padStart(2, "0");
-    if (el.textContent !== str) {
-      el.textContent = str;
-      el.classList.add("tick");
-      setTimeout(() => el.classList.remove("tick"), 300);
-    }
-  };
-
-  set("cd-days",  days);
-  set("cd-hours", hours);
-  set("cd-mins",  mins);
-  set("cd-secs",  secs);
-
-  if (remaining === 0) {
-    clearInterval(countdown_interval);
-    document.getElementById("countdown-section").classList.add("launched");
-    // Refresh page data to pick up newly unlocked products
-    if (PAGE_DATA) location.reload();
-  }
+function isLight(h) {
+  const c = h.replace("#", "");
+  const r = parseInt(c.slice(0, 2), 16), g = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16);
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.5;
 }
 
-// ── Status poll ───────────────────────────────────────────────────────────
-
-function startStatusPoll(slug) {
-  status_interval = setInterval(async () => {
-    try {
-      const res  = await fetch(`${API}/launch/${slug}/status`);
-      const data = await res.json();
-      if (data.status !== "success") return;
-
-      // Update supporter count live
-      const el = document.getElementById("supporter-count");
-      if (el && data.supporter_count !== null) {
-        el.textContent = Number(data.supporter_count).toLocaleString();
-      }
-
-      // Update countdown if out of sync
-      if (data.countdown?.ms_remaining > 0 && cd_target_ms === null) {
-        startCountdown(data.countdown);
-      }
-
-    } catch { /* silent */ }
-  }, 30_000);
+function adjust(h, a) {
+  const c = h.replace("#", "");
+  const rgb = [0, 2, 4].map(i => Math.max(0, Math.min(255, parseInt(c.slice(i, i+2), 16) + a)));
+  return `#${rgb.map(x => x.toString(16).padStart(2, "0")).join("")}`;
 }
 
-// ── Fan Capture ───────────────────────────────────────────────────────────
-
-async function submitCapture() {
-  if (!PAGE_DATA) return;
-
-  const phone = document.getElementById("capture-phone").value.trim();
-  const email = document.getElementById("capture-email").value.trim();
-  const btn   = document.getElementById("capture-btn");
-  const msg   = document.getElementById("capture-msg");
-
-  if (!phone && !email) {
-    showMsg(msg, "Please enter your phone or email.", "error");
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = "Sending…";
-  msg.className = "form-message";
-  msg.textContent = "";
-
-  try {
-    const slug = slugFromURL();
-    const res  = await fetch(`${API}/launch/${slug}/capture`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, email })
-    });
-    const data = await res.json();
-
-    if (res.ok && data.status === "success") {
-      // Show success state
-      document.getElementById("capture-form-wrap").style.display = "none";
-      document.getElementById("capture-success").style.display = "block";
-
-      // WhatsApp follow-up
-      if (data.whatsapp_redirect) {
-        const wa = document.getElementById("wa-follow-wrap");
-        const waBtn = document.getElementById("wa-follow-btn");
-        waBtn.href = data.whatsapp_redirect;
-        wa.style.display = "block";
-      }
-
-      // Update supporter count
-      const el = document.getElementById("supporter-count");
-      if (el && data.supporter_count !== null) {
-        el.textContent = Number(data.supporter_count).toLocaleString();
-      }
-
-    } else {
-      showMsg(msg, data.message || "Something went wrong. Try again.", "error");
-      btn.disabled = false;
-      btn.textContent = "Notify Me";
-    }
-  } catch {
-    showMsg(msg, "Network error. Please try again.", "error");
-    btn.disabled = false;
-    btn.textContent = "Notify Me";
-  }
-}
-
-// ── Preorder Modal ────────────────────────────────────────────────────────
-
-function openPreorderModal(productId) {
-  if (!PAGE_DATA) return;
-  const product = PAGE_DATA.products.find(p => p.product_id === productId);
-  if (!product) return;
-
-  ACTIVE_PRODUCT = product;
-
-  document.getElementById("modal-product-name").textContent = product.product_name;
-  document.getElementById("modal-product-type").textContent = product.product_type;
-  document.getElementById("modal-price").textContent = product.price_label;
+function openProduct(id) {
+  const p = PAGE_DATA.products.find(x => x.product_id === id);
+  ACTIVE_P = p;
+  SELECTED = { color: null, size: null };
+  
+  document.getElementById("modal-name").textContent = p.product_name;
+  document.getElementById("modal-type").textContent = p.product_type;
+  document.getElementById("modal-price").textContent = p.price_label;
   document.getElementById("modal-msg").textContent = "";
-  document.getElementById("modal-msg").className = "form-message";
-  document.getElementById("modal-submit-btn").disabled = false;
-  document.getElementById("modal-submit-btn").textContent = "Confirm Preorder";
-
-  // Pre-fill phone from capture form if entered
-  const capPhone = document.getElementById("capture-phone").value.trim();
-  const capEmail = document.getElementById("capture-email").value.trim();
-  if (capPhone) document.getElementById("modal-phone").value = capPhone;
-  if (capEmail) document.getElementById("modal-email").value = capEmail;
-
-  document.getElementById("preorder-modal").classList.add("open");
-  document.body.style.overflow = "hidden";
-}
-
-function closePreorderModal() {
-  document.getElementById("preorder-modal").classList.remove("open");
-  document.body.style.overflow = "";
-}
-
-function closeModal(e) {
-  if (e.target === document.getElementById("preorder-modal")) closePreorderModal();
-}
-
-async function submitPreorder() {
-  if (!ACTIVE_PRODUCT || !PAGE_DATA) return;
-
-  const name  = document.getElementById("modal-name").value.trim();
-  const phone = document.getElementById("modal-phone").value.trim();
-  const email = document.getElementById("modal-email").value.trim();
-  const btn   = document.getElementById("modal-submit-btn");
-  const msg   = document.getElementById("modal-msg");
-
-  if (!phone && !email) {
-    showMsg(msg, "Phone or email required.", "error");
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = "Processing…";
-
-  try {
-    const slug = slugFromURL();
-    const res  = await fetch(`${API}/launch/${slug}/preorder`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customer_name: name  || "Fan",
-        phone,
-        email,
-        product_id: ACTIVE_PRODUCT.product_id,
-        quantity: 1
-      })
-    });
-    const data = await res.json();
-
-    if (res.ok && data.status === "success") {
-      msg.className = "form-message success";
-      msg.textContent = `Preorder confirmed! Ref: ${data.preorder_id}`;
-      btn.textContent = "Done ✓";
-
-      // Update product preorder count on card
-      const card = document.querySelector(`.product-card[data-id="${ACTIVE_PRODUCT.product_id}"]`);
-      if (card) {
-        const meta = card.querySelector(".preorder-meta");
-        const newCount = ACTIVE_PRODUCT.preorder_count + 1;
-        if (meta) {
-          meta.textContent = `${newCount} preordered`;
-        }
-      }
-
-      setTimeout(closePreorderModal, 2400);
-
-    } else {
-      showMsg(msg, data.message || "Payment failed. Try again.", "error");
-      btn.disabled = false;
-      btn.textContent = "Confirm Preorder";
+  
+  const picker = document.getElementById("variant-picker");
+  picker.innerHTML = "";
+  
+  if (p.variants && p.variants.length) {
+    const colors = [...new Set(p.variants.map(v => v.color))].filter(Boolean);
+    const sizes  = [...new Set(p.variants.map(v => v.size))].filter(Boolean);
+    
+    if (colors.length) {
+      picker.innerHTML += `<div class="variant-row"><label class="variant-label">Colour</label><div class="variant-options">${colors.map(c => `<button class="swatch-btn" onclick="selVar('color','${c}',this)"><div class="swatch-inner" style="background:${c}"></div></button>`).join("")}</div></div>`;
     }
-  } catch {
-    showMsg(msg, "Network error. Please try again.", "error");
-    btn.disabled = false;
-    btn.textContent = "Confirm Preorder";
+    if (sizes.length) {
+      picker.innerHTML += `<div class="variant-row"><label class="variant-label">Size</label><div class="variant-options">${sizes.map(s => `<button class="size-btn" onclick="selVar('size','${s}',this)">${s}</button>`).join("")}</div></div>`;
+    }
+  }
+
+  const isMerch = p.product_type === 'merch';
+  document.getElementById("preorder-fields").style.display = isMerch ? 'none' : 'flex';
+  document.getElementById("modal-btn").textContent = isMerch ? 'Add to Cart' : 'Confirm Preorder';
+  
+  document.getElementById("product-modal").classList.add("open");
+  updateModalBtn();
+}
+
+function selVar(type, val, btn) {
+  SELECTED[type] = val;
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  
+  if (type === 'color' && ACTIVE_P.variants) {
+    const v = ACTIVE_P.variants.find(x => x.color === val);
+    if (v && v.image) {
+      // Logic to swap image could go here if modal had an image
+    }
+  }
+  updateModalBtn();
+}
+
+function updateModalBtn() {
+  const btn = document.getElementById("modal-btn");
+  const needsColor = ACTIVE_P.variants?.some(v => v.color);
+  const needsSize  = ACTIVE_P.variants?.some(v => v.size);
+  const disabled = (needsColor && !SELECTED.color) || (needsSize && !SELECTED.size);
+  btn.disabled = disabled;
+}
+
+function closeProductModal() { document.getElementById("product-modal").classList.remove("open"); }
+function closeModal(e) { if (e.target.id === 'product-modal') closeProductModal(); }
+
+function handleModalAction() {
+  if (ACTIVE_P.product_type === 'merch') {
+    addToCart();
+  } else {
+    submitPreorder();
   }
 }
 
-// ── Utilities ─────────────────────────────────────────────────────────────
-
-function showMsg(el, text, type) {
-  el.className = `form-message ${type}`;
-  el.textContent = text;
+function addToCart() {
+  CART.push({ ...ACTIVE_P, selected: { ...SELECTED } });
+  updateCart();
+  toggleCart(true);
+  closeProductModal();
 }
 
-// ── Boot ──────────────────────────────────────────────────────────────────
+function toggleCart(forceOpen) {
+  const s = document.getElementById("cart-sidebar");
+  const o = document.getElementById("cart-overlay");
+  const open = forceOpen === true || !s.classList.contains("open");
+  s.classList.toggle("open", open);
+  o.classList.toggle("open", open);
+}
+
+function updateCart() {
+  const list = document.getElementById("cart-items");
+  document.getElementById("cart-count").textContent = CART.length;
+  if (!CART.length) { list.innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px 0;">Your cart is empty</p>'; return; }
+  
+  list.innerHTML = CART.map((item, i) => `
+    <div class="cart-item">
+      <div class="cart-item-img"><img src="${esc(item.image)}" /></div>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${esc(item.product_name)}</div>
+        <div class="cart-item-variant">${[item.selected.color, item.selected.size].filter(Boolean).join(" / ")}</div>
+        <div class="cart-item-price">${item.price_label}</div>
+        <button class="cart-item-remove" onclick="removeFromCart(${i})">Remove</button>
+      </div>
+    </div>
+  `).join("");
+  
+  const total = CART.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+  document.getElementById("cart-total").textContent = `$${total.toFixed(2)}`;
+}
+
+function removeFromCart(i) { CART.splice(i, 1); updateCart(); }
+
+function checkout() {
+  const slug = slugFromURL();
+  const items = CART.map(item => ({
+    id: item.product_id,
+    variant: item.selected
+  }));
+  window.location.href = `${API.replace('/api','')}/web-checkout?slug=${slug}&items=${encodeURIComponent(JSON.stringify(items))}`;
+}
+
+function toggleAudio() {
+  const a = document.getElementById("audio-el");
+  const b = document.getElementById("audio-play-btn");
+  if (a.paused) { a.play(); b.textContent = "⏸"; }
+  else { a.pause(); b.textContent = "▶"; }
+}
+
+function startCountdown(c) {
+  if (!c.enabled || c.launched) return;
+  const target = Date.now() + c.ms_remaining;
+  document.getElementById("countdown-section").style.display = "block";
+  const tick = () => {
+    const diff = Math.max(0, target - Date.now());
+    const s = Math.floor(diff / 1000);
+    document.getElementById("cd-days").textContent = String(Math.floor(s / 86400)).padStart(2, "0");
+    document.getElementById("cd-hours").textContent = String(Math.floor((s % 86400) / 3600)).padStart(2, "0");
+    document.getElementById("cd-mins").textContent = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+    document.getElementById("cd-secs").textContent = String(s % 60).padStart(2, "0");
+    if (diff === 0) location.reload();
+  };
+  tick();
+  setInterval(tick, 1000);
+}
 
 init();
 </script>
