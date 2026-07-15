@@ -10,6 +10,9 @@ let SELECTED_VARIANTS = {};
 const api = (path) => `${String(CONFIG.apiBase || "").replace(/\/$/, "")}${path}`;
 const money = (n) => `$${Number(n || 0).toFixed(2)}`;
 
+// NEW: Universal R2 Asset resolver based on Artist ID
+const r2Asset = (artistId, path) => `https://zvakho.co.zw/${String(artistId).toUpperCase()}/${path}`;
+
 function escapeHTML(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -132,12 +135,17 @@ function applyTheme(artist, theme) {
   root.style.setProperty("--store-line", isDarkColor(bg) ? "rgba(255,255,255,.16)" : "rgba(17,17,17,.13)");
 }
 
+// FIXED: Dynamic Logo Picker with R2 fallback
 function pickLogo(artist, theme) {
   const bg = theme.background_color || "#050505";
-
-  return isDarkColor(bg)
-    ? (artist.logo_white_url || artist.logo_url || "/assets/brand/zvakho-logo.webp")
-    : (artist.logo_black_url || artist.logo_url || "/assets/brand/zvakho-logo.webp");
+  const isDark = isDarkColor(bg);
+  
+  // Use DB value if exists; otherwise, fallback to strict R2 path convention
+  if (isDark) {
+    return artist.logo_white_url || artist.logo_url || r2Asset(artist.artist_id, 'branding/logos/logo-white.webp');
+  } else {
+    return artist.logo_black_url || artist.logo_url || r2Asset(artist.artist_id, 'branding/logos/logo-black.webp');
+  }
 }
 
 function setImage(selector, src, fallback = "/assets/brand/favicon.png") {
@@ -185,30 +193,45 @@ function selectedVariantForProduct(product) {
   return getVariant(product, selectedId);
 }
 
+// FIXED: Updated UI Renderer with dynamic R2 patterns
 function updateGlobalUI() {
   const { artist, theme } = STORE;
-
+  const id = artist.artist_id;
+  
   document.title = `${artist.artist_name} — Official Store`;
   document.body.classList.remove("is-loading");
 
+  // Dynamic R2 URL Generation with fallback checks
+  const liveHero = artist.hero_image_url || artist.header_url || r2Asset(id, 'profile/header.webp');
+  const liveProfile = artist.profile_image_url || r2Asset(id, 'profile/profile.webp');
+  const liveLogo = pickLogo(artist, theme);
+
+  // Inject Header Background
   const heroMedia = $(".hero-media");
-  if (heroMedia && artist.hero_image_url) {
-    heroMedia.style.backgroundImage = `url('${artist.hero_image_url}')`;
+  if (heroMedia) {
+    heroMedia.style.backgroundImage = `url('${liveHero}')`;
   }
 
+  // FIXED: Update Dynamic Favicon Element
+  const favEl = $("#faviconTag");
+  if (favEl) {
+    favEl.href = liveProfile;
+  }
+
+  // Bind text mappings
   $("#artistName").textContent = theme.hero_title || artist.artist_name;
   $("#artistSub").textContent = artist.bio || artist.tagline || artist.genre || "Official music and merch store powered by ZVAKHO.";
   $("#artistGenre").textContent = artist.genre || "Artist";
   $("#artistCardName").textContent = artist.artist_name;
   $("#storeKicker").textContent = artist.store_mode ? `${artist.store_mode} store` : "Official Store";
 
-  const logo = pickLogo(artist, theme);
+  // FIXED: Map Resolved Images across the entire DOM
+  setImage("#navLogo", liveLogo);
+  setImage("#footerLogo", liveLogo);
+  setImage("#artistProfile", liveProfile);
+  setImage("#storyProfileImage", liveProfile);
 
-  setImage("#navLogo", logo);
-  setImage("#footerLogo", logo);
-  setImage("#artistProfile", artist.profile_image_url || artist.hero_image_url || logo);
-  setImage("#storyProfileImage", artist.profile_image_url || artist.hero_image_url || logo);
-
+  // Bind footer properties
   $("#storyTitle").textContent = `${artist.artist_name} world`;
   $("#artistBio").textContent = artist.bio || artist.tagline || "Official music, merch and direct-to-fan releases powered by ZVAKHO.";
   $("#footerQuote").textContent = artist.footer_quote || artist.tagline || "Official store powered by ZVAKHO.";
