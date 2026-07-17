@@ -301,6 +301,105 @@
       display: none;
     }
 
+    /* ── Skin Selector Styles ────────────────────────── */
+    .skin-selector {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .skin-option {
+      padding: 16px 12px;
+      border: 2px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.03);
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .skin-option:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255,255,255,.2);
+    }
+
+    .skin-option.active {
+      border-color: var(--gold);
+      background: rgba(193,122,62,.12);
+    }
+
+    .skin-option .icon {
+      font-size: 28px;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .skin-option .name {
+      font-size: 12px;
+      font-weight: 800;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .skin-option .preview-colors {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+      margin-top: 6px;
+    }
+
+    .skin-option .preview-colors span {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.1);
+    }
+
+    .skin-option .check-mark {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: #000;
+      font-size: 12px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+    }
+
+    .skin-option.active .check-mark {
+      display: flex;
+    }
+
+    .skin-option .saving {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+      display: none;
+    }
+
+    .skin-option.saving .saving {
+      display: block;
+    }
+
+    @media (max-width: 1024px) {
+      .skin-selector {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .skin-selector {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
     @media (max-width: 900px) {
       .grid {
         grid-template-columns: repeat(2, 1fr);
@@ -400,6 +499,25 @@
       </div>
     </div>
 
+    <!-- ── NEW: Skin Selector Section ──────────────────── -->
+    <div class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2 style="margin:0;">🎨 Store Theme</h2>
+          <p style="color:var(--muted);margin:4px 0 0;font-size:13px;">
+            Change how your store looks. Preview changes instantly.
+          </p>
+        </div>
+        <span id="skinStatus" style="font-size:12px;color:var(--muted);">
+          Current: <strong id="currentSkinLabel">Streetwear</strong>
+        </span>
+      </div>
+
+      <div class="skin-selector" id="skinSelector">
+        <!-- Dynamic skin options loaded via JS -->
+      </div>
+    </div>
+
     <div class="section">
       <h2>Recent Paid Sales</h2>
       <div class="table-wrap">
@@ -436,13 +554,63 @@
   </div>
 
   <script>
+    // ── Configuration ──────────────────────────────────
     const API = "https://zvakho-payments-v2.yasibomedia.workers.dev";
+    const STORE_API = "https://zvakho-store-api.yasibomedia.workers.dev";
 
     const TOKEN_KEY = "zvakho_artist_token";
     const USER_KEY = "zvakho_artist_user";
 
     let refreshTimer = null;
+    let currentArtistId = null;
 
+    // ── Skin Definitions ──────────────────────────────
+    const SKINS = {
+      streetwear: {
+        id: 'streetwear',
+        name: 'Streetwear',
+        icon: '👕',
+        colors: ['#0a0a0a', '#f5a400', '#ff6b6b'],
+        description: 'Bold, urban style for fashion brands'
+      },
+      corporate: {
+        id: 'corporate',
+        name: 'Corporate',
+        icon: '🏢',
+        colors: ['#f8f6f3', '#1a3c34', '#c17a3e'],
+        description: 'Clean, professional look'
+      },
+      earthy_natural: {
+        id: 'earthy_natural',
+        name: 'Earthy & Natural',
+        icon: '🌿',
+        colors: ['#f5f0eb', '#6b8f71', '#b8966a'],
+        description: 'Warm, organic aesthetics'
+      },
+      luxury: {
+        id: 'luxury',
+        name: 'Luxury',
+        icon: '💎',
+        colors: ['#0d0b0a', '#c9a84c', '#e8d5a3'],
+        description: 'Premium, elegant design'
+      },
+      sports: {
+        id: 'sports',
+        name: 'Sports',
+        icon: '⚽',
+        colors: ['#0f1a2e', '#e8432b', '#f5c842'],
+        description: 'Dynamic, energetic vibe'
+      },
+      gospel: {
+        id: 'gospel',
+        name: 'Gospel',
+        icon: '✝️',
+        colors: ['#faf8f5', '#c19a6b', '#b8860b'],
+        description: 'Warm, faith-inspired design'
+      }
+    };
+
+    // ── Auth Helpers ──────────────────────────────────
     function getToken() {
       return localStorage.getItem(TOKEN_KEY) || "";
     }
@@ -459,6 +627,7 @@
     function setUser(user) {
       localStorage.setItem(USER_KEY, JSON.stringify(user || {}));
       updateSignedInLabel(user);
+      if (user?.artist_id) currentArtistId = user.artist_id;
     }
 
     function getUser() {
@@ -479,7 +648,6 @@
     function showAuth() {
       document.getElementById("authScreen").classList.remove("hidden");
       document.getElementById("dashboardApp").classList.add("hidden");
-
       if (refreshTimer) {
         clearInterval(refreshTimer);
         refreshTimer = null;
@@ -495,10 +663,8 @@
     function updateSignedInLabel(user) {
       const target = document.getElementById("signedInAs");
       if (!target) return;
-
       const email = user?.email || "Signed in";
       const artistId = user?.artist_id ? ` • ${user.artist_id}` : "";
-
       target.textContent = `${email}${artistId}`;
     }
 
@@ -514,6 +680,7 @@
       box.classList.remove("show");
     }
 
+    // ── Formatting Helpers ────────────────────────────
     function money(value) {
       return "$" + Number(value || 0).toFixed(2);
     }
@@ -552,6 +719,144 @@
       return String(row.payment_status || "").toLowerCase() === "paid";
     }
 
+    // ── Skin Selector ──────────────────────────────────
+    function renderSkinSelector(currentSkin) {
+      const container = document.getElementById("skinSelector");
+      const current = currentSkin || 'streetwear';
+
+      container.innerHTML = Object.entries(SKINS).map(([id, skin]) => {
+        const isActive = id === current;
+        return `
+          <div class="skin-option ${isActive ? 'active' : ''}" 
+               data-skin-id="${id}"
+               onclick="selectSkin('${id}')">
+            <span class="check-mark">✓</span>
+            <span class="icon">${skin.icon}</span>
+            <span class="name">${skin.name}</span>
+            <div class="preview-colors">
+              ${skin.colors.map(c => `<span style="background:${c}"></span>`).join('')}
+            </div>
+            <span class="saving">Saving...</span>
+          </div>
+        `;
+      }).join('');
+
+      // Update current skin label
+      document.getElementById("currentSkinLabel").textContent = SKINS[current]?.name || 'Streetwear';
+      document.getElementById("skinStatus").querySelector('strong').textContent = SKINS[current]?.name || 'Streetwear';
+    }
+
+    // ── Select Skin ────────────────────────────────────
+    async function selectSkin(skinId) {
+      const skin = SKINS[skinId];
+      if (!skin) return;
+
+      // Show saving state
+      const options = document.querySelectorAll('.skin-option');
+      options.forEach(el => {
+        el.classList.toggle('active', el.dataset.skinId === skinId);
+        el.classList.toggle('saving', el.dataset.skinId === skinId);
+      });
+
+      try {
+        // Update the skin preference via API
+        const response = await fetch(`${API}/update-artist-skin`, {
+          method: "POST",
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({
+            artist_id: currentArtistId,
+            industry_preference: skinId
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.status === 401 || response.status === 403) {
+          clearSession();
+          showAuth();
+          showAuthError(data.message || "Session expired. Please sign in again.");
+          return;
+        }
+
+        if (!data || data.status !== "success") {
+          throw new Error(data.message || "Failed to update skin");
+        }
+
+        // Update label
+        document.getElementById("currentSkinLabel").textContent = skin.name;
+        document.getElementById("skinStatus").querySelector('strong').textContent = skin.name;
+
+        // Show success feedback
+        showToast(`✅ Store theme changed to "${skin.name}"!`, 'success');
+
+        // Remove saving state after success
+        setTimeout(() => {
+          options.forEach(el => el.classList.remove('saving'));
+        }, 500);
+
+      } catch (error) {
+        // Revert active state on error
+        const currentSkin = await getCurrentSkin();
+        renderSkinSelector(currentSkin);
+        showToast(`❌ Failed to change theme: ${error.message}`, 'error');
+      }
+    }
+
+    // ── Get Current Skin ──────────────────────────────
+    async function getCurrentSkin() {
+      try {
+        const response = await fetch(`${API}/artist-store-config`, {
+          headers: authHeaders()
+        });
+
+        if (!response.ok) return 'streetwear';
+
+        const data = await response.json();
+        if (data.status === 'success' && data.artist) {
+          return data.artist.industry_preference || data.artist.visual_style || 'streetwear';
+        }
+        return 'streetwear';
+      } catch {
+        return 'streetwear';
+      }
+    }
+
+    // ── Toast Notification ────────────────────────────
+    function showToast(message, type = 'info') {
+      const existing = document.querySelector('.toast-notification');
+      if (existing) existing.remove();
+
+      const toast = document.createElement('div');
+      toast.className = 'toast-notification';
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 14px 24px;
+        border-radius: 999px;
+        background: ${type === 'success' ? '#2a7a2a' : type === 'error' ? '#8a1f17' : 'var(--card)'};
+        color: ${type === 'success' ? '#fff' : type === 'error' ? '#fff' : 'var(--text)'};
+        border: 1px solid ${type === 'success' ? 'rgba(42,122,42,.3)' : type === 'error' ? 'rgba(138,31,23,.3)' : 'var(--line)'};
+        font-weight: 800;
+        font-size: 14px;
+        z-index: 9999;
+        box-shadow: 0 8px 40px rgba(0,0,0,.4);
+        animation: slideUp 0.3s ease;
+        max-width: 90%;
+        text-align: center;
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(20px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // ── Login / Logout ──────────────────────────────────
     async function login(email, password) {
       clearAuthError();
 
@@ -582,7 +887,11 @@
         setUser(data.user || { email });
 
         showDashboard();
-        loadDashboard();
+        await loadDashboard();
+
+        // Load skin selector
+        const currentSkin = await getCurrentSkin();
+        renderSkinSelector(currentSkin);
 
         if (!refreshTimer) {
           refreshTimer = setInterval(loadDashboard, 20000);
@@ -610,6 +919,7 @@
       showAuth();
     }
 
+    // ── Check Existing Session ─────────────────────────
     async function checkExistingSession() {
       const token = getToken();
 
@@ -641,7 +951,11 @@
 
         setUser(data.user || {});
         showDashboard();
-        loadDashboard();
+        await loadDashboard();
+
+        // Load skin selector
+        const currentSkin = await getCurrentSkin();
+        renderSkinSelector(currentSkin);
 
         if (!refreshTimer) {
           refreshTimer = setInterval(loadDashboard, 20000);
@@ -653,6 +967,7 @@
       }
     }
 
+    // ── Load Dashboard ──────────────────────────────────
     async function loadDashboard() {
       hideError();
 
@@ -738,6 +1053,7 @@
       }
     }
 
+    // ── Event Listeners ─────────────────────────────────
     document.getElementById("loginForm").addEventListener("submit", function (event) {
       event.preventDefault();
 
@@ -748,8 +1064,23 @@
     });
 
     document.getElementById("logoutBtn").addEventListener("click", logout);
-    document.getElementById("refreshBtn").addEventListener("click", loadDashboard);
+    document.getElementById("refreshBtn").addEventListener("click", async function() {
+      await loadDashboard();
+      const currentSkin = await getCurrentSkin();
+      renderSkinSelector(currentSkin);
+    });
 
+    // ── Animation Keyframes (added dynamically) ──────
+    const styleSheet = document.createElement("style");
+    styleSheet.textContent = `
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0); }
+      }
+    `;
+    document.head.appendChild(styleSheet);
+
+    // ── Initialize ──────────────────────────────────────
     checkExistingSession();
   </script>
 </body>
