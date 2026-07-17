@@ -1,3 +1,7 @@
+// ── Import Skin System ──────────────────────────────
+// Skin system is loaded from store-skins.js
+// Make sure store-skins.js is loaded before store.js
+
 const CONFIG = window.ZVAKHO_CONFIG || {};
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -9,9 +13,6 @@ let SELECTED_VARIANTS = {};
 
 const api = (path) => `${String(CONFIG.apiBase || "").replace(/\/$/, "")}${path}`;
 const money = (n) => `$${Number(n || 0).toFixed(2)}`;
-
-// NEW: Universal R2 Asset resolver based on Artist ID
-const r2Asset = (artistId, path) => `https://zvakho.co.zw/${String(artistId).toUpperCase()}/${path}`;
 
 function escapeHTML(value) {
   return String(value || "")
@@ -135,17 +136,12 @@ function applyTheme(artist, theme) {
   root.style.setProperty("--store-line", isDarkColor(bg) ? "rgba(255,255,255,.16)" : "rgba(17,17,17,.13)");
 }
 
-// FIXED: Dynamic Logo Picker with R2 fallback
 function pickLogo(artist, theme) {
   const bg = theme.background_color || "#050505";
-  const isDark = isDarkColor(bg);
-  
-  // Use DB value if exists; otherwise, fallback to strict R2 path convention
-  if (isDark) {
-    return artist.logo_white_url || artist.logo_url || r2Asset(artist.artist_id, 'branding/logos/logo-white.webp');
-  } else {
-    return artist.logo_black_url || artist.logo_url || r2Asset(artist.artist_id, 'branding/logos/logo-black.webp');
-  }
+
+  return isDarkColor(bg)
+    ? (artist.logo_white_url || artist.logo_url || "/assets/brand/zvakho-logo.webp")
+    : (artist.logo_black_url || artist.logo_url || "/assets/brand/zvakho-logo.webp");
 }
 
 function setImage(selector, src, fallback = "/assets/brand/favicon.png") {
@@ -193,45 +189,30 @@ function selectedVariantForProduct(product) {
   return getVariant(product, selectedId);
 }
 
-// FIXED: Updated UI Renderer with dynamic R2 patterns
 function updateGlobalUI() {
   const { artist, theme } = STORE;
-  const id = artist.artist_id;
-  
+
   document.title = `${artist.artist_name} — Official Store`;
   document.body.classList.remove("is-loading");
 
-  // Dynamic R2 URL Generation with fallback checks
-  const liveHero = artist.hero_image_url || artist.header_url || r2Asset(id, 'profile/header.webp');
-  const liveProfile = artist.profile_image_url || r2Asset(id, 'profile/profile.webp');
-  const liveLogo = pickLogo(artist, theme);
-
-  // Inject Header Background
   const heroMedia = $(".hero-media");
-  if (heroMedia) {
-    heroMedia.style.backgroundImage = `url('${liveHero}')`;
+  if (heroMedia && artist.hero_image_url) {
+    heroMedia.style.backgroundImage = `url('${artist.hero_image_url}')`;
   }
 
-  // FIXED: Update Dynamic Favicon Element
-  const favEl = $("#faviconTag");
-  if (favEl) {
-    favEl.href = liveProfile;
-  }
-
-  // Bind text mappings
   $("#artistName").textContent = theme.hero_title || artist.artist_name;
   $("#artistSub").textContent = artist.bio || artist.tagline || artist.genre || "Official music and merch store powered by ZVAKHO.";
   $("#artistGenre").textContent = artist.genre || "Artist";
   $("#artistCardName").textContent = artist.artist_name;
   $("#storeKicker").textContent = artist.store_mode ? `${artist.store_mode} store` : "Official Store";
 
-  // FIXED: Map Resolved Images across the entire DOM
-  setImage("#navLogo", liveLogo);
-  setImage("#footerLogo", liveLogo);
-  setImage("#artistProfile", liveProfile);
-  setImage("#storyProfileImage", liveProfile);
+  const logo = pickLogo(artist, theme);
 
-  // Bind footer properties
+  setImage("#navLogo", logo);
+  setImage("#footerLogo", logo);
+  setImage("#artistProfile", artist.profile_image_url || artist.hero_image_url || logo);
+  setImage("#storyProfileImage", artist.profile_image_url || artist.hero_image_url || logo);
+
   $("#storyTitle").textContent = `${artist.artist_name} world`;
   $("#artistBio").textContent = artist.bio || artist.tagline || "Official music, merch and direct-to-fan releases powered by ZVAKHO.";
   $("#footerQuote").textContent = artist.footer_quote || artist.tagline || "Official store powered by ZVAKHO.";
@@ -352,7 +333,7 @@ function renderFeatured() {
       <img
         src="${attr(productImage(product))}"
         alt="${attr(product.product_name)}"
-        onerror="this.parentElement.innerHTML='<div class=&quot;product-media&quot;>${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}</div>'"
+        onerror="this.parentElement.innerHTML='<div class=&quot;product-media&quot;>${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}'</div>'"
       >
     </div>
 
@@ -393,25 +374,51 @@ function renderProducts() {
     return;
   }
 
+  // Get skin-based sorting order
+  const skin = STORE.active_skin || { id: 'streetwear', layout: { grid_cols: '3' } };
+  
+  const productWeight = {
+    streetwear: { apparel: 1, merch: 2, music: 3 },
+    corporate: { apparel: 1, merch: 1, music: 4 },
+    earthy_natural: { apparel: 1, merch: 2, music: 3 },
+    luxury: { apparel: 1, merch: 3, music: 4 },
+    sports: { apparel: 1, merch: 2, music: 3 },
+    gospel: { apparel: 1, merch: 2, music: 3 }
+  };
+  
+  const weights = productWeight[skin.id] || { apparel: 1, merch: 2, music: 3 };
+
   const sorted = [...products].sort((a, b) => {
-    const weight = { merch: 1, vip: 2, music: 3 };
-    return (weight[a.product_type] || 9) - (weight[b.product_type] || 9);
+    const typeA = a.product_type || 'apparel';
+    const typeB = b.product_type || 'apparel';
+    return (weights[typeA] || 9) - (weights[typeB] || 9);
   });
 
+  // Get grid columns from skin
+  const gridCols = skin.layout?.grid_cols || '3';
+  
+  // Apply grid class
+  grid.style.gridTemplateColumns = 
+    gridCols === '2' ? 'repeat(2, 1fr)' : 
+    gridCols === '3' ? 'repeat(3, 1fr)' : 
+    gridCols === '4' ? 'repeat(4, 1fr)' : 
+    'repeat(3, 1fr)';
+
   grid.innerHTML = sorted.map((product) => `
-    <article class="product-card">
+    <article class="product-card" data-skin="${skin.id}">
       <div class="product-media">
         <img
           src="${attr(productImage(product))}"
           alt="${attr(product.product_name)}"
+          loading="lazy"
           onerror="this.remove();this.parentElement.textContent='${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}'"
         >
       </div>
 
       <div class="product-body">
-        <div class="product-type">${escapeHTML(product.product_type || "product")}</div>
+        <div class="product-type">${escapeHTML(product.product_type || "Apparel")}</div>
 
-        <h3>${escapeHTML(product.product_name)}</h3>
+        <h3 style="font-family:var(--skin-font-heading, inherit)">${escapeHTML(product.product_name)}</h3>
 
         <p>${escapeHTML(productDescription(product))}</p>
 
@@ -760,19 +767,31 @@ function bindEvents() {
     }
   });
 
-  $("#checkoutBtn").addEventListener("click", checkout);
+  const checkoutBtn = $("#checkoutBtn");
+  if (checkoutBtn) {
+    checkoutBtn.addEventListener("click", checkout);
+  }
 
-  $("#playerToggle").addEventListener("click", togglePreview);
+  const playerToggle = $("#playerToggle");
+  if (playerToggle) {
+    playerToggle.addEventListener("click", togglePreview);
+  }
 
-  $("#playerBuy").addEventListener("click", () => {
-    if (ACTIVE_PREVIEW_PRODUCT) {
-      addToCart(ACTIVE_PREVIEW_PRODUCT.product_id);
-    }
-  });
+  const playerBuy = $("#playerBuy");
+  if (playerBuy) {
+    playerBuy.addEventListener("click", () => {
+      if (ACTIVE_PREVIEW_PRODUCT) {
+        addToCart(ACTIVE_PREVIEW_PRODUCT.product_id);
+      }
+    });
+  }
 
-  $("#audioPreview").addEventListener("ended", () => {
-    $("#playerToggle").textContent = "▶";
-  });
+  const audioPreview = $("#audioPreview");
+  if (audioPreview) {
+    audioPreview.addEventListener("ended", () => {
+      $("#playerToggle").textContent = "▶";
+    });
+  }
 }
 
 async function initStore() {
@@ -782,16 +801,30 @@ async function initStore() {
   const productGrid = $("#productGrid");
 
   if (!slug) {
-    productGrid.innerHTML = `
-      <div class="empty">
-        Artist not found. Open a store with <strong>/store/?artist=artist-slug</strong>.
-      </div>
-    `;
+    if (productGrid) {
+      productGrid.innerHTML = `
+        <div class="empty">
+          Artist not found. Open a store with <strong>/store/?artist=artist-slug</strong>.
+        </div>
+      `;
+    }
     return;
   }
 
   try {
     STORE = await fetchJSON(api(`/store-config?artist=${encodeURIComponent(slug)}`));
+
+    // ── NEW: Initialize Skin System ──────────────────
+    if (typeof SkinManager !== 'undefined') {
+      const skinManager = new SkinManager();
+      
+      // Detect industry from artist data
+      const detectedSkin = skinManager.detectIndustry(STORE.artist);
+      const skin = skinManager.applySkin(detectedSkin);
+      
+      // Store skin info for later use
+      STORE.active_skin = skin;
+    }
 
     applyTheme(STORE.artist, STORE.theme || {});
     updateGlobalUI();
@@ -801,16 +834,30 @@ async function initStore() {
     updateCartUI();
 
   } catch (error) {
-    productGrid.innerHTML = `
-      <div class="empty">
-        <strong>Store unavailable.</strong><br>
-        ${escapeHTML(error.message || "Please try again.")}
-      </div>
-    `;
+    if (productGrid) {
+      productGrid.innerHTML = `
+        <div class="empty">
+          <strong>Store unavailable.</strong><br>
+          ${escapeHTML(error.message || "Please try again.")}
+        </div>
+      `;
+    }
 
-    $("#artistName").textContent = "Store unavailable";
-    $("#artistSub").textContent = error.message || "Please try again.";
+    const artistName = $("#artistName");
+    if (artistName) {
+      artistName.textContent = "Store unavailable";
+    }
+    
+    const artistSub = $("#artistSub");
+    if (artistSub) {
+      artistSub.textContent = error.message || "Please try again.";
+    }
   }
 }
 
-initStore();
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initStore);
+} else {
+  initStore();
+}
