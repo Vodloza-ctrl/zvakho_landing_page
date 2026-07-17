@@ -171,6 +171,7 @@ export default {
             featured_product_id: artist.featured_product_id || "",
             store_mode: artist.store_mode || "hybrid",
             visual_style: artist.visual_style || "",
+            industry_preference: artist.industry_preference || "",  // ← FIX: Added
             preorder_end_date: artist.preorder_end_date || "",
             footer_quote: artist.footer_quote || "",
             is_active: Boolean(artist.is_active)
