@@ -814,15 +814,18 @@ async function initStore() {
   try {
     STORE = await fetchJSON(api(`/store-config?artist=${encodeURIComponent(slug)}`));
 
-    // ── NEW: Initialize Skin System ──────────────────
+    // ── FIX: Ensure industry_preference is set ──
+    if (STORE.artist && !STORE.artist.industry_preference) {
+      STORE.artist.industry_preference = 'streetwear'; // Default fallback
+    }
+    console.log('🎨 Industry Preference:', STORE.artist.industry_preference);
+
+    // ── Initialize Skin System ──
     if (typeof SkinManager !== 'undefined') {
       const skinManager = new SkinManager();
-      
-      // Detect industry from artist data
       const detectedSkin = skinManager.detectIndustry(STORE.artist);
+      console.log('🎨 Detected Skin:', detectedSkin);
       const skin = skinManager.applySkin(detectedSkin);
-      
-      // Store skin info for later use
       STORE.active_skin = skin;
     }
 
