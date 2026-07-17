@@ -1,0 +1,192 @@
+/* ============================================
+   SKIN SYSTEM - store-skins.css
+   ============================================ */
+
+/* ── Skin base variables ────────────────────────── */
+:root {
+  --skin-font-heading: 'Inter', system-ui, sans-serif;
+  --skin-font-body: 'Inter', system-ui, sans-serif;
+  --skin-font-accent: 'Inter', system-ui, sans-serif;
+  --skin-hero-height: 680px;
+  --skin-grid-cols: repeat(3, 1fr);
+  --skin-card-radius: 16px;
+  --skin-card-style: bold;
+}
+
+/* ── Animation keyframes ────────────────────────── */
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Streetwear Skin ────────────────────────────── */
+body[data-skin="streetwear"] .product-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+body[data-skin="streetwear"] .product-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(245, 164, 0, 0.15);
+}
+
+body[data-skin="streetwear"] .product-add {
+  background: linear-gradient(135deg, #f5a400, #ff6b6b);
+  border: none;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+body[data-skin="streetwear"] .hero-copy h1 {
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  text-shadow: 0 4px 40px rgba(245, 164, 0, 0.2);
+}
+
+/* ── Corporate Skin ────────────────────────────── */
+body[data-skin="corporate"] .product-card {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.3s ease;
+}
+
+body[data-skin="corporate"] .product-card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+body[data-skin="corporate"] .product-add {
+  background: #1a3c34;
+  border: none;
+  color: white;
+  font-weight: 600;
+}
+
+body[data-skin="corporate"] .hero-copy h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ── Earthy/Natural Skin ────────────────────────── */
+body[data-skin="earthy_natural"] .product-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(107, 143, 113, 0.2);
+}
+
+body[data-skin="earthy_natural"] .product-card:hover {
+  box-shadow: 0 8px 40px rgba(107, 143, 113, 0.12);
+}
+
+body[data-skin="earthy_natural"] .product-add {
+  background: #6b8f71;
+  border: none;
+  color: white;
+}
+
+/* ── Luxury Skin ────────────────────────────────── */
+body[data-skin="luxury"] .product-card {
+  background: rgba(26, 23, 21, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(201, 168, 76, 0.15);
+}
+
+body[data-skin="luxury"] .product-card:hover {
+  border-color: rgba(201, 168, 76, 0.4);
+  box-shadow: 0 16px 80px rgba(201, 168, 76, 0.08);
+}
+
+body[data-skin="luxury"] .product-add {
+  background: #c9a84c;
+  border: none;
+  color: #0d0b0a;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+body[data-skin="luxury"] .store-pill {
+  border-color: rgba(201, 168, 76, 0.3);
+  color: #c9a84c;
+}
+
+/* ── Sports Skin ────────────────────────────────── */
+body[data-skin="sports"] .product-card {
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  background: rgba(22, 35, 56, 0.8);
+  transition: transform 0.3s ease;
+}
+
+body[data-skin="sports"] .product-card:hover {
+  transform: scale(1.03);
+  border-color: #e8432b;
+}
+
+body[data-skin="sports"] .product-add {
+  background: #e8432b;
+  border: none;
+  color: white;
+  text-transform: uppercase;
+  font-weight: 900;
+}
+
+body[data-skin="sports"] .product-price {
+  color: #f5c842;
+}
+
+/* ── Gospel Skin ────────────────────────────────── */
+body[data-skin="gospel"] .product-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(193, 154, 107, 0.15);
+  box-shadow: 0 4px 24px rgba(193, 154, 107, 0.06);
+}
+
+body[data-skin="gospel"] .product-add {
+  background: #c19a6b;
+  border: none;
+  color: white;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+body[data-skin="gospel"] .hero-copy h1 {
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* ── Skin-aware Grid Adjustments ────────────────── */
+body[data-skin="corporate"] .product-grid,
+body[data-skin="sports"] .product-grid {
+  gap: 20px;
+}
+
+body[data-skin="luxury"] .product-grid {
+  gap: 32px;
+}
+
+/* ── Responsive Grid ────────────────────────────── */
+@media (max-width: 1024px) {
+  body[data-skin="corporate"] .product-grid,
+  body[data-skin="sports"] .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  body[data-skin="streetwear"] .product-grid,
+  body[data-skin="corporate"] .product-grid,
+  body[data-skin="sports"] .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  body[data-skin="luxury"] .product-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
