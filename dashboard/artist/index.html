@@ -167,6 +167,10 @@
       font-weight: 800;
       cursor: pointer;
       text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
 
     .refresh:hover,
@@ -181,9 +185,14 @@
       color: var(--text);
     }
 
+    .btn.secondary:hover {
+      background: rgba(255,255,255,.1);
+      color: var(--text);
+    }
+
     .grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 18px;
       margin-bottom: 28px;
     }
@@ -194,6 +203,322 @@
       border-radius: var(--radius);
       padding: 24px;
       box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+
+    .breakdown-card {
+      grid-column: span 3;
+      background:
+        radial-gradient(circle at top right, rgba(212,165,116,.12), transparent 34%),
+        linear-gradient(180deg, var(--card-2), var(--card));
+      border: 1px solid rgba(212,165,116,.18);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+
+    .breakdown-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .breakdown-head h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      letter-spacing: -.03em;
+    }
+
+    .breakdown-head p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .stream-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .stream-card.highlight {
+      background:
+        radial-gradient(circle at top right, rgba(212,165,116,.16), transparent 38%),
+        rgba(255,255,255,.05);
+      border-color: rgba(212,165,116,.26);
+    }
+
+    .stream-title {
+      color: var(--gold-2);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 12px;
+    }
+
+    .stream-main {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+      margin-bottom: 12px;
+    }
+
+    .stream-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 0;
+      border-top: 1px solid rgba(255,255,255,.07);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .stream-row b {
+      color: var(--text);
+      font-weight: 900;
+      text-align: right;
+    }
+
+    .stream-note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .type-pill {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(212,165,116,.12);
+      color: var(--gold-2);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: capitalize;
+    }
+
+    .submissions-card {
+      grid-column: span 3;
+      background:
+        radial-gradient(circle at top left, rgba(98,182,106,.10), transparent 34%),
+        linear-gradient(180deg, var(--card-2), var(--card));
+      border: 1px solid rgba(212,165,116,.18);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+
+    .submissions-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .submissions-head h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      letter-spacing: -.03em;
+    }
+
+    .submissions-head p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .submissions-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .submission-latest {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .submission-status-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .submission-status-card h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: -.02em;
+    }
+
+    .submission-status-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .submission-meta-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .submission-mini {
+      background: rgba(255,255,255,.035);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .submission-mini span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 6px;
+    }
+
+    .submission-mini b {
+      color: var(--text);
+      font-size: 13px;
+      word-break: break-word;
+    }
+
+    .submission-note {
+      margin-top: 14px;
+      background: rgba(212,165,116,.08);
+      border: 1px solid rgba(212,165,116,.16);
+      border-radius: 14px;
+      padding: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .submission-status-help {
+      display: grid;
+      gap: 8px;
+    }
+
+    .submission-help-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      padding: 8px 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .submission-help-row:last-child {
+      border-bottom: none;
+    }
+
+    .submission-help-row b {
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .submissions-empty {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .submission-list {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .submission-list-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      background: rgba(255,255,255,.035);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 14px;
+    }
+
+    .submission-list-item strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .submission-list-item span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .submission-status-pill {
+      display: inline-block;
+      padding: 6px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .submission-status-pill.submitted {
+      background: rgba(212,165,116,.14);
+      color: var(--gold-2);
+    }
+
+    .submission-status-pill.under_review {
+      background: rgba(212,165,116,.14);
+      color: var(--gold-2);
+    }
+
+    .submission-status-pill.needs_fixes {
+      background: rgba(255,139,120,.12);
+      color: var(--danger);
+    }
+
+    .submission-status-pill.approved {
+      background: rgba(98,182,106,.14);
+      color: var(--success);
+    }
+
+    .submission-status-pill.live {
+      background: rgba(98,182,106,.18);
+      color: var(--success);
+    }
+
+    .submission-status-pill.rejected {
+      background: rgba(255,139,120,.12);
+      color: var(--danger);
+    }
+
+    .payout-card {
+      background:
+        radial-gradient(circle at top right, rgba(212,165,116,.14), transparent 34%),
+        linear-gradient(180deg, var(--card-2), var(--card));
+      border-color: rgba(212,165,116,.24);
     }
 
     .label {
@@ -208,97 +533,149 @@
       letter-spacing: -.03em;
     }
 
-    .section {
-      margin-top: 28px;
-    }
-
-    .section h2 {
-      font-size: 20px;
-      margin: 0 0 14px;
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      overflow: hidden;
+    .progress-card {
+      grid-column: span 3;
+      background:
+        radial-gradient(circle at top right, rgba(212,165,116,.14), transparent 34%),
+        linear-gradient(180deg, var(--card-2), var(--card));
+      border: 1px solid rgba(212,165,116,.24);
       border-radius: var(--radius);
-      background: var(--card);
-      border: 1px solid var(--line);
+      padding: 24px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
     }
 
-    th, td {
-      text-align: left;
-      padding: 16px;
-      border-bottom: 1px solid var(--line);
-      font-size: 14px;
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-end;
+      margin-bottom: 14px;
     }
 
-    th {
+    .progress-title {
       color: var(--muted);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      background: rgba(255,255,255,.03);
+      font-size: 13px;
+      font-weight: 800;
     }
 
-    tr:last-child td {
-      border-bottom: none;
-    }
-
-    .status {
-      display: inline-block;
-      padding: 5px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .paid {
-      background: rgba(98,182,106,.14);
-      color: var(--success);
-    }
-
-    .pending {
-      background: rgba(212,165,116,.14);
-      color: var(--gold-2);
-    }
-
-    .failed {
-      background: rgba(255,139,120,.12);
-      color: var(--danger);
-    }
-
-    .action-box {
-      background: linear-gradient(135deg, rgba(193,122,62,.22), rgba(255,255,255,.04));
-      border: 1px solid rgba(193,122,62,.28);
-      border-radius: var(--radius);
-      padding: 22px;
+    .progress-percent {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -.03em;
       color: var(--text);
     }
 
-    .action-box p {
-      margin: 6px 0 0;
-      color: var(--muted);
+    .progress-track {
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,.08);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.08);
     }
 
-    .footer-note {
-      margin-top: 22px;
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), var(--gold-2));
+      border-radius: 999px;
+      transition: width .35s ease;
+    }
+
+    .progress-meta {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .mini-stat {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .mini-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .mini-value {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+    }
+
+    .note-card {
+      grid-column: span 3;
+      background: rgba(255,255,255,.035);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px 22px;
       color: var(--muted);
       font-size: 13px;
+      line-height: 1.6;
     }
 
-    .error {
-      background: rgba(201,92,69,.12);
-      border: 1px solid rgba(201,92,69,.35);
-      color: #ffb2a4;
-      padding: 16px;
+    .share-card {
+      grid-column: span 3;
+      background:
+        radial-gradient(circle at top left, rgba(193,122,62,.16), transparent 36%),
+        linear-gradient(180deg, var(--card-2), var(--card));
+      border: 1px solid rgba(212,165,116,.2);
       border-radius: var(--radius);
-      margin-bottom: 20px;
-      display: none;
+      padding: 24px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+
+    .share-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .share-head h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      letter-spacing: -.03em;
+    }
+
+    .share-head p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .share-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .share-input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      padding: 13px 16px;
+      font: inherit;
+      outline: none;
+    }
+
+    .copy-feedback {
+      margin-top: 12px;
+      color: var(--gold-2);
+      font-size: 13px;
+      font-weight: 800;
+      min-height: 18px;
     }
 
     /* ── Skin Selector Styles ────────────────────────── */
@@ -388,20 +765,131 @@
       display: block;
     }
 
+    .section {
+      margin-top: 28px;
+    }
+
+    .section h2 {
+      font-size: 20px;
+      margin: 0 0 14px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: var(--card);
+      border: 1px solid var(--line);
+    }
+
+    th, td {
+      text-align: left;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      background: rgba(255,255,255,.03);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .paid {
+      background: rgba(98,182,106,.14);
+      color: var(--success);
+    }
+
+    .pending {
+      background: rgba(212,165,116,.14);
+      color: var(--gold-2);
+    }
+
+    .failed {
+      background: rgba(255,139,120,.12);
+      color: var(--danger);
+    }
+
+    .action-box {
+      background: linear-gradient(135deg, rgba(193,122,62,.22), rgba(255,255,255,.04));
+      border: 1px solid rgba(193,122,62,.28);
+      border-radius: var(--radius);
+      padding: 22px;
+      color: var(--text);
+    }
+
+    .action-box p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .action-box .btn {
+      margin-top: 16px;
+    }
+
+    .footer-note {
+      margin-top: 22px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .error {
+      background: rgba(201,92,69,.12);
+      border: 1px solid rgba(201,92,69,.35);
+      color: #ffb2a4;
+      padding: 16px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      display: none;
+    }
+
     @media (max-width: 1024px) {
       .skin-selector {
         grid-template-columns: repeat(3, 1fr);
       }
     }
 
-    @media (max-width: 600px) {
-      .skin-selector {
+    @media (max-width: 1000px) {
+      .grid {
         grid-template-columns: repeat(2, 1fr);
       }
-    }
 
-    @media (max-width: 900px) {
-      .grid {
+      .progress-card,
+      .note-card,
+      .share-card,
+      .submissions-card {
+        grid-column: span 2;
+      }
+
+      .share-row {
+        grid-template-columns: 1fr;
+      }
+
+      .breakdown-card {
+        grid-column: span 2;
+      }
+
+      .breakdown-grid {
         grid-template-columns: repeat(2, 1fr);
       }
     }
@@ -409,7 +897,8 @@
     @media (max-width: 800px) {
       body { padding: 20px; }
 
-      .topbar {
+      .topbar,
+      .share-head {
         flex-direction: column;
         align-items: flex-start;
       }
@@ -424,8 +913,46 @@
         grid-template-columns: 1fr;
       }
 
+      .progress-card,
+      .note-card,
+      .share-card,
+      .breakdown-card,
+      .submissions-card {
+        grid-column: span 1;
+      }
+
+      .breakdown-grid,
+      .submission-latest,
+      .submission-meta-row,
+      .submission-list-item {
+        grid-template-columns: 1fr;
+      }
+
+      .submissions-head {
+        flex-direction: column;
+      }
+
+      .submissions-actions {
+        width: 100%;
+      }
+
+      .progress-top {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .progress-meta {
+        grid-template-columns: 1fr;
+      }
+
       th, td {
         padding: 12px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .skin-selector {
+        grid-template-columns: repeat(2, 1fr);
       }
     }
   </style>
@@ -437,7 +964,7 @@
       <div class="eyebrow">ZVAKHO Artist Access</div>
       <h1>Artist Dashboard</h1>
       <p>
-        Sign in to view your confirmed revenue, paid sales, product performance, and recommended next actions.
+        Sign in to view your confirmed revenue, paid sales, payout progress, store link, submit music, and recommended next actions.
       </p>
 
       <form id="loginForm" class="auth-form">
@@ -464,12 +991,13 @@
         <div class="eyebrow">ZVAKHO Artist Dashboard</div>
         <h1 id="artistName">Artist Dashboard</h1>
         <div class="subtitle">
-          Confirmed revenue and paid sales visibility.
+          Confirmed revenue, payout progress, submissions, and your official store link.
         </div>
       </div>
 
       <div class="top-actions">
         <span id="signedInAs" class="signed-in">Signed in</span>
+        <a class="btn" href="/app/submit/">Submit Music</a>
         <button class="btn secondary" id="logoutBtn">Logout</button>
         <button class="refresh" id="refreshBtn">Refresh Data</button>
       </div>
@@ -479,7 +1007,7 @@
 
     <div class="grid">
       <div class="card">
-        <div class="label">Confirmed Revenue</div>
+        <div class="label">Combined Confirmed Revenue</div>
         <div class="value" id="revenue">$0.00</div>
       </div>
 
@@ -489,32 +1017,158 @@
       </div>
 
       <div class="card">
-        <div class="label">Pending Payments</div>
-        <div class="value" id="pending">0</div>
-      </div>
-
-      <div class="card">
         <div class="label">Last 7 Days</div>
         <div class="value" id="sevenDays">$0.00</div>
       </div>
-    </div>
 
-    <!-- ── NEW: Skin Selector Section ──────────────────── -->
-    <div class="section">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-        <div>
-          <h2 style="margin:0;">🎨 Store Theme</h2>
-          <p style="color:var(--muted);margin:4px 0 0;font-size:13px;">
-            Change how your store looks. Preview changes instantly.
-          </p>
-        </div>
-        <span id="skinStatus" style="font-size:12px;color:var(--muted);">
-          Current: <strong id="currentSkinLabel">Streetwear</strong>
-        </span>
+      <div class="card payout-card">
+        <div class="label">Combined Artist Share</div>
+        <div class="value" id="artistShare">$0.00</div>
       </div>
 
-      <div class="skin-selector" id="skinSelector">
-        <!-- Dynamic skin options loaded via JS -->
+      <div class="card payout-card">
+        <div class="label">Combined ZVAKHO Share</div>
+        <div class="value" id="zvakhoShare">$0.00</div>
+      </div>
+
+      <div class="card payout-card">
+        <div class="label">Payout Threshold</div>
+        <div class="value" id="payoutThreshold">$50.00</div>
+      </div>
+
+      <div class="progress-card">
+        <div class="progress-top">
+          <div>
+            <div class="progress-title">Payout Progress</div>
+            <div class="subtitle" id="progressText">You are $50.00 away from your next payout.</div>
+          </div>
+          <div class="progress-percent" id="payoutProgressPercent">0%</div>
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-fill" id="payoutProgressFill"></div>
+        </div>
+
+        <div class="progress-meta">
+          <div class="mini-stat">
+            <div class="mini-label">Amount Remaining</div>
+            <div class="mini-value" id="amountRemaining">$50.00</div>
+          </div>
+
+          <div class="mini-stat">
+            <div class="mini-label">Eligible for Payout</div>
+            <div class="mini-value" id="payoutEligible">No</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SKIN SELECTOR SECTION ────────────────────────── -->
+      <div class="section" style="grid-column: span 3; margin-top: 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div class="eyebrow">Store Theme</div>
+            <h2 style="margin:0;font-size:22px;">🎨 Choose Your Store Style</h2>
+            <p style="color:var(--muted);margin:4px 0 0;font-size:13px;">
+              Change how your store looks. Preview changes instantly.
+            </p>
+          </div>
+          <span id="skinStatus" style="font-size:12px;color:var(--muted);">
+            Current: <strong id="currentSkinLabel">Streetwear</strong>
+          </span>
+        </div>
+
+        <div class="skin-selector" id="skinSelector">
+          <!-- Dynamic skin options loaded via JS -->
+        </div>
+      </div>
+
+      <div class="breakdown-card">
+        <div class="breakdown-head">
+          <div>
+            <div class="eyebrow">Revenue Breakdown</div>
+            <h2>Income Streams</h2>
+            <p>Confirmed paid revenue split by music, VIP, merch, and combined total.</p>
+          </div>
+        </div>
+
+        <div class="breakdown-grid">
+          <div class="stream-card">
+            <div class="stream-title">Music Sales</div>
+            <div class="stream-main" id="musicRevenue">$0.00</div>
+            <div class="stream-row"><span>Artist Share</span><b id="musicArtistShare">$0.00</b></div>
+            <div class="stream-row"><span>ZVAKHO Share</span><b id="musicZvakhoShare">$0.00</b></div>
+            <div class="stream-row"><span>Units</span><b id="musicUnits">0</b></div>
+            <div class="stream-note" id="musicTerms">80% Artist / 20% ZVAKHO from confirmed music revenue.</div>
+          </div>
+
+          <div class="stream-card">
+            <div class="stream-title">VIP Revenue</div>
+            <div class="stream-main" id="vipRevenue">$0.00</div>
+            <div class="stream-row"><span>Artist Share</span><b id="vipArtistShare">$0.00</b></div>
+            <div class="stream-row"><span>ZVAKHO Share</span><b id="vipZvakhoShare">$0.00</b></div>
+            <div class="stream-row"><span>Units</span><b id="vipUnits">0</b></div>
+            <div class="stream-note" id="vipTerms">80% Artist / 20% ZVAKHO from confirmed VIP revenue.</div>
+          </div>
+
+          <div class="stream-card">
+            <div class="stream-title">Merch Revenue</div>
+            <div class="stream-main" id="merchRevenue">$0.00</div>
+            <div class="stream-row"><span>Artist Share</span><b id="merchArtistShare">Pending</b></div>
+            <div class="stream-row"><span>ZVAKHO Share</span><b id="merchZvakhoShare">Pending</b></div>
+            <div class="stream-row"><span>Units</span><b id="merchUnits">0</b></div>
+            <div class="stream-note" id="merchTerms">Merch is shown as gross revenue. Final profit share is calculated after production, packaging, and fulfilment costs.</div>
+          </div>
+
+          <div class="stream-card highlight">
+            <div class="stream-title">Combined Total</div>
+            <div class="stream-main" id="combinedRevenue">$0.00</div>
+            <div class="stream-row"><span>Artist Share</span><b id="combinedArtistShare">$0.00</b></div>
+            <div class="stream-row"><span>ZVAKHO Share</span><b id="combinedZvakhoShare">$0.00</b></div>
+            <div class="stream-row"><span>Units</span><b id="combinedUnits">0</b></div>
+            <div class="stream-note" id="combinedTerms">Music and VIP use confirmed 80/20 split. Merch payout is finalized separately after costs.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="submissions-card">
+        <div class="submissions-head">
+          <div>
+            <div class="eyebrow">Music Submissions</div>
+            <h2>Submission Status</h2>
+            <p>Track your submitted music, review notes, and approval status directly from your dashboard.</p>
+          </div>
+
+          <div class="submissions-actions">
+            <a class="btn" href="/app/submit/">Submit New Music</a>
+            <a class="btn secondary" href="/app/submit/">View All Submissions</a>
+          </div>
+        </div>
+
+        <div id="submissionsPanel">
+          <div class="submissions-empty">Loading your music submissions…</div>
+        </div>
+      </div>
+
+      <div class="share-card">
+        <div class="share-head">
+          <div>
+            <div class="eyebrow">Promote Your Store</div>
+            <h2>Official Store Link</h2>
+            <p>Copy this link and post it on WhatsApp Status, Facebook, Instagram, TikTok bio, or send it directly to fans.</p>
+          </div>
+        </div>
+
+        <div class="share-row">
+          <input id="storeLinkInput" class="share-input" type="text" readonly value="https://zvakho.co.zw/store/" />
+          <button id="copyStoreLinkBtn" class="btn" type="button">Copy Store Link</button>
+          <a id="openStoreBtn" class="btn secondary" href="https://zvakho.co.zw/store/" target="_blank" rel="noopener">Open Store</a>
+        </div>
+
+        <div id="copyFeedback" class="copy-feedback"></div>
+      </div>
+
+      <div class="note-card" id="payoutNote">
+        Music and VIP use the 80% artist / 20% ZVAKHO split. Merch is shown as gross revenue and final merch payout is calculated after production, packaging, and fulfilment costs.
       </div>
     </div>
 
@@ -525,7 +1179,9 @@
           <thead>
             <tr>
               <th>Product</th>
+              <th>Type</th>
               <th>Amount</th>
+              <th>Artist Share</th>
               <th>Status</th>
               <th>Paynow Ref</th>
               <th>Date</th>
@@ -533,7 +1189,7 @@
           </thead>
           <tbody id="recentSales">
             <tr>
-              <td colspan="5">Loading sales data...</td>
+              <td colspan="7">Loading sales data...</td>
             </tr>
           </tbody>
         </table>
@@ -544,7 +1200,8 @@
       <h2>Action</h2>
       <div class="action-box">
         <strong>Recommended next step</strong>
-        <p id="actionText">Share your official purchase link consistently to grow confirmed sales.</p>
+        <p id="actionText">Share your official store link consistently to grow confirmed sales.</p>
+        <button id="actionCopyBtn" class="btn" type="button">Copy Store Link</button>
       </div>
     </div>
 
@@ -554,15 +1211,476 @@
   </div>
 
   <script>
-    // ── Configuration ──────────────────────────────────
     const API = "https://zvakho-payments-v2.yasibomedia.workers.dev";
-    const STORE_API = "https://zvakho-store-api.yasibomedia.workers.dev";
+    const SUBMISSIONS_API = "https://zvakho-submissions-api.yasibomedia.workers.dev";
 
     const TOKEN_KEY = "zvakho_artist_token";
     const USER_KEY = "zvakho_artist_user";
+    const PAYOUT_THRESHOLD = 50;
 
     let refreshTimer = null;
-    let currentArtistId = null;
+    let currentStoreLink = "https://zvakho.co.zw/store/";
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY) || "";
+    }
+
+    function setToken(token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
+
+    function clearSession() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    }
+
+    function setUser(user) {
+      localStorage.setItem(USER_KEY, JSON.stringify(user || {}));
+      updateSignedInLabel(user);
+    }
+
+    function getUser() {
+      try {
+        return JSON.parse(localStorage.getItem(USER_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    }
+
+    function authHeaders(extra = {}) {
+      return {
+        ...extra,
+        Authorization: `Bearer ${getToken()}`
+      };
+    }
+
+    function showAuth() {
+      document.getElementById("authScreen").classList.remove("hidden");
+      document.getElementById("dashboardApp").classList.add("hidden");
+
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+    }
+
+    function showDashboard() {
+      document.getElementById("authScreen").classList.add("hidden");
+      document.getElementById("dashboardApp").classList.remove("hidden");
+      updateSignedInLabel(getUser());
+    }
+
+    function updateSignedInLabel(user) {
+      const target = document.getElementById("signedInAs");
+      if (!target) return;
+
+      const email = user?.email || "Signed in";
+      const artistId = user?.artist_id ? ` • ${user.artist_id}` : "";
+
+      target.textContent = `${email}${artistId}`;
+    }
+
+    function showAuthError(message) {
+      const box = document.getElementById("authError");
+      box.textContent = message || "Login failed.";
+      box.classList.add("show");
+    }
+
+    function clearAuthError() {
+      const box = document.getElementById("authError");
+      box.textContent = "";
+      box.classList.remove("show");
+    }
+
+    function money(value) {
+      const number = Number(value || 0);
+
+      if (!Number.isFinite(number)) {
+        return "$0.00";
+      }
+
+      return "$" + number.toFixed(2);
+    }
+
+    function formatDate(value) {
+      if (!value) return "—";
+      try {
+        return new Date(value).toLocaleString();
+      } catch {
+        return value;
+      }
+    }
+
+    function escapeHTML(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function showError(message) {
+      const box = document.getElementById("errorBox");
+      box.style.display = "block";
+      box.textContent = message;
+    }
+
+    function hideError() {
+      const box = document.getElementById("errorBox");
+      box.style.display = "none";
+      box.textContent = "";
+    }
+
+    function isPaid(row) {
+      return String(row.payment_status || "").toLowerCase() === "paid";
+    }
+
+    function productTypeLabel(value) {
+      const clean = String(value || "music").trim().toLowerCase();
+
+      if (clean.includes("vip") || clean.includes("subscription")) return "VIP";
+      if (clean.includes("merch") || clean.includes("tshirt") || clean.includes("shirt")) return "Merch";
+      if (clean.includes("music") || clean.includes("track") || clean.includes("album") || clean.includes("single")) return "Music";
+
+      return clean.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase());
+    }
+
+    function getStreamValue(stream, keys, fallback = 0) {
+      if (!stream) return fallback;
+
+      for (const key of keys) {
+        if (stream[key] !== undefined && stream[key] !== null) {
+          return stream[key];
+        }
+      }
+
+      return fallback;
+    }
+
+    function fallbackStreamFromRows(rows, type) {
+      const cleanType = String(type || "").toLowerCase();
+      const filtered = (rows || []).filter(row => {
+        const rowType = String(row.product_type || row.order_type || "").toLowerCase();
+        const productName = String(row.product_name || "").toLowerCase();
+
+        if (cleanType === "music") {
+          return (
+            rowType.includes("music") ||
+            rowType.includes("track") ||
+            rowType.includes("single") ||
+            rowType.includes("album") ||
+            (!rowType.includes("vip") && !rowType.includes("merch") && !productName.includes("t-shirt") && !productName.includes("shirt"))
+          );
+        }
+
+        if (cleanType === "vip") {
+          return rowType.includes("vip") || rowType.includes("subscription") || productName.includes("vip");
+        }
+
+        if (cleanType === "merch") {
+          return rowType.includes("merch") || productName.includes("t-shirt") || productName.includes("shirt") || productName.includes("mug") || productName.includes("hat");
+        }
+
+        return false;
+      });
+
+      return {
+        revenue: filtered.reduce((sum, row) => sum + Number(row.amount || row.revenue || 0), 0),
+        units: filtered.length
+      };
+    }
+
+    function streamRevenue(stream, fallback) {
+      return Number(getStreamValue(stream, ["confirmed_revenue", "revenue", "gross_revenue", "total_revenue"], fallback));
+    }
+
+    function streamUnits(stream, fallback) {
+      return Number(getStreamValue(stream, ["units", "sales_count", "paid_orders", "confirmed_sales"], fallback));
+    }
+
+    function streamArtistShare(stream, fallback) {
+      return Number(getStreamValue(stream, ["artist_share", "estimated_artist_share"], fallback));
+    }
+
+    function streamZvakhoShare(stream, fallback) {
+      return Number(getStreamValue(stream, ["zvakho_share", "estimated_zvakho_share"], fallback));
+    }
+
+    function setText(id, value) {
+      const target = document.getElementById(id);
+      if (target) target.textContent = value;
+    }
+
+    function renderRevenueBreakdown(data, paidRows, confirmedRevenue, artistShare, zvakhoShare, confirmedSales) {
+      const breakdown = data.revenue_breakdown || {};
+
+      const fallbackMusic = fallbackStreamFromRows(paidRows, "music");
+      const fallbackVip = fallbackStreamFromRows(paidRows, "vip");
+      const fallbackMerch = fallbackStreamFromRows(paidRows, "merch");
+
+      const music = breakdown.music || {};
+      const vip = breakdown.vip || {};
+      const merch = breakdown.merch || {};
+      const combined = breakdown.combined || {};
+
+      const musicRevenue = streamRevenue(music, fallbackMusic.revenue);
+      const vipRevenue = streamRevenue(vip, fallbackVip.revenue);
+      const merchRevenue = streamRevenue(merch, fallbackMerch.revenue);
+      const combinedRevenue = streamRevenue(combined, confirmedRevenue || (musicRevenue + vipRevenue + merchRevenue));
+
+      const musicArtistShare = streamArtistShare(music, musicRevenue * 0.8);
+      const musicZvakhoShare = streamZvakhoShare(music, musicRevenue * 0.2);
+
+      const vipArtistShare = streamArtistShare(vip, vipRevenue * 0.8);
+      const vipZvakhoShare = streamZvakhoShare(vip, vipRevenue * 0.2);
+
+      const merchArtistRaw = getStreamValue(merch, ["artist_share", "estimated_artist_share"], null);
+      const merchZvakhoRaw = getStreamValue(merch, ["zvakho_share", "estimated_zvakho_share"], null);
+
+      const combinedArtist = streamArtistShare(combined, artistShare || (musicArtistShare + vipArtistShare + Number(merchArtistRaw || 0)));
+      const combinedZvakho = streamZvakhoShare(combined, zvakhoShare || (musicZvakhoShare + vipZvakhoShare + Number(merchZvakhoRaw || 0)));
+
+      setText("musicRevenue", money(musicRevenue));
+      setText("musicArtistShare", money(musicArtistShare));
+      setText("musicZvakhoShare", money(musicZvakhoShare));
+      setText("musicUnits", streamUnits(music, fallbackMusic.units));
+
+      setText("vipRevenue", money(vipRevenue));
+      setText("vipArtistShare", money(vipArtistShare));
+      setText("vipZvakhoShare", money(vipZvakhoShare));
+      setText("vipUnits", streamUnits(vip, fallbackVip.units));
+
+      setText("merchRevenue", money(merchRevenue));
+      setText("merchArtistShare", merchArtistRaw === null ? "Pending" : money(merchArtistRaw));
+      setText("merchZvakhoShare", merchZvakhoRaw === null ? "Pending" : money(merchZvakhoRaw));
+      setText("merchUnits", streamUnits(merch, fallbackMerch.units));
+
+      setText("combinedRevenue", money(combinedRevenue));
+      setText("combinedArtistShare", money(combinedArtist));
+      setText("combinedZvakhoShare", money(combinedZvakho));
+      setText("combinedUnits", streamUnits(combined, confirmedSales));
+    }
+
+    function artistShareForRow(row) {
+      const type = String(row.product_type || row.order_type || "").toLowerCase();
+      const name = String(row.product_name || "").toLowerCase();
+      const amount = Number(row.amount || 0);
+
+      if (type.includes("merch") || name.includes("t-shirt") || name.includes("shirt") || name.includes("mug") || name.includes("hat")) {
+        return "After costs";
+      }
+
+      return money(amount * 0.8);
+    }
+
+    function friendlySubmissionStatus(value) {
+      const status = String(value || "submitted").toLowerCase();
+
+      const labels = {
+        submitted: "Submitted",
+        under_review: "Under Review",
+        needs_fixes: "Needs Fixes",
+        approved: "Approved",
+        rejected: "Not Approved",
+        live: "Live on Store"
+      };
+
+      return labels[status] || status.replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase());
+    }
+
+    function submissionStatusExplanation(value) {
+      const status = String(value || "submitted").toLowerCase();
+
+      const messages = {
+        submitted: "We received your music and it is waiting for review.",
+        under_review: "ZVAKHO is checking the audio, artwork, metadata, and rights confirmation.",
+        needs_fixes: "Please check the review note. Something needs to be corrected before approval.",
+        approved: "Your release has been approved for setup.",
+        rejected: "This submission was not approved. Check the review note for context.",
+        live: "Your release is live or ready for fans on ZVAKHO."
+      };
+
+      return messages[status] || "Your submission status has been updated.";
+    }
+
+    function renderSubmissionStatus(submissions) {
+      const panel = document.getElementById("submissionsPanel");
+      if (!panel) return;
+
+      const rows = Array.isArray(submissions) ? submissions : [];
+
+      if (!rows.length) {
+        panel.innerHTML = `
+          <div class="submissions-empty">
+            <strong>No music submissions yet.</strong><br>
+            Submit your next song so ZVAKHO can review the audio, artwork, metadata, and rights confirmation before release setup.
+            <br><br>
+            <a class="btn" href="/app/submit/">Submit Music</a>
+          </div>
+        `;
+        return;
+      }
+
+      const latest = rows[0];
+      const latestStatus = String(latest.submission_status || "submitted").toLowerCase();
+      const note = latest.review_note || "";
+
+      const recentList = rows.slice(0, 4).map(row => {
+        const status = String(row.submission_status || "submitted").toLowerCase();
+
+        return `
+          <div class="submission-list-item">
+            <div>
+              <strong>${escapeHTML(row.song_title || "Untitled submission")}</strong>
+              <span>${escapeHTML(row.release_type || "single")} • ${formatDate(row.created_at)}</span>
+            </div>
+            <span class="submission-status-pill ${escapeHTML(status)}">${escapeHTML(friendlySubmissionStatus(status))}</span>
+            <a class="btn secondary" href="/app/submit/">Details</a>
+          </div>
+        `;
+      }).join("");
+
+      panel.innerHTML = `
+        <div class="submission-latest">
+          <div class="submission-status-card">
+            <div class="eyebrow">Latest Submission</div>
+            <h3>${escapeHTML(latest.song_title || "Untitled submission")}</h3>
+            <p>${escapeHTML(submissionStatusExplanation(latestStatus))}</p>
+
+            <div class="submission-meta-row">
+              <div class="submission-mini">
+                <span>Status</span>
+                <b><span class="submission-status-pill ${escapeHTML(latestStatus)}">${escapeHTML(friendlySubmissionStatus(latestStatus))}</span></b>
+              </div>
+
+              <div class="submission-mini">
+                <span>Release Type</span>
+                <b>${escapeHTML(latest.release_type || "single")}</b>
+              </div>
+
+              <div class="submission-mini">
+                <span>Submitted</span>
+                <b>${formatDate(latest.created_at)}</b>
+              </div>
+            </div>
+
+            <div class="submission-note">
+              <strong>Review note:</strong><br>
+              ${note ? escapeHTML(note) : "No review note yet."}
+            </div>
+          </div>
+
+          <div class="submission-status-card">
+            <div class="eyebrow">Status Guide</div>
+            <div class="submission-status-help">
+              <div class="submission-help-row"><b>Submitted</b><span>We received your music.</span></div>
+              <div class="submission-help-row"><b>Under Review</b><span>We are checking your files and rights confirmation.</span></div>
+              <div class="submission-help-row"><b>Needs Fixes</b><span>Check the note and correct the issue.</span></div>
+              <div class="submission-help-row"><b>Approved</b><span>Your release is approved for setup.</span></div>
+              <div class="submission-help-row"><b>Live</b><span>Your release is active or ready for fans.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="submission-list">
+          ${recentList}
+        </div>
+      `;
+    }
+
+    async function loadSubmissionStatus() {
+      const panel = document.getElementById("submissionsPanel");
+      if (panel) {
+        panel.innerHTML = `<div class="submissions-empty">Loading your music submissions…</div>`;
+      }
+
+      try {
+        const res = await fetch(`${SUBMISSIONS_API}/my-submissions`, {
+          method: "GET",
+          headers: authHeaders()
+        });
+
+        const data = await res.json();
+
+        if (res.status === 401 || res.status === 403) {
+          if (panel) {
+            panel.innerHTML = `
+              <div class="submissions-empty">
+                Submission status could not load because the session expired. Please sign in again.
+              </div>
+            `;
+          }
+          return;
+        }
+
+        if (!data || data.status !== "success") {
+          throw new Error(data.message || "Could not load submissions.");
+        }
+
+        renderSubmissionStatus(data.submissions || []);
+
+      } catch (err) {
+        if (panel) {
+          panel.innerHTML = `
+            <div class="submissions-empty">
+              Submission status could not load right now. You can still open the full submission page.
+              <br><br>
+              <a class="btn secondary" href="/app/submit/">View Submissions</a>
+            </div>
+          `;
+        }
+      }
+    }
+
+
+    function artistSlugFromId(artistId) {
+      const value = String(artistId || "").trim().toUpperCase();
+
+      const map = {
+        MDUSEVAN: "mdusevan",
+        VUSAMANGENA: "vusamangena",
+        ABSOLL: "absoll"
+      };
+
+      return map[value] || value.toLowerCase();
+    }
+
+    function buildStoreLink(artistId) {
+      const slug = artistSlugFromId(artistId);
+      return `https://zvakho.co.zw/store/?artist=${encodeURIComponent(slug)}`;
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+
+      const temp = document.createElement("textarea");
+      temp.value = text;
+      temp.style.position = "fixed";
+      temp.style.left = "-9999px";
+      document.body.appendChild(temp);
+      temp.focus();
+      temp.select();
+      document.execCommand("copy");
+      document.body.removeChild(temp);
+    }
+
+    async function copyStoreLink() {
+      const feedback = document.getElementById("copyFeedback");
+
+      try {
+        await copyText(currentStoreLink);
+        feedback.textContent = "Store link copied. Share it with your fans.";
+        setTimeout(() => {
+          feedback.textContent = "";
+        }, 3000);
+      } catch {
+        feedback.textContent = "Could not copy automatically. Select and copy the link manually.";
+      }
+    }
 
     // ── Skin Definitions ──────────────────────────────
     const SKINS = {
@@ -610,118 +1728,11 @@
       }
     };
 
-    // ── Auth Helpers ──────────────────────────────────
-    function getToken() {
-      return localStorage.getItem(TOKEN_KEY) || "";
-    }
-
-    function setToken(token) {
-      localStorage.setItem(TOKEN_KEY, token);
-    }
-
-    function clearSession() {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-    }
-
-    function setUser(user) {
-      localStorage.setItem(USER_KEY, JSON.stringify(user || {}));
-      updateSignedInLabel(user);
-      if (user?.artist_id) currentArtistId = user.artist_id;
-    }
-
-    function getUser() {
-      try {
-        return JSON.parse(localStorage.getItem(USER_KEY) || "{}");
-      } catch {
-        return {};
-      }
-    }
-
-    function authHeaders(extra = {}) {
-      return {
-        ...extra,
-        Authorization: `Bearer ${getToken()}`
-      };
-    }
-
-    function showAuth() {
-      document.getElementById("authScreen").classList.remove("hidden");
-      document.getElementById("dashboardApp").classList.add("hidden");
-      if (refreshTimer) {
-        clearInterval(refreshTimer);
-        refreshTimer = null;
-      }
-    }
-
-    function showDashboard() {
-      document.getElementById("authScreen").classList.add("hidden");
-      document.getElementById("dashboardApp").classList.remove("hidden");
-      updateSignedInLabel(getUser());
-    }
-
-    function updateSignedInLabel(user) {
-      const target = document.getElementById("signedInAs");
-      if (!target) return;
-      const email = user?.email || "Signed in";
-      const artistId = user?.artist_id ? ` • ${user.artist_id}` : "";
-      target.textContent = `${email}${artistId}`;
-    }
-
-    function showAuthError(message) {
-      const box = document.getElementById("authError");
-      box.textContent = message || "Login failed.";
-      box.classList.add("show");
-    }
-
-    function clearAuthError() {
-      const box = document.getElementById("authError");
-      box.textContent = "";
-      box.classList.remove("show");
-    }
-
-    // ── Formatting Helpers ────────────────────────────
-    function money(value) {
-      return "$" + Number(value || 0).toFixed(2);
-    }
-
-    function formatDate(value) {
-      if (!value) return "—";
-      try {
-        return new Date(value).toLocaleString();
-      } catch {
-        return value;
-      }
-    }
-
-    function escapeHTML(value) {
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    function showError(message) {
-      const box = document.getElementById("errorBox");
-      box.style.display = "block";
-      box.textContent = message;
-    }
-
-    function hideError() {
-      const box = document.getElementById("errorBox");
-      box.style.display = "none";
-      box.textContent = "";
-    }
-
-    function isPaid(row) {
-      return String(row.payment_status || "").toLowerCase() === "paid";
-    }
-
-    // ── Skin Selector ──────────────────────────────────
+    // ── Skin Selector Functions ──────────────────────
     function renderSkinSelector(currentSkin) {
       const container = document.getElementById("skinSelector");
+      if (!container) return;
+      
       const current = currentSkin || 'streetwear';
 
       container.innerHTML = Object.entries(SKINS).map(([id, skin]) => {
@@ -743,7 +1754,11 @@
 
       // Update current skin label
       document.getElementById("currentSkinLabel").textContent = SKINS[current]?.name || 'Streetwear';
-      document.getElementById("skinStatus").querySelector('strong').textContent = SKINS[current]?.name || 'Streetwear';
+      const statusEl = document.getElementById("skinStatus");
+      if (statusEl) {
+        const strong = statusEl.querySelector('strong');
+        if (strong) strong.textContent = SKINS[current]?.name || 'Streetwear';
+      }
     }
 
     // ── Select Skin ────────────────────────────────────
@@ -759,12 +1774,18 @@
       });
 
       try {
-        // Update the skin preference via API
+        const user = getUser();
+        const artistId = user?.artist_id;
+        
+        if (!artistId) {
+          throw new Error('Artist ID not found. Please refresh and try again.');
+        }
+
         const response = await fetch(`${API}/update-artist-skin`, {
           method: "POST",
           headers: authHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({
-            artist_id: currentArtistId,
+            artist_id: artistId,
             industry_preference: skinId
           })
         });
@@ -784,7 +1805,11 @@
 
         // Update label
         document.getElementById("currentSkinLabel").textContent = skin.name;
-        document.getElementById("skinStatus").querySelector('strong').textContent = skin.name;
+        const statusEl = document.getElementById("skinStatus");
+        if (statusEl) {
+          const strong = statusEl.querySelector('strong');
+          if (strong) strong.textContent = skin.name;
+        }
 
         // Show success feedback
         showToast(`✅ Store theme changed to "${skin.name}"!`, 'success');
@@ -856,7 +1881,6 @@
       }, 3000);
     }
 
-    // ── Login / Logout ──────────────────────────────────
     async function login(email, password) {
       clearAuthError();
 
@@ -919,7 +1943,6 @@
       showAuth();
     }
 
-    // ── Check Existing Session ─────────────────────────
     async function checkExistingSession() {
       const token = getToken();
 
@@ -967,7 +1990,6 @@
       }
     }
 
-    // ── Load Dashboard ──────────────────────────────────
     async function loadDashboard() {
       hideError();
 
@@ -991,6 +2013,7 @@
         }
 
         const summary = data.summary || {};
+        const payout = data.payout_estimate || {};
         const rowsFromApi = data.recent_sales || [];
         const paidRows = rowsFromApi.filter(isPaid);
 
@@ -1001,20 +2024,59 @@
         const fallbackSales = Number(summary.paid_orders || summary.total_sales || 0);
         const confirmedSales = paidRows.length > 0 ? paidRows.length : fallbackSales;
 
+        const artistShare =
+          payout.estimated_artist_share !== undefined
+            ? Number(payout.estimated_artist_share || 0)
+            : confirmedRevenue * 0.8;
+
+        const zvakhoShare =
+          payout.estimated_zvakho_share !== undefined
+            ? Number(payout.estimated_zvakho_share || 0)
+            : confirmedRevenue * 0.2;
+
+        const payoutProgress = Math.min((artistShare / PAYOUT_THRESHOLD) * 100, 100);
+        const amountRemaining = Math.max(PAYOUT_THRESHOLD - artistShare, 0);
+        const eligible = artistShare >= PAYOUT_THRESHOLD;
+
+        currentStoreLink = buildStoreLink(data.artist_id);
+        document.getElementById("storeLinkInput").value = currentStoreLink;
+        document.getElementById("openStoreBtn").href = currentStoreLink;
+
         document.getElementById("artistName").textContent = data.artist_name || data.artist_id || "Artist Dashboard";
         document.getElementById("revenue").textContent = money(confirmedRevenue);
         document.getElementById("sales").textContent = confirmedSales;
-        document.getElementById("pending").textContent = summary.pending_orders || 0;
         document.getElementById("sevenDays").textContent = money(summary.revenue_7_days);
+
+        document.getElementById("artistShare").textContent = money(artistShare);
+        document.getElementById("zvakhoShare").textContent = money(zvakhoShare);
+        document.getElementById("payoutThreshold").textContent = money(PAYOUT_THRESHOLD);
+
+        document.getElementById("payoutProgressPercent").textContent = Math.round(payoutProgress) + "%";
+        document.getElementById("payoutProgressFill").style.width = payoutProgress + "%";
+        document.getElementById("amountRemaining").textContent = money(amountRemaining);
+        document.getElementById("payoutEligible").textContent = eligible ? "Yes" : "No";
+
+        document.getElementById("progressText").textContent = eligible
+          ? "You have reached the payout threshold."
+          : `You are ${money(amountRemaining)} away from your next payout.`;
+
+        document.getElementById("payoutNote").textContent =
+          "Music and VIP use the 80% artist / 20% ZVAKHO split. Merch is shown as gross revenue and final merch payout is calculated after production, packaging, and fulfilment costs.";
+
         document.getElementById("updatedAt").textContent = new Date().toLocaleString();
 
         const tbody = document.getElementById("recentSales");
+
+        renderRevenueBreakdown(data, paidRows, confirmedRevenue, artistShare, zvakhoShare, confirmedSales);
+        loadSubmissionStatus();
 
         if (!paidRows.length && fallbackSales > 0) {
           tbody.innerHTML = `
             <tr>
               <td>Confirmed music purchase</td>
+              <td><span class="type-pill">Music</span></td>
               <td>${money(fallbackRevenue)}</td>
+              <td>${money(fallbackRevenue * 0.8)}</td>
               <td><span class="status paid">Paid</span></td>
               <td>Recorded in Paynow</td>
               <td>—</td>
@@ -1023,14 +2085,16 @@
         } else if (!paidRows.length) {
           tbody.innerHTML = `
             <tr>
-              <td colspan="5">No confirmed paid sales yet.</td>
+              <td colspan="7">No confirmed paid sales yet.</td>
             </tr>
           `;
         } else {
           tbody.innerHTML = paidRows.map(row => `
             <tr>
               <td>${escapeHTML(row.product_name || "Music purchase")}</td>
+              <td><span class="type-pill">${escapeHTML(productTypeLabel(row.product_type || row.order_type || "music"))}</span></td>
               <td>${money(row.amount)}</td>
+              <td>${escapeHTML(artistShareForRow(row))}</td>
               <td><span class="status paid">Paid</span></td>
               <td>${escapeHTML(row.paynow_reference || "Recorded in Paynow")}</td>
               <td>${formatDate(row.paid_at || row.created_at)}</td>
@@ -1038,14 +2102,21 @@
           `).join("");
         }
 
-        if (Array.isArray(data.dashboard_guidance) && data.dashboard_guidance.length) {
-          document.getElementById("actionText").textContent = data.dashboard_guidance[0];
+        const bestProduct = data.best_product?.product_name || "";
+        const actionText = document.getElementById("actionText");
+
+        if (eligible) {
+          actionText.textContent =
+            "You have reached the payout threshold. Keep sharing your store link while ZVAKHO prepares payout processing.";
+        } else if (bestProduct) {
+          actionText.textContent =
+            `You are ${money(amountRemaining)} away from payout. Share your store link today and push "${bestProduct}" because it is currently your strongest product.`;
         } else if (confirmedSales > 0) {
-          document.getElementById("actionText").textContent =
-            "Share your purchase link again today while your release has confirmed traction.";
+          actionText.textContent =
+            `You are ${money(amountRemaining)} away from payout. Share your store link again today while your release has confirmed traction.`;
         } else {
-          document.getElementById("actionText").textContent =
-            "Start by pushing one clear release link to your most active fans.";
+          actionText.textContent =
+            "Start by pushing your official store link to your most active fans. WhatsApp Status is the quickest place to begin.";
         }
 
       } catch (err) {
@@ -1053,7 +2124,6 @@
       }
     }
 
-    // ── Event Listeners ─────────────────────────────────
     document.getElementById("loginForm").addEventListener("submit", function (event) {
       event.preventDefault();
 
@@ -1069,6 +2139,8 @@
       const currentSkin = await getCurrentSkin();
       renderSkinSelector(currentSkin);
     });
+    document.getElementById("copyStoreLinkBtn").addEventListener("click", copyStoreLink);
+    document.getElementById("actionCopyBtn").addEventListener("click", copyStoreLink);
 
     // ── Animation Keyframes (added dynamically) ──────
     const styleSheet = document.createElement("style");
@@ -1080,7 +2152,6 @@
     `;
     document.head.appendChild(styleSheet);
 
-    // ── Initialize ──────────────────────────────────────
     checkExistingSession();
   </script>
 </body>
