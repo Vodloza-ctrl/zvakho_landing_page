@@ -1,6 +1,7 @@
 // src/index.js - Main Router
 import { handleTest } from './api/test.js';
 import { handleBrands } from './api/brands/index.js';
+import { handleProducts } from './api/products/index.js';
 import { requireAuth } from './middleware/auth.js';
 
 export default {
@@ -31,6 +32,13 @@ export default {
             return handleBrands(request, env, user);
         }
 
+        // Product endpoints (require auth)
+        if (path.startsWith('/api/products')) {
+            const user = await requireAuth(request, env);
+            if (user instanceof Response) return user;
+            return handleProducts(request, env, user);
+        }
+
         // Default response
         return new Response(JSON.stringify({
             error: 'Not found - ZVAKHO v2 endpoint',
@@ -39,7 +47,9 @@ export default {
                 '/api/test',
                 '/health',
                 '/api/brands (POST, GET)',
-                '/api/brands/:id (GET, PUT)'
+                '/api/brands/:id (GET, PUT)',
+                '/api/products (POST, GET)',
+                '/api/products/:id (GET, PUT, DELETE)'
             ]
         }), { 
             status: 404,
