@@ -2,7 +2,6 @@
 export async function authenticate(request, env) {
     // 🔥 TEST MODE - Remove this when you have real auth!
     if (env.ENVIRONMENT === 'development') {
-        // Return a test user
         return {
             user_id: 'test-user-id-' + Date.now(),
             email: 'test@zvakho.com',
@@ -12,7 +11,7 @@ export async function authenticate(request, env) {
         };
     }
     
-    // Real auth code (keep this for production)
+    // Real auth code
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) return null;
 
