@@ -126,73 +126,134 @@ __name(execute, "execute");
 // src/api/brands/create.js
 async function createBrand(request, env, user) {
   try {
+    console.log("\u{1F4DD} Starting brand creation...");
+    console.log("\u{1F464} User:", user);
     const body = await request.json();
+    console.log("\u{1F4E6} Request body:", body);
     const { name, email, phone } = body;
+    console.log("\u{1F50D} Validating name...");
     const nameCheck = validateBrandName(name);
     if (!nameCheck.valid) {
+      console.log("\u274C Name validation failed:", nameCheck.error);
       return new Response(JSON.stringify({ error: nameCheck.error }), {
         status: 400,
         headers: { "Content-Type": "application/json" }
       });
     }
+    console.log("\u{1F50D} Validating email...");
     const emailCheck = validateEmail(email);
     if (!emailCheck.valid) {
+      console.log("\u274C Email validation failed:", emailCheck.error);
       return new Response(JSON.stringify({ error: emailCheck.error }), {
         status: 400,
         headers: { "Content-Type": "application/json" }
       });
     }
+    console.log("\u{1F50D} Validating phone...");
     const phoneCheck = validatePhone(phone);
     if (!phoneCheck.valid) {
+      console.log("\u274C Phone validation failed:", phoneCheck.error);
       return new Response(JSON.stringify({ error: phoneCheck.error }), {
         status: 400,
         headers: { "Content-Type": "application/json" }
       });
     }
     const slug = slugify(name);
-    const existing = await queryOne(
-      env,
-      "SELECT brand_id FROM brands WHERE brand_slug = ? AND deleted_at IS NULL",
-      [slug]
-    );
-    if (existing) {
+    console.log("\u{1F511} Generated slug:", slug);
+    console.log("\u{1F50D} Checking if brand exists...");
+    try {
+      const existing = await queryOne(
+        env,
+        "SELECT brand_id FROM brands WHERE brand_slug = ? AND deleted_at IS NULL",
+        [slug]
+      );
+      console.log("\u{1F4CA} Existing brand check result:", existing);
+      if (existing) {
+        console.log("\u274C Brand already exists");
+        return new Response(JSON.stringify({
+          error: "Brand name already taken"
+        }), {
+          status: 409,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+    } catch (dbError) {
+      console.log("\u274C Database query failed:", dbError);
       return new Response(JSON.stringify({
-        error: "Brand name already taken"
+        error: "Database error: " + dbError.message
       }), {
-        status: 409,
+        status: 500,
         headers: { "Content-Type": "application/json" }
       });
     }
     const brandId = crypto.randomUUID();
     const now = (/* @__PURE__ */ new Date()).toISOString();
-    await execute(env, `
-            INSERT INTO brands (
-                brand_id, brand_name, brand_slug, brand_email, brand_phone,
-                store_status, subscription_plan, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, 'draft', 'launch', ?, ?)
-        `, [brandId, name, slug, email || null, phone || null, now, now]);
-    await execute(env, `
-            UPDATE users SET brand_id = ?, role = 'admin' WHERE user_id = ?
-        `, [brandId, user.user_id]);
-    await execute(env, `
-            INSERT INTO subscription_history (
-                brand_id, plan, status, fee_percentage, max_products, changed_at
-            ) VALUES (?, 'launch', 'active', 12, 5, ?)
-        `, [brandId, now]);
-    const brand = await queryOne(env, `
-            SELECT * FROM brands WHERE brand_id = ?
-        `, [brandId]);
-    return new Response(JSON.stringify({
-      success: true,
-      brand,
-      message: "Brand created successfully!"
-    }), {
-      headers: { "Content-Type": "application/json" }
-    });
+    console.log("\u{1F195} Creating brand with ID:", brandId);
+    try {
+      console.log("\u{1F4DD} Inserting brand...");
+      await execute(env, `
+                INSERT INTO brands (
+                    brand_id, brand_name, brand_slug, brand_email, brand_phone,
+                    store_status, subscription_plan, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, 'draft', 'launch', ?, ?)
+            `, [brandId, name, slug, email || null, phone || null, now, now]);
+      console.log("\u2705 Brand inserted successfully");
+    } catch (dbError) {
+      console.log("\u274C Brand insert failed:", dbError);
+      return new Response(JSON.stringify({
+        error: "Database insert error: " + dbError.message
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    console.log("\u{1F4DD} Updating user...");
+    try {
+      await execute(env, `
+                UPDATE users SET brand_id = ?, role = 'admin' WHERE user_id = ?
+            `, [brandId, user.user_id]);
+      console.log("\u2705 User updated successfully");
+    } catch (dbError) {
+      console.log("\u274C User update failed:", dbError);
+    }
+    console.log("\u{1F4DD} Creating subscription history...");
+    try {
+      await execute(env, `
+                INSERT INTO subscription_history (
+                    brand_id, plan, status, fee_percentage, max_products, changed_at
+                ) VALUES (?, 'launch', 'active', 12, 5, ?)
+            `, [brandId, now]);
+      console.log("\u2705 Subscription history created");
+    } catch (dbError) {
+      console.log("\u274C Subscription history failed:", dbError);
+    }
+    console.log("\u{1F4DD} Fetching created brand...");
+    try {
+      const brand = await queryOne(env, `
+                SELECT * FROM brands WHERE brand_id = ?
+            `, [brandId]);
+      console.log("\u2705 Brand created successfully!");
+      return new Response(JSON.stringify({
+        success: true,
+        brand,
+        message: "Brand created successfully!"
+      }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    } catch (dbError) {
+      console.log("\u274C Fetch brand failed:", dbError);
+      return new Response(JSON.stringify({
+        error: "Brand created but couldn't fetch it"
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
   } catch (error) {
-    console.error("Create brand error:", error);
+    console.error("\u274C Create brand error:", error);
+    console.error("Stack trace:", error.stack);
     return new Response(JSON.stringify({
-      error: "Failed to create brand"
+      error: "Failed to create brand: " + error.message
     }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
