@@ -1,4 +1,4 @@
-name = "zvakho-api-v2"
+name = "zvakho-universal-store-api"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
 
@@ -9,4 +9,4 @@ database_id = "aaa47b96-b264-4a73-b9c1-b36ca4d08d8e"
 
 [vars]
 ENVIRONMENT = "development"
-JWT_SECRET = "8f9a7d31b2c4e6f8a1d9c3b7e5f2a8d1b6c9e4f7a2d5b8c1e3f6a9d2b5c8e1f4"
+JWT_SECRET = "8f9a7d31b2c4e6f8a1d9c3b7e5f2a8d1b6c9e..."
