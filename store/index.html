@@ -18,6 +18,278 @@
 
   <title>ZVAKHO Artist Store</title>
   <meta name="description" content="Official artist store powered by ZVAKHO.">
+
+  <style>
+    /* ─── FIX: Premium Compact Featured Card ─── */
+    
+    /* Fix the featured card container - remove full-width excess */
+    .featured-card {
+      display: block !important;
+      max-width: 100% !important;
+      overflow: hidden !important;
+      border-radius: 16px !important;
+      background: var(--store-surface, #141414) !important;
+      border: 1px solid var(--store-line, rgba(255,255,255,0.08)) !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    /* Inner flex container - image + text side by side */
+    .featured-card-inner {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: stretch !important;
+      min-height: 320px !important;
+      max-height: 480px !important;
+      gap: 0 !important;
+    }
+
+    /* Image side - 40% */
+    .featured-card .featured-image {
+      flex: 0 0 40% !important;
+      max-width: 40% !important;
+      min-height: 280px !important;
+      overflow: hidden !important;
+      background: var(--store-muted, rgba(255,255,255,0.05)) !important;
+      position: relative !important;
+    }
+
+    .featured-card .featured-image img {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      display: block !important;
+    }
+
+    /* Text side - 60% */
+    .featured-card .featured-info {
+      flex: 1 !important;
+      padding: 24px 28px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      gap: 10px !important;
+      min-height: 280px !important;
+      overflow-y: auto !important;
+    }
+
+    /* Compact typography */
+    .featured-card .featured-info h3 {
+      font-size: 22px !important;
+      line-height: 1.2 !important;
+      margin: 0 0 4px 0 !important;
+      font-weight: 700 !important;
+      color: var(--store-text, #ffffff) !important;
+    }
+
+    .featured-card .featured-info p {
+      font-size: 14px !important;
+      line-height: 1.4 !important;
+      margin: 0 0 4px 0 !important;
+      color: var(--store-muted, rgba(255,255,255,0.7)) !important;
+    }
+
+    .featured-card .featured-price {
+      font-size: 24px !important;
+      font-weight: 800 !important;
+      margin: 4px 0 !important;
+      color: var(--store-primary, #f5a400) !important;
+    }
+
+    /* Badges compact */
+    .featured-card .featured-badges {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+      margin-bottom: 2px !important;
+    }
+
+    .featured-card .featured-badges .badge {
+      font-size: 10px !important;
+      padding: 3px 10px !important;
+      border-radius: 999px !important;
+    }
+
+    /* Variant selector compact */
+    .featured-card .variant-block {
+      margin: 6px 0 4px 0 !important;
+    }
+
+    .featured-card .variant-label {
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.08em !important;
+      color: var(--store-muted, rgba(255,255,255,0.6)) !important;
+      margin-bottom: 4px !important;
+    }
+
+    .featured-card .variant-options {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
+
+    .featured-card .variant-option {
+      min-width: 36px !important;
+      height: 32px !important;
+      padding: 0 14px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      border-radius: 999px !important;
+      border: 1px solid var(--store-line, rgba(255,255,255,0.15)) !important;
+      background: rgba(255,255,255,0.05) !important;
+      color: var(--store-text, #ffffff) !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .featured-card .variant-option.is-selected {
+      background: var(--store-primary, #f5a400) !important;
+      border-color: var(--store-primary, #f5a400) !important;
+      color: var(--store-text-inverse, #0a0a0a) !important;
+    }
+
+    .featured-card .variant-option:hover:not(.is-selected) {
+      border-color: var(--store-primary, #f5a400) !important;
+    }
+
+    .featured-card .variant-note {
+      font-size: 12px !important;
+      margin-top: 4px !important;
+      color: var(--store-muted, rgba(255,255,255,0.5)) !important;
+    }
+
+    .featured-card .variant-note.needs-selection {
+      color: var(--store-primary, #f5a400) !important;
+      font-weight: 600 !important;
+    }
+
+    /* Actions compact */
+    .featured-card .featured-actions {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 10px !important;
+      margin-top: 6px !important;
+    }
+
+    .featured-card .featured-actions .btn {
+      padding: 10px 22px !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      border-radius: 999px !important;
+      border: none !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      min-height: 42px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    .featured-card .hero-primary {
+      background: var(--store-primary, #f5a400) !important;
+      color: var(--store-text-inverse, #0a0a0a) !important;
+    }
+
+    .featured-card .hero-primary:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 8px 24px rgba(245,164,0,0.3) !important;
+    }
+
+    .featured-card .hero-secondary {
+      background: rgba(255,255,255,0.06) !important;
+      color: var(--store-text, #ffffff) !important;
+      border: 1px solid var(--store-line, rgba(255,255,255,0.15)) !important;
+    }
+
+    .featured-card .hero-secondary:hover {
+      background: rgba(255,255,255,0.12) !important;
+    }
+
+    /* Placeholder */
+    .featured-placeholder {
+      padding: 40px 20px !important;
+      text-align: center !important;
+      color: var(--store-muted, rgba(255,255,255,0.5)) !important;
+    }
+
+    /* ─── MOBILE RESPONSIVE ─── */
+    @media (max-width: 680px) {
+      .featured-card-inner {
+        flex-direction: column !important;
+        min-height: auto !important;
+        max-height: none !important;
+      }
+
+      .featured-card .featured-image {
+        flex: 0 0 200px !important;
+        max-width: 100% !important;
+        min-height: 200px !important;
+        height: 200px !important;
+      }
+
+      .featured-card .featured-info {
+        padding: 18px 20px !important;
+        min-height: auto !important;
+        gap: 8px !important;
+      }
+
+      .featured-card .featured-info h3 {
+        font-size: 20px !important;
+      }
+
+      .featured-card .featured-price {
+        font-size: 22px !important;
+      }
+
+      .featured-card .featured-actions .btn {
+        padding: 8px 18px !important;
+        font-size: 13px !important;
+        min-height: 38px !important;
+        flex: 1 !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .featured-card .featured-image {
+        flex: 0 0 160px !important;
+        height: 160px !important;
+        min-height: 160px !important;
+      }
+
+      .featured-card .featured-info {
+        padding: 14px 16px !important;
+      }
+
+      .featured-card .featured-info h3 {
+        font-size: 18px !important;
+      }
+
+      .featured-card .featured-info p {
+        font-size: 13px !important;
+      }
+
+      .featured-card .featured-price {
+        font-size: 20px !important;
+      }
+
+      .featured-card .variant-option {
+        min-width: 32px !important;
+        height: 28px !important;
+        padding: 0 10px !important;
+        font-size: 12px !important;
+      }
+
+      .featured-card .featured-actions {
+        flex-direction: column !important;
+      }
+
+      .featured-card .featured-actions .btn {
+        width: 100% !important;
+      }
+    }
+  </style>
 </head>
 
 <body class="store-page is-loading" data-skin="streetwear" data-layout="universal">
