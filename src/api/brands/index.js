@@ -3,6 +3,7 @@ import { createBrand } from './create.js';
 import { getBrand } from './get.js';
 import { listBrands } from './list.js';
 import { updateBrand } from './update.js';
+import { simpleCreateBrand } from './simple.js';
 
 export async function handleBrands(request, env, user) {
     const url = new URL(request.url);
@@ -13,9 +14,9 @@ export async function handleBrands(request, env, user) {
         return listBrands(request, env, user);
     }
     
-    // POST /api/brands - Create brand
+    // POST /api/brands - Create brand (USE SIMPLE VERSION)
     if (request.method === 'POST' && (path === '' || path === '/')) {
-        return createBrand(request, env, user);
+        return simpleCreateBrand(request, env, user);
     }
     
     // GET /api/brands/:id - Get single brand
