@@ -27,6 +27,83 @@ function attr(value) {
   return escapeHTML(value).replace(/`/g, "&#096;");
 }
 
+// ═══════════════════════════════════════════════════════════
+// SVG ICON HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Generate an SVG icon element
+ * @param {string} iconName - Name of the icon symbol
+ * @param {string} size - Size class (xs, sm, md, lg, xl)
+ * @param {string} className - Additional CSS classes
+ * @param {string} style - icon style override (outline, filled, duotone, bold, thin, soft, sharp)
+ * @returns {string} HTML string for the icon
+ */
+function icon(iconName, size = 'md', className = '', style = null) {
+  const skin = STORE?.active_skin || { theme: { icon_style: 'outline' } };
+  const iconStyle = style || skin.theme?.icon_style || 'outline';
+  
+  // Apply style-specific class
+  let styleClass = '';
+  switch(iconStyle) {
+    case 'duotone':
+      styleClass = 'icon--duotone';
+      break;
+    case 'filled':
+      styleClass = 'icon--filled';
+      break;
+    case 'bold':
+      styleClass = 'icon--bold';
+      break;
+    case 'thin':
+      styleClass = 'icon--thin';
+      break;
+    case 'soft':
+      styleClass = 'icon--soft';
+      break;
+    case 'sharp':
+      styleClass = 'icon--sharp';
+      break;
+    default:
+      styleClass = 'icon--outline';
+      break;
+  }
+  
+  // Glow effect
+  const glowClass = skin.theme?.icon_glow ? 'icon--glow' : '';
+  
+  return `<span class="icon icon-${size} ${className} ${styleClass} ${glowClass}">
+    <svg><use href="#${iconName}"/></svg>
+  </span>`;
+}
+
+/**
+ * Generate a social media icon link
+ * @param {string} platform - Instagram, YouTube, TikTok, Twitter, LinkedIn, Spotify, AppleMusic
+ * @param {string} url - The profile URL
+ * @param {string} label - Display label (optional)
+ * @returns {string} HTML string
+ */
+function socialIcon(platform, url, label = null) {
+  const iconMap = {
+    'Instagram': 'icon-instagram',
+    'YouTube': 'icon-youtube', 
+    'TikTok': 'icon-tiktok',
+    'Twitter': 'icon-twitter',
+    'LinkedIn': 'icon-linkedin',
+    'Spotify': 'icon-spotify',
+    'Apple Music': 'icon-applemusic'
+  };
+  
+  const iconName = iconMap[platform] || 'icon-share';
+  const displayLabel = label || platform;
+  
+  return `<a href="${attr(url)}" target="_blank" rel="noopener" class="social-icon" aria-label="${escapeHTML(platform)}">
+    ${icon(iconName, 'sm')}
+    <span class="social-label">${escapeHTML(displayLabel)}</span>
+  </a>`;
+}
+
 /**
  * Artist slug detection order:
  * 1. Query string: /store/?artist=absoll
@@ -242,13 +319,11 @@ function renderSocials() {
   ].filter(([, url]) => url);
 
   if (!socials.length) {
-    row.innerHTML = `<span class="badge">Social links coming soon</span>`;
+    row.innerHTML = `<span class="badge">${icon('icon-heart', 'sm')} Social links coming soon</span>`;
     return;
   }
 
-  row.innerHTML = socials.map(([label, url]) => `
-    <a href="${attr(url)}" target="_blank" rel="noopener">${escapeHTML(label)}</a>
-  `).join("");
+  row.innerHTML = socials.map(([label, url]) => socialIcon(label, url)).join("");
 }
 
 function productImage(product) {
@@ -267,8 +342,8 @@ function productBadges(product) {
 
   if (product.limited_release) badges.push(`<span class="badge hot">Limited</span>`);
   if (product.preorder_enabled) badges.push(`<span class="badge">Preorder</span>`);
-  if (product.product_type === "music") badges.push(`<span class="badge">Instant delivery</span>`);
-  if (isMerch(product) && product.has_variants) badges.push(`<span class="badge">Choose size</span>`);
+  if (product.product_type === "music") badges.push(`<span class="badge">${icon('icon-music', 'xs')} Instant delivery</span>`);
+  if (isMerch(product) && product.has_variants) badges.push(`<span class="badge">${icon('icon-grid', 'xs')} Choose size</span>`);
 
   return badges.join("");
 }
@@ -283,7 +358,7 @@ function renderVariantSelector(product, context = "card") {
 
   return `
     <div class="variant-block" data-variant-block="${attr(product.product_id)}">
-      <div class="variant-label">Choose size</div>
+      <div class="variant-label">${icon('icon-grid', 'xs')} Choose size</div>
 
       <div class="variant-options">
         ${(product.variants || []).map((variant) => {
@@ -308,7 +383,7 @@ function renderVariantSelector(product, context = "card") {
         ${
           selectedVariant
             ? escapeHTML(`${selectedVariant.color || ""} ${selectedVariant.size_label || selectedVariant.size_code || ""}`.trim())
-            : "Please select a size before adding to cart"
+            : `${icon('icon-heart', 'xs')} Please select a size before adding to cart`
         }
       </div>
     </div>
@@ -321,7 +396,7 @@ function renderFeatured() {
   if (!box) return;
 
   if (!product) {
-    box.innerHTML = `<div class="featured-placeholder">No featured product yet.</div>`;
+    box.innerHTML = `<div class="featured-placeholder">${icon('icon-shop', 'lg')} No featured product yet.</div>`;
     return;
   }
 
@@ -333,7 +408,7 @@ function renderFeatured() {
       <img
         src="${attr(productImage(product))}"
         alt="${attr(product.product_name)}"
-        onerror="this.parentElement.innerHTML='<div class=&quot;product-media&quot;>${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}'</div>'"
+        onerror="this.parentElement.innerHTML='<div class=&quot;product-media&quot;>${icon('icon-shop', 'xl')}</div>'"
       >
     </div>
 
@@ -350,12 +425,12 @@ function renderFeatured() {
 
       <div class="featured-actions">
         <button class="btn hero-primary" type="button" data-add="${attr(product.product_id)}">
-          Add to cart
+          ${icon('icon-cart', 'sm')} Add to cart
         </button>
 
         ${product.preview_url ? `
           <button class="btn hero-secondary" type="button" data-preview="${attr(product.product_id)}">
-            Play preview
+            ${icon('icon-play', 'sm')} Play preview
           </button>
         ` : ``}
       </div>
@@ -370,7 +445,7 @@ function renderProducts() {
   if (!grid) return;
 
   if (!products.length) {
-    grid.innerHTML = `<div class="empty">No products available yet.</div>`;
+    grid.innerHTML = `<div class="empty">${icon('icon-shop', 'lg')} No products available yet.</div>`;
     return;
   }
 
@@ -411,7 +486,7 @@ function renderProducts() {
           src="${attr(productImage(product))}"
           alt="${attr(product.product_name)}"
           loading="lazy"
-          onerror="this.remove();this.parentElement.textContent='${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}'"
+          onerror="this.remove();this.parentElement.innerHTML='${icon('icon-shop', 'xl')}'"
         >
       </div>
 
@@ -429,7 +504,7 @@ function renderProducts() {
         <div class="product-foot">
           <span class="product-price">${escapeHTML(product.price_label || money(product.price))}</span>
           <button class="product-add" type="button" data-add="${attr(product.product_id)}">
-            Add
+            ${icon('icon-plus', 'sm')} Add
           </button>
         </div>
       </div>
@@ -444,7 +519,7 @@ function renderMusic() {
   if (!list) return;
 
   if (!tracks.length) {
-    list.innerHTML = `<div class="empty">No music previews available yet.</div>`;
+    list.innerHTML = `<div class="empty">${icon('icon-music', 'lg')} No music previews available yet.</div>`;
     $("#floatingPlayer").hidden = true;
     return;
   }
@@ -455,7 +530,7 @@ function renderMusic() {
         <img
           src="${attr(productImage(track))}"
           alt="${attr(track.product_name)}"
-          onerror="this.remove();this.parentElement.textContent='${escapeHTML((track.product_name || 'Z').slice(0,2).toUpperCase())}'"
+          onerror="this.remove();this.parentElement.innerHTML='${icon('icon-music', 'md')}'"
         >
       </div>
 
@@ -465,11 +540,11 @@ function renderMusic() {
       </div>
 
       <button class="preview-btn" type="button" ${track.preview_url ? `data-preview="${attr(track.product_id)}"` : `disabled`}>
-        ${track.preview_url ? "Play" : "No preview"}
+        ${track.preview_url ? `${icon('icon-play', 'sm')} Play` : "No preview"}
       </button>
 
       <button class="mini-add" type="button" data-add="${attr(track.product_id)}">
-        Buy
+        ${icon('icon-cart', 'sm')} Buy
       </button>
     </article>
   `).join("");
@@ -556,7 +631,7 @@ function updateCartUI() {
   if (!items) return;
 
   if (!CART.length) {
-    items.innerHTML = `<div class="cart-empty">Your cart is empty.</div>`;
+    items.innerHTML = `<div class="cart-empty">${icon('icon-cart', 'lg')} Your cart is empty.</div>`;
     return;
   }
 
@@ -567,16 +642,20 @@ function updateCartUI() {
         <span>${escapeHTML(money(item.price))} × ${item.quantity}</span>
 
         <div class="qty-controls">
-          <button type="button" data-qty="${attr(item.cart_key)}" data-step="-1">−</button>
+          <button type="button" data-qty="${attr(item.cart_key)}" data-step="-1">
+            ${icon('icon-minus', 'sm')}
+          </button>
           <span>${item.quantity}</span>
-          <button type="button" data-qty="${attr(item.cart_key)}" data-step="1">+</button>
+          <button type="button" data-qty="${attr(item.cart_key)}" data-step="1">
+            ${icon('icon-plus', 'sm')}
+          </button>
         </div>
       </div>
 
       <div>
         <strong>${escapeHTML(money(item.price * item.quantity))}</strong><br>
         <button class="remove-item" type="button" data-remove="${attr(item.cart_key)}">
-          Remove
+          ${icon('icon-close', 'sm')} Remove
         </button>
       </div>
     </div>
@@ -626,11 +705,11 @@ function setActivePreview(product, autoplay = true) {
 
   audio.src = product.preview_url;
   player.hidden = false;
-  $("#playerToggle").textContent = "▶";
+  $("#playerToggle").innerHTML = icon('icon-play', 'md');
 
   if (autoplay) {
     audio.play().then(() => {
-      $("#playerToggle").textContent = "Ⅱ";
+      $("#playerToggle").innerHTML = icon('icon-pause', 'md');
     }).catch(() => {});
   }
 }
@@ -641,10 +720,10 @@ function togglePreview() {
 
   if (audio.paused) {
     audio.play();
-    $("#playerToggle").textContent = "Ⅱ";
+    $("#playerToggle").innerHTML = icon('icon-pause', 'md');
   } else {
     audio.pause();
-    $("#playerToggle").textContent = "▶";
+    $("#playerToggle").innerHTML = icon('icon-play', 'md');
   }
 }
 
@@ -670,7 +749,7 @@ async function checkout() {
   }
 
   btn.disabled = true;
-  btn.textContent = "Sending prompt...";
+  btn.innerHTML = `${icon('icon-spin', 'sm')} Sending prompt...`;
   note.textContent = "Creating your order and sending the mobile payment prompt...";
 
   try {
@@ -698,7 +777,7 @@ async function checkout() {
     }
 
     note.textContent = "Payment prompt sent. Enter your PIN on your phone.";
-    btn.textContent = "Prompt sent";
+    btn.innerHTML = `${icon('icon-check', 'sm')} Prompt sent`;
 
     CART = [];
     updateCartUI();
@@ -706,7 +785,7 @@ async function checkout() {
   } catch (error) {
     note.textContent = error.message || "Checkout failed. Please try again.";
     btn.disabled = false;
-    btn.textContent = "Checkout";
+    btn.innerHTML = `${icon('icon-cart', 'sm')} Checkout`;
   }
 }
 
@@ -789,7 +868,7 @@ function bindEvents() {
   const audioPreview = $("#audioPreview");
   if (audioPreview) {
     audioPreview.addEventListener("ended", () => {
-      $("#playerToggle").textContent = "▶";
+      $("#playerToggle").innerHTML = icon('icon-play', 'md');
     });
   }
 }
@@ -804,6 +883,7 @@ async function initStore() {
     if (productGrid) {
       productGrid.innerHTML = `
         <div class="empty">
+          ${icon('icon-shop', 'lg')}
           Artist not found. Open a store with <strong>/store/?artist=artist-slug</strong>.
         </div>
       `;
@@ -840,6 +920,7 @@ async function initStore() {
     if (productGrid) {
       productGrid.innerHTML = `
         <div class="empty">
+          ${icon('icon-shop', 'lg')}
           <strong>Store unavailable.</strong><br>
           ${escapeHTML(error.message || "Please try again.")}
         </div>
