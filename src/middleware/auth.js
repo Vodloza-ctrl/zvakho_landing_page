@@ -1,5 +1,18 @@
-// Authentication middleware
+// src/middleware/auth.js
 export async function authenticate(request, env) {
+    // 🔥 TEST MODE - Remove this when you have real auth!
+    if (env.ENVIRONMENT === 'development') {
+        // Return a test user
+        return {
+            user_id: 'test-user-id-' + Date.now(),
+            email: 'test@zvakho.com',
+            full_name: 'Test User',
+            role: 'admin',
+            brand_id: null
+        };
+    }
+    
+    // Real auth code (keep this for production)
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) return null;
 
