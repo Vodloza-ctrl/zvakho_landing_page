@@ -1,4 +1,4 @@
-// src/index.js - Main Router (FULL VERSION)
+// src/index.js - Main Router
 import { handleTest } from './api/test.js';
 import { handleBrands } from './api/brands/index.js';
 import { requireAuth } from './middleware/auth.js';
