@@ -1,13 +1,30 @@
 // src/middleware/auth.js
 export async function authenticate(request, env) {
-    // 🔥 TEST MODE - Remove this when you have real auth!
+    // 🔥 TEST MODE - Use your REAL user from the database
     if (env.ENVIRONMENT === 'development') {
+        // Get your real user from the database
+        const user = await env.DB.prepare(
+            'SELECT * FROM users WHERE email = ?'
+        ).bind('junzatv@gmail.com').first();
+        
+        if (user) {
+            console.log('✅ Found real user:', user.email);
+            return {
+                user_id: user.user_id,
+                email: user.email,
+                full_name: user.full_name || 'Test User',
+                role: user.role || 'admin',
+                brand_id: user.brand_id || null
+            };
+        }
+        
+        // Fallback if user not found
         return {
-            user_id: 'test-user-id-' + Date.now(),
-            email: 'test@zvakho.com',
+            user_id: 'USER_OWNER_001',
+            email: 'junzatv@gmail.com',
             full_name: 'Test User',
             role: 'admin',
-            brand_id: null
+            brand_id: 'b627eebb-3182-41bd-8dc2-3b4cf37c6928'
         };
     }
     
