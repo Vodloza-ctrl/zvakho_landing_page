@@ -1,5 +1,5 @@
 // ============================================
-// ZVAKHO ULTIMATE SKIN SYSTEM - Premium Edition v3.4
+// ZVAKHO ULTIMATE SKIN SYSTEM - Premium Edition v3.5
 // ============================================
 
 const SKIN_SYSTEM = {
@@ -41,6 +41,13 @@ const SKIN_SYSTEM = {
         card_hover: 'scale',
         has_glow: true,
         has_pattern: true,
+        
+        // ── Icon Configuration ──
+        icon_style: 'bold',
+        icon_stroke_width: 2.5,
+        icon_rounded: true,
+        icon_duotone_secondary: '#ff6b6b',
+        icon_glow: false,
       },
       
       css: `
@@ -82,6 +89,21 @@ const SKIN_SYSTEM = {
           letter-spacing: 0.1em;
           text-transform: uppercase;
           font-size: 11px;
+        }
+        
+        /* ── Icon Styles ── */
+        body[data-skin="streetwear"] .icon-path {
+          stroke-width: 2.5 !important;
+          stroke-linecap: round !important;
+          stroke-linejoin: round !important;
+        }
+        body[data-skin="streetwear"] .icon--filled .icon-path {
+          fill: currentColor !important;
+          stroke: none !important;
+        }
+        body[data-skin="streetwear"] .icon--outline .icon-path {
+          fill: none !important;
+          stroke: currentColor !important;
         }
         
         /* ── Navigation ── */
@@ -155,7 +177,7 @@ const SKIN_SYSTEM = {
           color: #0a0a0a !important;
         }
         
-        /* ── Product Cards - FIXED ── */
+        /* ── Product Cards ── */
         body[data-skin="streetwear"] .product-card {
           background: rgba(20,20,20,0.95) !important;
           border: 1px solid rgba(255,255,255,0.08);
@@ -191,7 +213,7 @@ const SKIN_SYSTEM = {
           text-transform: uppercase;
         }
         
-        /* ── Price - FIXED ── */
+        /* ── Price ── */
         body[data-skin="streetwear"] .product-price {
           color: #f5a400 !important;
           font-weight: 900;
@@ -267,7 +289,7 @@ const SKIN_SYSTEM = {
           font-weight: 400;
         }
         
-        /* ── Featured Product - FIXED ── */
+        /* ── Featured Product ── */
         body[data-skin="streetwear"] .featured-card {
           background: rgba(20,20,20,0.95) !important;
           border: 1px solid rgba(255,255,255,0.08);
@@ -291,7 +313,7 @@ const SKIN_SYSTEM = {
           color: rgba(255,255,255,0.85) !important;
         }
         
-        /* ── Variant Selector - FIXED ── */
+        /* ── Variant Selector ── */
         body[data-skin="streetwear"] .variant-block {
           margin: 14px 0 8px 0;
         }
@@ -340,7 +362,6 @@ const SKIN_SYSTEM = {
           margin-top: 8px;
           font-weight: 400;
         }
-        /* ── "Please select a size" - FIXED ── */
         body[data-skin="streetwear"] .variant-note.needs-selection {
           color: #f5a400 !important;
           font-weight: 700;
@@ -351,7 +372,7 @@ const SKIN_SYSTEM = {
           color: rgba(255,255,255,0.7) !important;
         }
         
-        /* ── Music Section - FIXED ── */
+        /* ── Music Section ── */
         body[data-skin="streetwear"] .music-section {
           background: rgba(10,10,10,0.9);
           border-top: 1px solid rgba(255,255,255,0.06);
@@ -387,7 +408,7 @@ const SKIN_SYSTEM = {
           color: #f5a400 !important;
         }
         
-        /* ── Story Card / Artist World - FIXED ── */
+        /* ── Story Card ── */
         body[data-skin="streetwear"] .story-card {
           background: rgba(20,20,20,0.95) !important;
           border: 1px solid rgba(255,255,255,0.08);
@@ -430,15 +451,6 @@ const SKIN_SYSTEM = {
           background: rgba(255,255,255,0.05);
         }
         
-        /* ── "Social links coming soon" - FIXED ── */
-        body[data-skin="streetwear"] .social-row .badge,
-        body[data-skin="streetwear"] .social-row span.badge {
-          color: rgba(255,255,255,0.8) !important;
-          border-color: rgba(255,255,255,0.12);
-          background: rgba(255,255,255,0.05);
-          font-weight: 600;
-        }
-        
         /* ── Footer ── */
         body[data-skin="streetwear"] .artist-footer {
           color: rgba(255,255,255,0.8) !important;
@@ -465,7 +477,7 @@ const SKIN_SYSTEM = {
             );
         }
         
-        /* ── "Buy track" text - FIXED ── */
+        /* ── Floating Player ── */
         body[data-skin="streetwear"] .player-buy {
           color: #ffffff !important;
           border: 1px solid rgba(255,255,255,0.2);
@@ -482,8 +494,6 @@ const SKIN_SYSTEM = {
         body[data-skin="streetwear"] .player-meta span {
           color: rgba(255,255,255,0.7) !important;
         }
-        
-        /* ── Floating Player ── */
         body[data-skin="streetwear"] .floating-player {
           background: rgba(10,10,10,0.95) !important;
           border: 1px solid rgba(255,255,255,0.1);
@@ -602,6 +612,13 @@ const SKIN_SYSTEM = {
         card_hover: 'zoom',
         has_glow: true,
         has_pattern: true,
+        
+        // ── Icon Configuration ──
+        icon_style: 'duotone',
+        icon_stroke_width: 2,
+        icon_rounded: true,
+        icon_duotone_secondary: '#f5c842',
+        icon_glow: false,
       },
       
       css: `
@@ -642,6 +659,27 @@ const SKIN_SYSTEM = {
           letter-spacing: 0.1em;
           text-transform: uppercase;
           font-size: 11px;
+        }
+        
+        /* ── Icon Styles ── */
+        body[data-skin="sports"] .icon-path {
+          stroke-width: 2 !important;
+          stroke-linecap: round !important;
+          stroke-linejoin: round !important;
+        }
+        body[data-skin="sports"] .icon--duotone .icon-path {
+          stroke: currentColor !important;
+          stroke-width: 2 !important;
+        }
+        body[data-skin="sports"] .icon--duotone .icon-path-secondary {
+          stroke: #f5c842 !important;
+          opacity: 0.7 !important;
+          stroke-width: 2 !important;
+        }
+        body[data-skin="sports"] .icon--duotone .icon-path-fill {
+          fill: #f5c842 !important;
+          opacity: 0.15 !important;
+          stroke: none !important;
         }
         
         /* ── Navigation ── */
@@ -717,7 +755,7 @@ const SKIN_SYSTEM = {
           color: #ffffff !important;
         }
         
-        /* ── Product Cards - FIXED ── */
+        /* ── Product Cards ── */
         body[data-skin="sports"] .product-card {
           background: rgba(15,26,46,0.95) !important;
           border: 2px solid rgba(255,255,255,0.06);
@@ -753,7 +791,7 @@ const SKIN_SYSTEM = {
           text-transform: uppercase;
         }
         
-        /* ── Price - FIXED ── */
+        /* ── Price ── */
         body[data-skin="sports"] .product-price {
           color: #f5c842 !important;
           font-family: 'Bebas Neue', sans-serif;
@@ -832,7 +870,7 @@ const SKIN_SYSTEM = {
           font-weight: 400;
         }
         
-        /* ── Featured Product - FIXED ── */
+        /* ── Featured Product ── */
         body[data-skin="sports"] .featured-card {
           background: rgba(15,26,46,0.95) !important;
           border: 2px solid rgba(255,255,255,0.06);
@@ -856,7 +894,7 @@ const SKIN_SYSTEM = {
           color: rgba(255,255,255,0.85) !important;
         }
         
-        /* ── Variant Selector - FIXED ── */
+        /* ── Variant Selector ── */
         body[data-skin="sports"] .variant-block {
           margin: 14px 0 8px 0;
         }
@@ -905,7 +943,6 @@ const SKIN_SYSTEM = {
           margin-top: 8px;
           font-weight: 400;
         }
-        /* ── "Please select a size" - FIXED ── */
         body[data-skin="sports"] .variant-note.needs-selection {
           color: #f5c842 !important;
           font-weight: 700;
@@ -916,7 +953,7 @@ const SKIN_SYSTEM = {
           color: rgba(255,255,255,0.7) !important;
         }
         
-        /* ── Music Section - FIXED ── */
+        /* ── Music Section ── */
         body[data-skin="sports"] .music-section {
           background: rgba(10,20,40,0.9);
           border-top: 1px solid rgba(255,255,255,0.06);
@@ -952,7 +989,7 @@ const SKIN_SYSTEM = {
           color: #e8432b !important;
         }
         
-        /* ── Story Card / Artist World - FIXED ── */
+        /* ── Story Card ── */
         body[data-skin="sports"] .story-card {
           background: rgba(15,26,46,0.95) !important;
           border: 2px solid rgba(255,255,255,0.06);
@@ -995,15 +1032,6 @@ const SKIN_SYSTEM = {
           background: rgba(255,255,255,0.05);
         }
         
-        /* ── "Social links coming soon" - FIXED ── */
-        body[data-skin="sports"] .social-row .badge,
-        body[data-skin="sports"] .social-row span.badge {
-          color: rgba(255,255,255,0.8) !important;
-          border-color: rgba(255,255,255,0.12);
-          background: rgba(255,255,255,0.05);
-          font-weight: 600;
-        }
-        
         /* ── Footer ── */
         body[data-skin="sports"] .artist-footer {
           color: rgba(255,255,255,0.8) !important;
@@ -1029,7 +1057,7 @@ const SKIN_SYSTEM = {
             radial-gradient(circle at 20% 80%, rgba(232,67,43,0.03) 0%, transparent 50%);
         }
         
-        /* ── "Buy track" text - FIXED ── */
+        /* ── Floating Player ── */
         body[data-skin="sports"] .player-buy {
           color: #ffffff !important;
           border: 1px solid rgba(255,255,255,0.2);
@@ -1046,8 +1074,6 @@ const SKIN_SYSTEM = {
         body[data-skin="sports"] .player-meta span {
           color: rgba(255,255,255,0.7) !important;
         }
-        
-        /* ── Floating Player ── */
         body[data-skin="sports"] .floating-player {
           background: rgba(10,20,40,0.95) !important;
           border: 1px solid rgba(255,255,255,0.1);
@@ -1129,7 +1155,6 @@ const SKIN_SYSTEM = {
       `
     },
     
-    // ── LUXURY SKIN ──
     luxury: {
       id: 'luxury',
       label: 'Luxury',
@@ -1167,6 +1192,13 @@ const SKIN_SYSTEM = {
         card_hover: 'elegant',
         has_glow: true,
         has_pattern: true,
+        
+        // ── Icon Configuration ──
+        icon_style: 'thin',
+        icon_stroke_width: 1,
+        icon_rounded: true,
+        icon_duotone_secondary: '#d4b87a',
+        icon_glow: false,
       },
       
       css: `
@@ -1187,6 +1219,21 @@ const SKIN_SYSTEM = {
           text-shadow: 0 2px 20px rgba(0,0,0,0.6);
           opacity: 1 !important;
         }
+        
+        /* ── Icon Styles ── */
+        body[data-skin="luxury"] .icon-path {
+          stroke-width: 1 !important;
+          stroke-linecap: round !important;
+          stroke-linejoin: round !important;
+        }
+        body[data-skin="luxury"] .icon--outline .icon-path {
+          fill: none !important;
+          stroke: currentColor !important;
+        }
+        body[data-skin="luxury"] .icon--thin .icon-path {
+          stroke-width: 0.75 !important;
+        }
+        
         body[data-skin="luxury"] .store-pill {
           border: 1px solid rgba(201,168,76,0.3);
           color: #c9a84c !important;
@@ -1616,7 +1663,6 @@ const SKIN_SYSTEM = {
       `
     },
     
-    // ── CORPORATE SKIN ──
     corporate: {
       id: 'corporate',
       label: 'Corporate',
@@ -1654,6 +1700,13 @@ const SKIN_SYSTEM = {
         card_hover: 'fade',
         has_glow: false,
         has_pattern: false,
+        
+        // ── Icon Configuration ──
+        icon_style: 'filled',
+        icon_stroke_width: 1.5,
+        icon_rounded: false,
+        icon_duotone_secondary: '#2d6b5a',
+        icon_glow: false,
       },
       
       css: `
@@ -1671,6 +1724,22 @@ const SKIN_SYSTEM = {
           color: rgba(26,26,26,0.85) !important;
           font-weight: 400;
         }
+        
+        /* ── Icon Styles ── */
+        body[data-skin="corporate"] .icon-path {
+          stroke-width: 1.5 !important;
+          stroke-linecap: square !important;
+          stroke-linejoin: miter !important;
+        }
+        body[data-skin="corporate"] .icon--filled .icon-path {
+          fill: currentColor !important;
+          stroke: none !important;
+        }
+        body[data-skin="corporate"] .icon--sharp .icon-path {
+          stroke-linecap: square !important;
+          stroke-linejoin: miter !important;
+        }
+        
         body[data-skin="corporate"] .store-pill {
           border: 1px solid rgba(26,60,52,0.2);
           color: #1a3c34 !important;
@@ -2055,7 +2124,6 @@ const SKIN_SYSTEM = {
       `
     },
     
-    // ── EARTHY/NATURAL SKIN ──
     earthy_natural: {
       id: 'earthy_natural',
       label: 'Earthy & Natural',
@@ -2093,6 +2161,13 @@ const SKIN_SYSTEM = {
         card_hover: 'fade',
         has_glow: true,
         has_pattern: false,
+        
+        // ── Icon Configuration ──
+        icon_style: 'soft',
+        icon_stroke_width: 1.5,
+        icon_rounded: true,
+        icon_duotone_secondary: '#8faa8b',
+        icon_glow: false,
       },
       
       css: `
@@ -2109,6 +2184,22 @@ const SKIN_SYSTEM = {
           color: rgba(45,42,36,0.85) !important;
           font-weight: 400;
         }
+        
+        /* ── Icon Styles ── */
+        body[data-skin="earthy_natural"] .icon-path {
+          stroke-width: 1.5 !important;
+          stroke-linecap: round !important;
+          stroke-linejoin: round !important;
+        }
+        body[data-skin="earthy_natural"] .icon--filled .icon-path {
+          fill: currentColor !important;
+          stroke: none !important;
+        }
+        body[data-skin="earthy_natural"] .icon--soft .icon-path {
+          stroke-linecap: round !important;
+          stroke-linejoin: round !important;
+        }
+        
         body[data-skin="earthy_natural"] .store-pill {
           border: 1px solid rgba(107,143,113,0.3);
           color: #6b8f71 !important;
@@ -2485,7 +2576,6 @@ const SKIN_SYSTEM = {
       `
     },
     
-    // ── GOSPEL SKIN ──
     gospel: {
       id: 'gospel',
       label: 'Gospel',
@@ -2523,6 +2613,13 @@ const SKIN_SYSTEM = {
         card_hover: 'fade',
         has_glow: true,
         has_pattern: false,
+        
+        // ── Icon Configuration ──
+        icon_style: 'outline',
+        icon_stroke_width: 1.25,
+        icon_rounded: true,
+        icon_duotone_secondary: '#e8d5c4',
+        icon_glow: true,
       },
       
       css: `
@@ -2539,6 +2636,21 @@ const SKIN_SYSTEM = {
           color: rgba(26,26,26,0.85) !important;
           font-weight: 400;
         }
+        
+        /* ── Icon Styles ── */
+        body[data-skin="gospel"] .icon-path {
+          stroke-width: 1.25 !important;
+          stroke-linecap: round !important;
+          stroke-linejoin: round !important;
+        }
+        body[data-skin="gospel"] .icon--glow {
+          filter: drop-shadow(0 0 12px rgba(193,154,107,0.3)) !important;
+        }
+        body[data-skin="gospel"] .icon--outline .icon-path {
+          fill: none !important;
+          stroke: currentColor !important;
+        }
+        
         body[data-skin="gospel"] .store-pill {
           border: 1px solid rgba(193,154,107,0.3);
           color: #c19a6b !important;
@@ -2922,7 +3034,8 @@ const SKIN_SYSTEM = {
     'Cormorant Garamond': 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&display=swap',
     'Inter': 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap',
     'Montserrat': 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap',
-    'Alegreya': 'https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,700;1,400&display=swap'
+    'Alegreya': 'https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,700;1,400&display=swap',
+    'Georgia': 'https://fonts.googleapis.com/css2?family=Georgia&display=swap'
   }
 };
 
@@ -2957,6 +3070,7 @@ class SkinManager {
     }
     
     console.log(`🎨 Applied skin: ${skin.label}`);
+    console.log(`🎨 Icon style: ${skin.theme.icon_style}, stroke: ${skin.theme.icon_stroke_width}`);
     return skin;
   }
   
@@ -2983,6 +3097,13 @@ class SkinManager {
     root.style.setProperty('--skin-card-shadow', t.card_shadow || 'none');
     root.style.setProperty('--skin-card-hover-shadow', t.card_hover_shadow || 'none');
     root.style.setProperty('--skin-button-radius', t.button_radius || '999px');
+    
+    // Icon theme variables
+    root.style.setProperty('--icon-style', t.icon_style || 'outline');
+    root.style.setProperty('--icon-stroke-width', t.icon_stroke_width || '2');
+    root.style.setProperty('--icon-rounded', t.icon_rounded ? 'round' : 'square');
+    root.style.setProperty('--icon-duotone-secondary', t.icon_duotone_secondary || '#ffd700');
+    root.style.setProperty('--icon-glow', t.icon_glow ? 'true' : 'false');
     
     document.body.dataset.skin = skin.id;
   }
@@ -3072,6 +3193,11 @@ class SkinManager {
     
     return 'streetwear';
   }
+  
+  getIconConfig(skinId) {
+    const skin = this.skinSystem.skins[skinId] || this.skinSystem.skins.streetwear;
+    return skin.theme;
+  }
 }
 
 // ── Add animation keyframes ──────────────────────
@@ -3119,4 +3245,5 @@ class SkinManager {
 window.SkinManager = SkinManager;
 window.SKIN_SYSTEM = SKIN_SYSTEM;
 
-console.log('🎨 ZVAKHO Ultimate Skin System v3.4 loaded');
+console.log('🎨 ZVAKHO Ultimate Skin System v3.5 loaded');
+console.log('🎨 Icon themes configured for all 6 skins');
