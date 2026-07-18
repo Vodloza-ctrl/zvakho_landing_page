@@ -1,1 +1,15 @@
-
+{
+  "name": "zvakho-platform",
+  "version": "2.0.0",
+  "description": "ZVAKHO Brand Launcher Platform",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "jose": "^5.0.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
