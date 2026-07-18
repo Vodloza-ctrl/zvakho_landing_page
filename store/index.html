@@ -22,10 +22,9 @@
 
 <body class="store-page is-loading" data-skin="streetwear" data-layout="universal">
 
-<!-- SVG SPRITE - Only for social media icons -->
+<!-- SVG SPRITE - Social Media Icons Only -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none;" id="iconSprite">
   <defs>
-    <!-- ── SOCIAL ICONS ONLY ── -->
     <symbol id="icon-instagram" viewBox="0 0 24 24">
       <rect class="icon-path" x="2" y="2" width="20" height="20" rx="5" ry="5"/>
       <path class="icon-path" d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
@@ -61,6 +60,7 @@
   </defs>
 </svg>
 
+<!-- ─── NAVIGATION ─── -->
 <nav class="store-nav" aria-label="Store navigation">
   <div class="store-shell store-nav-inner">
     <a class="store-brand" href="/" aria-label="ZVAKHO home">
@@ -81,6 +81,7 @@
   </div>
 </nav>
 
+<!-- ─── TICKER ─── -->
 <div class="store-ticker" id="ticker" aria-label="Store announcement">
   <div class="store-ticker-track" id="tickerTrack">
     <span>OFFICIAL STORE • MUSIC • MERCH • LIMITED RELEASES •</span>
@@ -88,6 +89,7 @@
   </div>
 </div>
 
+<!-- ─── HERO ─── -->
 <header class="experience-hero" id="storeHero">
   <div class="hero-media" aria-hidden="true"></div>
   <div class="hero-overlay" aria-hidden="true"></div>
@@ -116,7 +118,9 @@
   </div>
 </header>
 
+<!-- ─── MAIN CONTENT ─── -->
 <main>
+  <!-- FEATURED RELEASE -->
   <section class="featured-drop store-shell" id="drop">
     <div class="section-intro split-intro">
       <div>
@@ -131,6 +135,7 @@
     </div>
   </section>
 
+  <!-- PRODUCTS -->
   <section class="store-shell product-section" id="products">
     <div class="section-intro">
       <span class="micro-label">Shop</span>
@@ -143,6 +148,7 @@
     </div>
   </section>
 
+  <!-- MUSIC -->
   <section class="music-section" id="music">
     <div class="store-shell music-layout">
       <div class="section-intro">
@@ -157,6 +163,7 @@
     </div>
   </section>
 
+  <!-- ABOUT / ARTIST WORLD -->
   <section class="artist-story store-shell" id="about">
     <div class="story-card">
       <div class="story-profile">
@@ -172,6 +179,7 @@
   </section>
 </main>
 
+<!-- ─── FOOTER ─── -->
 <footer class="artist-footer" id="artistFooter">
   <div class="store-shell artist-footer-grid">
     <div>
@@ -189,6 +197,7 @@
   </div>
 </footer>
 
+<!-- ─── CART DRAWER ─── -->
 <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
   <div class="cart-backdrop" data-cart-close></div>
   <section class="cart-panel" aria-label="Shopping cart">
@@ -217,6 +226,7 @@
   </section>
 </aside>
 
+<!-- ─── FLOATING PLAYER ─── -->
 <div class="floating-player" id="floatingPlayer" hidden>
   <button class="player-btn" type="button" id="playerToggle" aria-label="Play preview">▶</button>
   <div class="player-meta">
@@ -227,12 +237,13 @@
   <audio id="audioPreview" preload="none"></audio>
 </div>
 
+<!-- ─── MOBILE BUY BAR ─── -->
 <div class="mobile-buy-bar" id="mobileBuyBar" hidden>
   <span><strong id="mobileCartCount">0</strong> item(s)</span>
   <button type="button" data-cart-open>Checkout</button>
 </div>
 
-<!-- Skin System -->
+<!-- ─── SCRIPTS ─── -->
 <script src="/store/store-skins.js?v=5"></script>
 <script src="/store/store.js?v=5"></script>
 </body>
