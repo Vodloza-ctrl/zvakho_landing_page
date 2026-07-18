@@ -190,3 +190,320 @@ body[data-skin="luxury"] .product-grid {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ============================================
+   ICON STYLES - Skin System
+   ============================================ */
+
+/* ── Base Icon Styles ── */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.icon svg,
+.icon use {
+  width: 100%;
+  height: 100%;
+}
+
+.icon-path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: all 0.3s ease;
+}
+
+/* ── Icon Sizes ── */
+.icon-sm { width: 18px; height: 18px; }
+.icon-md { width: 24px; height: 24px; }
+.icon-lg { width: 32px; height: 32px; }
+.icon-xl { width: 48px; height: 48px; }
+
+/* ── Icon Colors ── */
+.icon-primary { color: var(--store-primary, #f5a400); }
+.icon-text { color: var(--store-text, #1a1a1a); }
+.icon-muted { color: var(--store-muted, #888); }
+.icon-inverse { color: var(--store-text-inverse, #fff); }
+
+/* ── SKIN-SPECIFIC ICON STYLES ── */
+
+/* ── STREETWEAR: Bold, thick strokes, urban edge ── */
+body[data-skin="streetwear"] .icon-path {
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+body[data-skin="streetwear"] .icon--filled .icon-path {
+  fill: currentColor;
+  stroke: none;
+}
+
+body[data-skin="streetwear"] .icon--outline .icon-path {
+  fill: none;
+  stroke: currentColor;
+}
+
+/* ── SPORTS: Duotone, dynamic, energetic ── */
+body[data-skin="sports"] .icon-path {
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+body[data-skin="sports"] .icon--duotone .icon-path {
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+body[data-skin="sports"] .icon--duotone .icon-path-secondary {
+  stroke: var(--store-secondary, #f5c842);
+  opacity: 0.7;
+  stroke-width: 2;
+}
+
+body[data-skin="sports"] .icon--duotone .icon-path-fill {
+  fill: var(--store-secondary, #f5c842);
+  opacity: 0.15;
+  stroke: none;
+}
+
+/* ── LUXURY: Thin strokes, minimal, elegant ── */
+body[data-skin="luxury"] .icon-path {
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+body[data-skin="luxury"] .icon--outline .icon-path {
+  fill: none;
+  stroke: currentColor;
+}
+
+body[data-skin="luxury"] .icon--thin .icon-path {
+  stroke-width: 0.75;
+}
+
+/* ── CORPORATE: Sharp, precise, solid ── */
+body[data-skin="corporate"] .icon-path {
+  stroke-width: 1.5;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+body[data-skin="corporate"] .icon--filled .icon-path {
+  fill: currentColor;
+  stroke: none;
+}
+
+body[data-skin="corporate"] .icon--sharp .icon-path {
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+/* ── EARTHY: Soft, rounded, filled ── */
+body[data-skin="earthy_natural"] .icon-path {
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+body[data-skin="earthy_natural"] .icon--filled .icon-path {
+  fill: currentColor;
+  stroke: none;
+}
+
+body[data-skin="earthy_natural"] .icon--soft .icon-path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── GOSPEL: Thin with subtle glow ── */
+body[data-skin="gospel"] .icon-path {
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+body[data-skin="gospel"] .icon--glow {
+  filter: drop-shadow(0 0 12px rgba(193, 154, 107, 0.3));
+}
+
+body[data-skin="gospel"] .icon--outline .icon-path {
+  fill: none;
+  stroke: currentColor;
+}
+
+/* ── Icon Animations ── */
+.icon-pulse {
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+.icon-spin {
+  animation: iconSpin 3s linear infinite;
+}
+
+.icon-bounce {
+  animation: iconBounce 1s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes iconSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes iconBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ── Icon hover effects ── */
+.icon-hover {
+  transition: all 0.3s ease;
+}
+
+.icon-hover:hover {
+  transform: scale(1.15);
+  color: var(--store-primary, #f5a400);
+}
+
+/* ── Navigation icon styles ── */
+.nav-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--store-muted, #888);
+  transition: color 0.3s ease;
+  text-decoration: none;
+}
+
+.nav-icon:hover {
+  color: var(--store-primary, #f5a400);
+}
+
+.nav-icon .icon {
+  transition: transform 0.3s ease;
+}
+
+.nav-icon:hover .icon {
+  transform: scale(1.1);
+}
+
+/* ── Cart button with icon ── */
+.cart-trigger-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--store-line, rgba(0,0,0,0.1));
+  background: rgba(255,255,255,0.05);
+  color: var(--store-text, #1a1a1a);
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.cart-trigger-with-icon:hover {
+  border-color: var(--store-primary, #f5a400);
+  background: rgba(255,255,255,0.1);
+}
+
+/* ── Social icons ── */
+.social-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--store-line, rgba(0,0,0,0.1));
+  color: var(--store-muted, #888);
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.social-icon:hover {
+  border-color: var(--store-primary, #f5a400);
+  color: var(--store-primary, #f5a400);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.social-icon .icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── Feature icons ── */
+.feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--store-primary, #f5a400);
+  color: var(--store-text-inverse, #fff);
+  transition: all 0.3s ease;
+}
+
+.feature-icon .icon {
+  width: 28px;
+  height: 28px;
+}
+
+.feature-icon:hover {
+  transform: scale(1.05) rotate(-3deg);
+}
+
+/* ── Skin-specific icon colors ── */
+body[data-skin="streetwear"] .icon-primary { color: #f5a400; }
+body[data-skin="sports"] .icon-primary { color: #e8432b; }
+body[data-skin="luxury"] .icon-primary { color: #c9a84c; }
+body[data-skin="corporate"] .icon-primary { color: #1a3c34; }
+body[data-skin="earthy_natural"] .icon-primary { color: #6b8f71; }
+body[data-skin="gospel"] .icon-primary { color: #c19a6b; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .icon { width: 20px; height: 20px; }
+  .icon-lg { width: 28px; height: 28px; }
+  .icon-xl { width: 40px; height: 40px; }
+  .social-icon { width: 36px; height: 36px; }
+  .social-icon .icon { width: 18px; height: 18px; }
+  .feature-icon { width: 48px; height: 48px; }
+  .feature-icon .icon { width: 24px; height: 24px; }
+}
+
+/* ── Icon Utility Classes ── */
+.icon-left { margin-right: 8px; }
+.icon-right { margin-left: 8px; }
+.icon-center { margin: 0 auto; }
+
+.icon-clickable {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.icon-clickable:hover {
+  opacity: 0.8;
+  transform: scale(0.95);
+}
+
+.icon-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
