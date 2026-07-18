@@ -55,6 +55,451 @@ async function handleTest(request, env) {
 }
 __name(handleTest, "handleTest");
 
+// src/lib/validators.js
+function validateBrandName(name) {
+  if (!name || name.length < 2) {
+    return { valid: false, error: "Brand name must be at least 2 characters" };
+  }
+  if (name.length > 100) {
+    return { valid: false, error: "Brand name must be less than 100 characters" };
+  }
+  return { valid: true };
+}
+__name(validateBrandName, "validateBrandName");
+function validateEmail(email) {
+  if (!email)
+    return { valid: true };
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return { valid: false, error: "Invalid email format" };
+  }
+  return { valid: true };
+}
+__name(validateEmail, "validateEmail");
+function validatePhone(phone) {
+  if (!phone)
+    return { valid: true };
+  const phoneRegex = /^\+?[\d\s-]{10,15}$/;
+  if (!phoneRegex.test(phone)) {
+    return { valid: false, error: "Invalid phone number" };
+  }
+  return { valid: true };
+}
+__name(validatePhone, "validatePhone");
+function slugify(text) {
+  return text.toString().toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w\-]+/g, "").replace(/\-\-+/g, "-").replace(/^-+/, "").replace(/-+$/, "");
+}
+__name(slugify, "slugify");
+
+// src/lib/db.js
+async function query(env, sql, params = []) {
+  try {
+    const result = await env.DB.prepare(sql).bind(...params).all();
+    return result.results || [];
+  } catch (error) {
+    console.error("Database error:", error);
+    throw error;
+  }
+}
+__name(query, "query");
+async function queryOne(env, sql, params = []) {
+  try {
+    const result = await env.DB.prepare(sql).bind(...params).first();
+    return result || null;
+  } catch (error) {
+    console.error("Database error:", error);
+    throw error;
+  }
+}
+__name(queryOne, "queryOne");
+async function execute(env, sql, params = []) {
+  try {
+    const result = await env.DB.prepare(sql).bind(...params).run();
+    return result;
+  } catch (error) {
+    console.error("Database error:", error);
+    throw error;
+  }
+}
+__name(execute, "execute");
+
+// src/api/brands/create.js
+async function createBrand(request, env, user) {
+  try {
+    const body = await request.json();
+    const { name, email, phone } = body;
+    const nameCheck = validateBrandName(name);
+    if (!nameCheck.valid) {
+      return new Response(JSON.stringify({ error: nameCheck.error }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.valid) {
+      return new Response(JSON.stringify({ error: emailCheck.error }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const phoneCheck = validatePhone(phone);
+    if (!phoneCheck.valid) {
+      return new Response(JSON.stringify({ error: phoneCheck.error }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const slug = slugify(name);
+    const existing = await queryOne(
+      env,
+      "SELECT brand_id FROM brands WHERE brand_slug = ? AND deleted_at IS NULL",
+      [slug]
+    );
+    if (existing) {
+      return new Response(JSON.stringify({
+        error: "Brand name already taken"
+      }), {
+        status: 409,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const brandId = crypto.randomUUID();
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    await execute(env, `
+            INSERT INTO brands (
+                brand_id, brand_name, brand_slug, brand_email, brand_phone,
+                store_status, subscription_plan, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, 'draft', 'launch', ?, ?)
+        `, [brandId, name, slug, email || null, phone || null, now, now]);
+    await execute(env, `
+            UPDATE users SET brand_id = ?, role = 'admin' WHERE user_id = ?
+        `, [brandId, user.user_id]);
+    await execute(env, `
+            INSERT INTO subscription_history (
+                brand_id, plan, status, fee_percentage, max_products, changed_at
+            ) VALUES (?, 'launch', 'active', 12, 5, ?)
+        `, [brandId, now]);
+    const brand = await queryOne(env, `
+            SELECT * FROM brands WHERE brand_id = ?
+        `, [brandId]);
+    return new Response(JSON.stringify({
+      success: true,
+      brand,
+      message: "Brand created successfully!"
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("Create brand error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to create brand"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(createBrand, "createBrand");
+
+// src/api/brands/get.js
+async function getBrand(request, env, user, brandId) {
+  try {
+    if (user.brand_id !== brandId && user.role !== "admin") {
+      return new Response(JSON.stringify({
+        error: "Unauthorized"
+      }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const brand = await queryOne(env, `
+            SELECT * FROM brands 
+            WHERE brand_id = ? AND deleted_at IS NULL
+        `, [brandId]);
+    if (!brand) {
+      return new Response(JSON.stringify({
+        error: "Brand not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      brand
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("Get brand error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to get brand"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(getBrand, "getBrand");
+
+// src/api/brands/list.js
+async function listBrands(request, env, user) {
+  try {
+    if (user.role !== "admin") {
+      if (user.brand_id) {
+        const brand = await query(env, `
+                    SELECT * FROM brands 
+                    WHERE brand_id = ? AND deleted_at IS NULL
+                `, [user.brand_id]);
+        return new Response(JSON.stringify({
+          success: true,
+          brands: brand
+        }), {
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        brands: []
+      }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const brands = await query(env, `
+            SELECT * FROM brands 
+            WHERE deleted_at IS NULL
+            ORDER BY created_at DESC
+        `);
+    return new Response(JSON.stringify({
+      success: true,
+      brands
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("List brands error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to list brands"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(listBrands, "listBrands");
+
+// src/api/brands/update.js
+async function updateBrand(request, env, user, brandId) {
+  try {
+    if (user.brand_id !== brandId) {
+      return new Response(JSON.stringify({
+        error: "Unauthorized"
+      }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const body = await request.json();
+    const updates = [];
+    const values = [];
+    const allowedFields = {
+      "brand_name": validateBrandName,
+      "brand_email": validateEmail,
+      "brand_phone": validatePhone,
+      "brand_feeling": (val) => {
+        const valid = ["premium", "modern", "streetwear", "minimal", "vintage"];
+        return valid.includes(val) ? { valid: true } : { valid: false, error: "Invalid brand feeling" };
+      },
+      "primary_color": (val) => {
+        const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+        return hexRegex.test(val) ? { valid: true } : { valid: false, error: "Invalid hex color" };
+      },
+      "secondary_color": (val) => {
+        const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+        return hexRegex.test(val) ? { valid: true } : { valid: false, error: "Invalid hex color" };
+      },
+      "accent_color": (val) => {
+        const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+        return hexRegex.test(val) ? { valid: true } : { valid: false, error: "Invalid hex color" };
+      },
+      "font_primary": (val) => {
+        const fonts = [
+          "Inter",
+          "Roboto",
+          "Open Sans",
+          "Lato",
+          "Montserrat",
+          "Playfair Display",
+          "Bebas Neue",
+          "Cormorant Garamond",
+          "Raleway"
+        ];
+        return fonts.includes(val) ? { valid: true } : { valid: false, error: "Invalid font" };
+      },
+      "font_secondary": (val) => {
+        const fonts = [
+          "Inter",
+          "Roboto",
+          "Open Sans",
+          "Lato",
+          "Montserrat",
+          "Playfair Display",
+          "Bebas Neue",
+          "Cormorant Garamond",
+          "Raleway"
+        ];
+        return fonts.includes(val) ? { valid: true } : { valid: false, error: "Invalid font" };
+      },
+      "store_status": (val) => {
+        const valid = ["draft", "active", "paused", "closed"];
+        return valid.includes(val) ? { valid: true } : { valid: false, error: "Invalid store status" };
+      },
+      "store_hours": (val) => ({ valid: true }),
+      "whatsapp_number": validatePhone,
+      "logo_url": (val) => ({ valid: true }),
+      "custom_domain": (val) => ({ valid: true })
+    };
+    for (const [field, validator] of Object.entries(allowedFields)) {
+      if (body[field] !== void 0) {
+        const validation = validator(body[field]);
+        if (!validation.valid) {
+          return new Response(JSON.stringify({
+            error: validation.error
+          }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+        updates.push(`${field} = ?`);
+        values.push(body[field]);
+      }
+    }
+    if (updates.length === 0) {
+      return new Response(JSON.stringify({
+        error: "No fields to update"
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (body.brand_name) {
+      const newSlug = slugify(body.brand_name);
+      const existing = await queryOne(env, `
+                SELECT brand_id FROM brands 
+                WHERE brand_slug = ? AND brand_id != ? AND deleted_at IS NULL
+            `, [newSlug, brandId]);
+      if (existing) {
+        return new Response(JSON.stringify({
+          error: "Brand name already taken"
+        }), {
+          status: 409,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+      updates.push("brand_slug = ?");
+      values.push(newSlug);
+    }
+    values.push((/* @__PURE__ */ new Date()).toISOString(), brandId);
+    await execute(env, `
+            UPDATE brands 
+            SET ${updates.join(", ")}, updated_at = ?
+            WHERE brand_id = ?
+        `, values);
+    const brand = await queryOne(env, `
+            SELECT * FROM brands WHERE brand_id = ?
+        `, [brandId]);
+    return new Response(JSON.stringify({
+      success: true,
+      brand,
+      message: "Brand updated successfully!"
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("Update brand error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to update brand"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(updateBrand, "updateBrand");
+
+// src/api/brands/index.js
+async function handleBrands(request, env, user) {
+  const url = new URL(request.url);
+  const path = url.pathname.replace("/api/brands", "");
+  if (request.method === "GET" && (path === "" || path === "/")) {
+    return listBrands(request, env, user);
+  }
+  if (request.method === "POST" && (path === "" || path === "/")) {
+    return createBrand(request, env, user);
+  }
+  if (request.method === "GET" && path.startsWith("/")) {
+    const id = path.slice(1);
+    return getBrand(request, env, user, id);
+  }
+  if (request.method === "PUT" && path.startsWith("/")) {
+    const id = path.slice(1);
+    return updateBrand(request, env, user, id);
+  }
+  return new Response(JSON.stringify({
+    error: "Not found"
+  }), {
+    status: 404,
+    headers: { "Content-Type": "application/json" }
+  });
+}
+__name(handleBrands, "handleBrands");
+
+// src/middleware/auth.js
+async function authenticate(request, env) {
+  if (env.ENVIRONMENT === "development") {
+    return {
+      user_id: "test-user-id-" + Date.now(),
+      email: "test@zvakho.com",
+      full_name: "Test User",
+      role: "admin",
+      brand_id: null
+    };
+  }
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader)
+    return null;
+  try {
+    const token = authHeader.split(" ")[1];
+    const session = await env.DB.prepare(
+      "SELECT * FROM sessions WHERE token = ? AND is_active = 1"
+    ).bind(token).first();
+    if (!session)
+      return null;
+    const user = await env.DB.prepare(`
+            SELECT u.*, b.brand_id, b.brand_slug, b.brand_name
+            FROM users u
+            LEFT JOIN brands b ON u.brand_id = b.brand_id
+            WHERE u.user_id = ?
+        `).bind(session.user_id).first();
+    return user;
+  } catch (error) {
+    console.error("Auth error:", error);
+    return null;
+  }
+}
+__name(authenticate, "authenticate");
+async function requireAuth(request, env) {
+  const user = await authenticate(request, env);
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+  return user;
+}
+__name(requireAuth, "requireAuth");
+
 // src/index.js
 var src_default = {
   async fetch(request, env) {
@@ -72,9 +517,21 @@ var src_default = {
         headers: { "Content-Type": "application/json" }
       });
     }
+    if (path.startsWith("/api/brands")) {
+      const user = await requireAuth(request, env);
+      if (user instanceof Response)
+        return user;
+      return handleBrands(request, env, user);
+    }
     return new Response(JSON.stringify({
       error: "Not found - ZVAKHO v2 endpoint",
-      available: ["/api/v2/test", "/api/test", "/health"]
+      available: [
+        "/api/v2/test",
+        "/api/test",
+        "/health",
+        "/api/brands (POST, GET)",
+        "/api/brands/:id (GET, PUT)"
+      ]
     }), {
       status: 404,
       headers: { "Content-Type": "application/json" }
