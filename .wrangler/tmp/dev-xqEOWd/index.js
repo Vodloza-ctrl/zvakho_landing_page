@@ -1908,8 +1908,8 @@ async function handleWebhook(request, env) {
                     updated_at = ?
                 WHERE order_id = ?
             `).bind((/* @__PURE__ */ new Date()).toISOString(), order.order_id).run();
-      await processPaidOrder(env, order);
-      await sendPaymentNotifications(env, order);
+      await processPaidOrder2(env, order);
+      await sendPaymentNotifications2(env, order);
       return new Response("OK - Payment confirmed", { status: 200 });
     }
     await env.DB.prepare(`
@@ -1931,7 +1931,7 @@ async function handleWebhook(request, env) {
   }
 }
 __name(handleWebhook, "handleWebhook");
-async function processPaidOrder(env, order) {
+async function processPaidOrder2(env, order) {
   console.log("\u{1F504} Processing paid order:", order.order_id);
   const orderItems = await env.DB.prepare(`
         SELECT * FROM order_items 
@@ -1959,7 +1959,7 @@ async function processPaidOrder(env, order) {
     }
   }
 }
-__name(processPaidOrder, "processPaidOrder");
+__name(processPaidOrder2, "processPaidOrder");
 async function upgradeSubscription(env, brandId, plan) {
   const planDetails = {
     "grow": { fee: 6, max_products: 100 },
@@ -1991,7 +1991,7 @@ async function upgradeSubscription(env, brandId, plan) {
   console.log("\u2705 Subscription upgraded to:", plan);
 }
 __name(upgradeSubscription, "upgradeSubscription");
-async function sendPaymentNotifications(env, order) {
+async function sendPaymentNotifications2(env, order) {
   try {
     console.log("\u{1F4F1} Sending notifications for order:", order.order_id);
     const brand = await env.DB.prepare(`
@@ -2018,7 +2018,7 @@ async function sendPaymentNotifications(env, order) {
     console.error("\u274C Notification error:", error);
   }
 }
-__name(sendPaymentNotifications, "sendPaymentNotifications");
+__name(sendPaymentNotifications2, "sendPaymentNotifications");
 async function sendWhatsAppNotification(env, order, brand) {
   try {
     let phone = String(order.customer_phone).replace(/\D/g, "");
@@ -2273,6 +2273,514 @@ async function handlePayments(request, env, user) {
 }
 __name(handlePayments, "handlePayments");
 
+// src/api/domains/list.js
+async function listDomains(request, env, user) {
+  try {
+    const brandId = user.brand_id;
+    if (!brandId) {
+      return new Response(JSON.stringify({
+        error: "Brand not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const domains = await env.DB.prepare(`
+            SELECT * FROM domains 
+            WHERE brand_id = ?
+            ORDER BY is_primary DESC, created_at ASC
+        `).bind(brandId).all();
+    const brand = await env.DB.prepare(`
+            SELECT brand_slug FROM brands WHERE brand_id = ?
+        `).bind(brandId).first();
+    const subdomain = `${brand?.brand_slug || "brand"}.zvakho.co.zw`;
+    return new Response(JSON.stringify({
+      success: true,
+      subdomain,
+      domains: domains.results || [],
+      count: (domains.results || []).length
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C List domains error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to list domains"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(listDomains, "listDomains");
+
+// src/api/domains/create.js
+async function createDomain(request, env, user) {
+  try {
+    const brandId = user.brand_id;
+    if (!brandId) {
+      return new Response(JSON.stringify({
+        error: "Brand not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const subscription = await env.DB.prepare(`
+            SELECT * FROM subscription_history 
+            WHERE brand_id = ? AND status = 'active'
+            ORDER BY changed_at DESC LIMIT 1
+        `).bind(brandId).first();
+    const allowedPlans = ["business", "pro"];
+    if (!allowedPlans.includes(subscription?.plan)) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Custom domains require Business or Pro plan",
+        current_plan: subscription?.plan || "launch",
+        upgrade_required: true
+      }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const body = await request.json();
+    const { domain_name, is_primary = false } = body;
+    if (!domain_name) {
+      return new Response(JSON.stringify({
+        error: "Domain name required"
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const cleanDomain = domain_name.trim().toLowerCase().replace(/^https?:\/\//, "");
+    const existing = await env.DB.prepare(`
+            SELECT * FROM domains 
+            WHERE domain_name = ? AND brand_id = ?
+        `).bind(cleanDomain, brandId).first();
+    if (existing) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Domain already added",
+        status: existing.status
+      }), {
+        status: 409,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const verificationToken = crypto.randomUUID().replace(/-/g, "");
+    const domainId = crypto.randomUUID();
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    await env.DB.prepare(`
+            INSERT INTO domains (
+                domain_id, brand_id, domain_name, status, 
+                verification_token, is_primary, created_at, updated_at
+            ) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?)
+        `).bind(
+      domainId,
+      brandId,
+      cleanDomain,
+      verificationToken,
+      is_primary ? 1 : 0,
+      now,
+      now
+    ).run();
+    return new Response(JSON.stringify({
+      success: true,
+      domain: {
+        domain_id: domainId,
+        domain_name: cleanDomain,
+        status: "pending",
+        verification_token: verificationToken
+      },
+      verification: {
+        type: "TXT",
+        name: `_zvakho-verify.${cleanDomain}`,
+        value: verificationToken,
+        instructions: `Add this TXT record to your DNS: _zvakho-verify.${cleanDomain} = ${verificationToken}`
+      },
+      next_step: "Add the TXT record to your DNS, then call /api/domains/verify"
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Create domain error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to add domain"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(createDomain, "createDomain");
+
+// src/api/domains/verify.js
+async function verifyDomain(request, env, user) {
+  try {
+    const brandId = user.brand_id;
+    if (!brandId) {
+      return new Response(JSON.stringify({
+        error: "Brand not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const body = await request.json();
+    const { domain_id } = body;
+    if (!domain_id) {
+      return new Response(JSON.stringify({
+        error: "Domain ID required"
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const domain = await env.DB.prepare(`
+            SELECT * FROM domains 
+            WHERE domain_id = ? AND brand_id = ?
+        `).bind(domain_id, brandId).first();
+    if (!domain) {
+      return new Response(JSON.stringify({
+        error: "Domain not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (domain.status === "verified" || domain.status === "active") {
+      return new Response(JSON.stringify({
+        success: true,
+        domain,
+        message: "Domain already verified"
+      }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const token = domain.verification_token;
+    const domainName = domain.domain_name;
+    const txtName = `_zvakho-verify.${domainName}`;
+    const isVerified = await checkTxtRecord(txtName, token);
+    if (!isVerified) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Verification failed",
+        message: `TXT record not found. Add: ${txtName} = ${token}`,
+        status: domain.status
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    await env.DB.prepare(`
+            UPDATE domains 
+            SET status = 'verified',
+                verified_at = ?,
+                updated_at = ?
+            WHERE domain_id = ?
+        `).bind(
+      (/* @__PURE__ */ new Date()).toISOString(),
+      (/* @__PURE__ */ new Date()).toISOString(),
+      domain_id
+    ).run();
+    const configResult = await configureDNS(env, domain);
+    return new Response(JSON.stringify({
+      success: true,
+      domain: {
+        ...domain,
+        status: "verified"
+      },
+      dns_configuration: configResult,
+      next_step: "DNS configuration in progress. Check status in 2-5 minutes."
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Verify domain error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to verify domain: " + error.message
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(verifyDomain, "verifyDomain");
+async function checkTxtRecord(txtName, expectedValue) {
+  try {
+    const response = await fetch(
+      `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(txtName)}&type=TXT`,
+      {
+        headers: {
+          "Accept": "application/dns-json"
+        }
+      }
+    );
+    if (!response.ok) return false;
+    const data = await response.json();
+    const answers = data.Answer || [];
+    for (const answer of answers) {
+      if (answer.type === 16) {
+        const txtData = answer.data.replace(/^"|"$/g, "");
+        if (txtData === expectedValue) {
+          return true;
+        }
+      }
+    }
+    return false;
+  } catch (error) {
+    console.error("\u274C TXT check error:", error);
+    return false;
+  }
+}
+__name(checkTxtRecord, "checkTxtRecord");
+
+// src/api/domains/configure.js
+async function configureDomain(request, env, user) {
+  try {
+    const brandId = user.brand_id;
+    if (!brandId) {
+      return new Response(JSON.stringify({
+        error: "Brand not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const body = await request.json();
+    const { domain_id } = body;
+    if (!domain_id) {
+      return new Response(JSON.stringify({
+        error: "Domain ID required"
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const domain = await env.DB.prepare(`
+            SELECT * FROM domains 
+            WHERE domain_id = ? AND brand_id = ?
+        `).bind(domain_id, brandId).first();
+    if (!domain) {
+      return new Response(JSON.stringify({
+        error: "Domain not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (domain.status !== "verified") {
+      return new Response(JSON.stringify({
+        error: "Domain must be verified first",
+        status: domain.status
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const configResult = await configureDNS2(env, domain);
+    await env.DB.prepare(`
+            UPDATE domains 
+            SET status = 'active',
+                dns_records = ?,
+                updated_at = ?
+            WHERE domain_id = ?
+        `).bind(
+      JSON.stringify(configResult.records),
+      (/* @__PURE__ */ new Date()).toISOString(),
+      domain_id
+    ).run();
+    if (domain.is_primary) {
+      await env.DB.prepare(`
+                UPDATE brands 
+                SET custom_domain = ?
+                WHERE brand_id = ?
+            `).bind(domain.domain_name, brandId).run();
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      domain: {
+        ...domain,
+        status: "active"
+      },
+      dns_records: configResult.records,
+      message: "DNS configured successfully. SSL provisioning in progress..."
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Configure domain error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to configure domain"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(configureDomain, "configureDomain");
+async function configureDNS2(env, domain) {
+  const records = [];
+  const zoneId = env.CLOUDFLARE_ZONE_ID;
+  const apiToken = env.CLOUDFLARE_API_TOKEN;
+  const workerUrl = env.WORKER_URL || "https://zvakho-api-v2.workers.dev";
+  if (zoneId && apiToken) {
+    try {
+      await addDNSRecord(env, domain.domain_name, "@", "A", "192.0.2.1", false, zoneId, apiToken);
+      records.push({ type: "A", name: "@", content: "192.0.2.1" });
+      await addDNSRecord(env, domain.domain_name, "www", "CNAME", `${domain.domain_name}`, false, zoneId, apiToken);
+      records.push({ type: "CNAME", name: "www", content: domain.domain_name });
+      await addDNSRecord(env, domain.domain_name, "store", "CNAME", `${domain.domain_name}`, false, zoneId, apiToken);
+      records.push({ type: "CNAME", name: "store", content: domain.domain_name });
+      console.log("\u2705 DNS records added for:", domain.domain_name);
+    } catch (error) {
+      console.error("\u274C DNS API error:", error);
+    }
+  } else {
+    records.push({
+      type: "A",
+      name: "@",
+      content: "192.0.2.1",
+      instruction: "Point A record to your Cloudflare IP"
+    });
+    records.push({
+      type: "CNAME",
+      name: "www",
+      content: domain.domain_name,
+      instruction: "Point www CNAME to your domain"
+    });
+  }
+  return { records };
+}
+__name(configureDNS2, "configureDNS");
+async function addDNSRecord(env, domainName, subdomain, type, content, proxied, zoneId, apiToken) {
+  const name = subdomain === "@" ? domainName : `${subdomain}.${domainName}`;
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        type,
+        name,
+        content,
+        ttl: 300,
+        proxied: proxied || false
+      })
+    }
+  );
+  const data = await response.json();
+  if (!data.success) {
+    console.warn("\u26A0\uFE0F DNS record creation warning:", data.errors);
+  }
+  return data;
+}
+__name(addDNSRecord, "addDNSRecord");
+
+// src/api/domains/status.js
+async function getDomainStatus(request, env, user) {
+  try {
+    const brandId = user.brand_id;
+    const url = new URL(request.url);
+    const domainId = url.searchParams.get("domain_id");
+    if (!brandId) {
+      return new Response(JSON.stringify({
+        error: "Brand not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    let query2 = "SELECT * FROM domains WHERE brand_id = ?";
+    const params = [brandId];
+    if (domainId) {
+      query2 += " AND domain_id = ?";
+      params.push(domainId);
+    }
+    query2 += " ORDER BY is_primary DESC, created_at DESC";
+    const domains = await env.DB.prepare(query2).bind(...params).all();
+    const enrichedDomains = await Promise.all((domains.results || []).map(async (domain) => {
+      const sslStatus = await checkSSL(domain.domain_name);
+      return {
+        ...domain,
+        ssl_status: sslStatus
+      };
+    }));
+    return new Response(JSON.stringify({
+      success: true,
+      domains: enrichedDomains
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Domain status error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to get domain status"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(getDomainStatus, "getDomainStatus");
+async function checkSSL(domainName) {
+  try {
+    const response = await fetch(`https://${domainName}`, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(5e3)
+    });
+    if (response.ok) {
+      return {
+        status: "active",
+        valid: true,
+        message: "SSL certificate is valid"
+      };
+    }
+    return {
+      status: "pending",
+      valid: false,
+      message: "SSL certificate not yet provisioned"
+    };
+  } catch (error) {
+    return {
+      status: "pending",
+      valid: false,
+      message: "SSL provisioning in progress..."
+    };
+  }
+}
+__name(checkSSL, "checkSSL");
+
+// src/api/domains/index.js
+async function handleDomains(request, env, user) {
+  const url = new URL(request.url);
+  const path = url.pathname.replace("/api/domains", "");
+  if (request.method === "GET" && (path === "" || path === "/")) {
+    return listDomains(request, env, user);
+  }
+  if (request.method === "POST" && (path === "" || path === "/")) {
+    return createDomain(request, env, user);
+  }
+  if (request.method === "POST" && path === "/verify") {
+    return verifyDomain(request, env, user);
+  }
+  if (request.method === "POST" && path === "/configure") {
+    return configureDomain(request, env, user);
+  }
+  if (request.method === "GET" && path === "/status") {
+    return getDomainStatus(request, env, user);
+  }
+  return new Response(JSON.stringify({ error: "Not found" }), {
+    status: 404,
+    headers: { "Content-Type": "application/json" }
+  });
+}
+__name(handleDomains, "handleDomains");
+
 // src/middleware/auth.js
 async function authenticate(request, env) {
   if (env.ENVIRONMENT === "development") {
@@ -2330,29 +2838,117 @@ async function requireAuth(request, env) {
 }
 __name(requireAuth, "requireAuth");
 
+// src/services/poller.js
+async function startPoller(env) {
+  console.log("\u{1F504} Starting payment poller...");
+  setInterval(async () => {
+    try {
+      await checkPendingPayments(env);
+    } catch (error) {
+      console.error("\u274C Poller error:", error);
+    }
+  }, 3e4);
+  console.log("\u2705 Payment poller started");
+}
+__name(startPoller, "startPoller");
+async function checkPendingPayments(env) {
+  const pendingOrders = await env.DB.prepare(`
+        SELECT * FROM orders 
+        WHERE payment_status = 'pending' 
+        AND poll_url IS NOT NULL 
+        AND poll_url != ''
+        ORDER BY created_at DESC
+        LIMIT 50
+    `).all();
+  if ((pendingOrders.results || []).length === 0) {
+    return;
+  }
+  console.log(`\u{1F50D} Checking ${pendingOrders.results.length} pending orders...`);
+  for (const order of pendingOrders.results || []) {
+    try {
+      await checkPaymentStatus(env, order);
+    } catch (error) {
+      console.error(`\u274C Error checking order ${order.order_id}:`, error.message);
+    }
+  }
+}
+__name(checkPendingPayments, "checkPendingPayments");
+async function checkPaymentStatus(env, order) {
+  if (!order.poll_url) return;
+  const response = await fetch(order.poll_url);
+  const text = await response.text();
+  const parsed = parsePaynowResponse4(text);
+  const status = String(parsed.status || "").toLowerCase();
+  const isPaid = status === "paid" || status === "awaiting delivery";
+  if (isPaid) {
+    console.log(`\u{1F4B0} Auto-poller: Payment confirmed for ${order.order_id}`);
+    await env.DB.prepare(`
+            UPDATE orders 
+            SET payment_status = 'paid',
+                paynow_status = ?,
+                paynow_reference = ?,
+                paid_at = ?,
+                updated_at = ?
+            WHERE order_id = ?
+        `).bind(
+      parsed.status || "Paid",
+      parsed.paynowreference || parsed.reference || "",
+      (/* @__PURE__ */ new Date()).toISOString(),
+      (/* @__PURE__ */ new Date()).toISOString(),
+      order.order_id
+    ).run();
+    await env.DB.prepare(`
+            UPDATE order_items 
+            SET fulfilment_status = 'processing',
+                updated_at = ?
+            WHERE order_id = ?
+        `).bind((/* @__PURE__ */ new Date()).toISOString(), order.order_id).run();
+    await processPaidOrder(env, order);
+    await sendPaymentNotifications(env, order);
+  }
+}
+__name(checkPaymentStatus, "checkPaymentStatus");
+function parsePaynowResponse4(text) {
+  const result = {};
+  if (!text) return result;
+  const pairs = text.split(/[&\n]/);
+  for (const pair of pairs) {
+    const parts = pair.split("=");
+    if (parts.length >= 2) {
+      const key = decodeURIComponent(parts[0].trim());
+      const value = decodeURIComponent(parts.slice(1).join("=").trim());
+      result[key] = value;
+    }
+  }
+  return result;
+}
+__name(parsePaynowResponse4, "parsePaynowResponse");
+
 // src/index.js
 var src_default = {
   async fetch(request, env) {
+    if (!globalThis._pollerStarted) {
+      globalThis._pollerStarted = true;
+      await startPoller(env);
+    }
     const url = new URL(request.url);
     const path = url.pathname;
     if (path === "/api/v2/test" || path === "/api/test") {
       return handleTest(request, env);
     }
     if (path === "/health" || path === "/api/health") {
-      return new Response(JSON.stringify({
-        status: "healthy",
-        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-        environment: "development"
-      }), {
-        headers: {
-          "Content-Type": "application/json"
+      return new Response(
+        JSON.stringify({
+          status: "healthy",
+          timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+          environment: "development"
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json"
+          }
         }
-      });
-    }
-    if (path.startsWith("/api/dashboard")) {
-      const user = await requireAuth(request, env);
-      if (user instanceof Response) return user;
-      return handleDashboard(request, env, user);
+      );
     }
     if (path.startsWith("/api/brands")) {
       const user = await requireAuth(request, env);
@@ -2363,6 +2959,11 @@ var src_default = {
       const user = await requireAuth(request, env);
       if (user instanceof Response) return user;
       return handleProducts(request, env, user);
+    }
+    if (path.startsWith("/api/dashboard")) {
+      const user = await requireAuth(request, env);
+      if (user instanceof Response) return user;
+      return handleDashboard(request, env, user);
     }
     if (path.startsWith("/api/subscriptions")) {
       const user = await requireAuth(request, env);
@@ -2382,28 +2983,33 @@ var src_default = {
       if (user instanceof Response) return user;
       return handlePayments(request, env, user);
     }
-    return new Response(JSON.stringify({
-      error: "Not found - ZVAKHO v2 endpoint",
-      available: [
-        "/api/v2/test",
-        "/api/test",
-        "/health",
-        "/api/dashboard",
-        "/api/brands (POST, GET)",
-        "/api/brands/:id (GET, PUT)",
-        "/api/products (POST, GET)",
-        "/api/products/:id (GET, PUT, DELETE)",
-        "/api/subscriptions",
-        "/api/checkout",
-        "/api/payments",
-        "/api/payments/webhook"
-      ]
-    }), {
-      status: 404,
-      headers: {
-        "Content-Type": "application/json"
+    if (path.startsWith("/api/domains")) {
+      const user = await requireAuth(request, env);
+      if (user instanceof Response) return user;
+      return handleDomains(request, env, user);
+    }
+    return new Response(
+      JSON.stringify({
+        error: "Not found - ZVAKHO v2 endpoint",
+        available: [
+          "/api/v2/test",
+          "/api/health",
+          "/api/brands",
+          "/api/products",
+          "/api/dashboard",
+          "/api/subscriptions",
+          "/api/checkout",
+          "/api/payments",
+          "/api/domains"
+        ]
+      }),
+      {
+        status: 404,
+        headers: {
+          "Content-Type": "application/json"
+        }
       }
-    });
+    );
   }
 };
 

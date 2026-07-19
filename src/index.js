@@ -1,4 +1,4 @@
-// src/index.js - Main Router
+// src/index.js
 
 import { handleTest } from './api/test.js';
 import { handleBrands } from './api/brands/index.js';
@@ -7,10 +7,18 @@ import { handleDashboard } from './api/dashboard/index.js';
 import { handleSubscriptions } from './api/subscriptions/index.js';
 import { handleCheckout } from './api/checkout/index.js';
 import { handlePayments } from './api/payments/index.js';
+import { handleDomains } from './api/domains/index.js';
 import { requireAuth } from './middleware/auth.js';
+import { startPoller } from './services/poller.js';
 
 export default {
     async fetch(request, env) {
+        // Start poller once
+        if (!globalThis._pollerStarted) {
+            globalThis._pollerStarted = true;
+            await startPoller(env);
+        }
+
         const url = new URL(request.url);
         const path = url.pathname;
 
@@ -21,22 +29,18 @@ export default {
 
         // Health check (no auth required)
         if (path === '/health' || path === '/api/health') {
-            return new Response(JSON.stringify({
-                status: 'healthy',
-                timestamp: new Date().toISOString(),
-                environment: 'development'
-            }), {
-                headers: {
-                    'Content-Type': 'application/json'
+            return new Response(
+                JSON.stringify({
+                    status: 'healthy',
+                    timestamp: new Date().toISOString(),
+                    environment: 'development'
+                }),
+                {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
                 }
-            });
-        }
-
-        // Dashboard endpoints (require auth)
-        if (path.startsWith('/api/dashboard')) {
-            const user = await requireAuth(request, env);
-            if (user instanceof Response) return user;
-            return handleDashboard(request, env, user);
+            );
         }
 
         // Brand endpoints (require auth)
@@ -53,7 +57,14 @@ export default {
             return handleProducts(request, env, user);
         }
 
-        // Subscription endpoints (require auth)
+        // Dashboard endpoints (require auth)
+        if (path.startsWith('/api/dashboard')) {
+            const user = await requireAuth(request, env);
+            if (user instanceof Response) return user;
+            return handleDashboard(request, env, user);
+        }
+
+        // Subscriptions endpoints (require auth)
         if (path.startsWith('/api/subscriptions')) {
             const user = await requireAuth(request, env);
             if (user instanceof Response) return user;
@@ -67,43 +78,49 @@ export default {
             return handleCheckout(request, env, user);
         }
 
-        // Payments (some routes require auth, webhook doesn't)
+        // Payments endpoints
         if (path.startsWith('/api/payments')) {
-
-            // Webhook endpoint (no authentication)
+            // Webhook doesn't need auth
             if (path === '/api/payments/webhook') {
                 return handlePayments(request, env, null);
             }
 
-            // All other payment routes require authentication
             const user = await requireAuth(request, env);
             if (user instanceof Response) return user;
 
             return handlePayments(request, env, user);
         }
 
+        // Domains endpoints (require auth)
+        if (path.startsWith('/api/domains')) {
+            const user = await requireAuth(request, env);
+            if (user instanceof Response) return user;
+
+            return handleDomains(request, env, user);
+        }
+
         // Default response
-        return new Response(JSON.stringify({
-            error: 'Not found - ZVAKHO v2 endpoint',
-            available: [
-                '/api/v2/test',
-                '/api/test',
-                '/health',
-                '/api/dashboard',
-                '/api/brands (POST, GET)',
-                '/api/brands/:id (GET, PUT)',
-                '/api/products (POST, GET)',
-                '/api/products/:id (GET, PUT, DELETE)',
-                '/api/subscriptions',
-                '/api/checkout',
-                '/api/payments',
-                '/api/payments/webhook'
-            ]
-        }), {
-            status: 404,
-            headers: {
-                'Content-Type': 'application/json'
+        return new Response(
+            JSON.stringify({
+                error: 'Not found - ZVAKHO v2 endpoint',
+                available: [
+                    '/api/v2/test',
+                    '/api/health',
+                    '/api/brands',
+                    '/api/products',
+                    '/api/dashboard',
+                    '/api/subscriptions',
+                    '/api/checkout',
+                    '/api/payments',
+                    '/api/domains'
+                ]
+            }),
+            {
+                status: 404,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             }
-        });
+        );
     }
 };
