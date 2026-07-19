@@ -4,6 +4,8 @@ import { handleTest } from './api/test.js';
 import { handleBrands } from './api/brands/index.js';
 import { handleProducts } from './api/products/index.js';
 import { handleDashboard } from './api/dashboard/index.js';
+import { handleSubscriptions } from './api/subscriptions/index.js';
+import { handleCheckout } from './api/checkout/index.js';
 import { requireAuth } from './middleware/auth.js';
 
 export default {
@@ -50,6 +52,20 @@ export default {
             return handleProducts(request, env, user);
         }
 
+        // Subscription endpoints (require auth)
+        if (path.startsWith('/api/subscriptions')) {
+            const user = await requireAuth(request, env);
+            if (user instanceof Response) return user;
+            return handleSubscriptions(request, env, user);
+        }
+
+        // Checkout endpoints (require auth)
+        if (path.startsWith('/api/checkout')) {
+            const user = await requireAuth(request, env);
+            if (user instanceof Response) return user;
+            return handleCheckout(request, env, user);
+        }
+
         // Default response
         return new Response(JSON.stringify({
             error: 'Not found - ZVAKHO v2 endpoint',
@@ -61,7 +77,9 @@ export default {
                 '/api/brands (POST, GET)',
                 '/api/brands/:id (GET, PUT)',
                 '/api/products (POST, GET)',
-                '/api/products/:id (GET, PUT, DELETE)'
+                '/api/products/:id (GET, PUT, DELETE)',
+                '/api/subscriptions',
+                '/api/checkout'
             ]
         }), {
             status: 404,
