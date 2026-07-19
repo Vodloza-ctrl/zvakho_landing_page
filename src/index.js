@@ -8,6 +8,7 @@ import { handleSubscriptions } from './api/subscriptions/index.js';
 import { handleCheckout } from './api/checkout/index.js';
 import { handlePayments } from './api/payments/index.js';
 import { handleDomains } from './api/domains/index.js';
+import { handleFulfillment } from './api/fulfillment/index.js';
 import { requireAuth } from './middleware/auth.js';
 import { startPoller } from './services/poller.js';
 
@@ -47,6 +48,7 @@ export default {
         if (path.startsWith('/api/brands')) {
             const user = await requireAuth(request, env);
             if (user instanceof Response) return user;
+
             return handleBrands(request, env, user);
         }
 
@@ -54,6 +56,7 @@ export default {
         if (path.startsWith('/api/products')) {
             const user = await requireAuth(request, env);
             if (user instanceof Response) return user;
+
             return handleProducts(request, env, user);
         }
 
@@ -61,6 +64,7 @@ export default {
         if (path.startsWith('/api/dashboard')) {
             const user = await requireAuth(request, env);
             if (user instanceof Response) return user;
+
             return handleDashboard(request, env, user);
         }
 
@@ -68,6 +72,7 @@ export default {
         if (path.startsWith('/api/subscriptions')) {
             const user = await requireAuth(request, env);
             if (user instanceof Response) return user;
+
             return handleSubscriptions(request, env, user);
         }
 
@@ -75,6 +80,7 @@ export default {
         if (path.startsWith('/api/checkout')) {
             const user = await requireAuth(request, env);
             if (user instanceof Response) return user;
+
             return handleCheckout(request, env, user);
         }
 
@@ -99,6 +105,14 @@ export default {
             return handleDomains(request, env, user);
         }
 
+        // Fulfillment endpoints (require auth)
+        if (path.startsWith('/api/fulfillment')) {
+            const user = await requireAuth(request, env);
+            if (user instanceof Response) return user;
+
+            return handleFulfillment(request, env, user);
+        }
+
         // Default response
         return new Response(
             JSON.stringify({
@@ -112,7 +126,8 @@ export default {
                     '/api/subscriptions',
                     '/api/checkout',
                     '/api/payments',
-                    '/api/domains'
+                    '/api/domains',
+                    '/api/fulfillment'
                 ]
             }),
             {

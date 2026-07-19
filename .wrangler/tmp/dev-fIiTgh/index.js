@@ -2781,6 +2781,467 @@ async function handleDomains(request, env, user) {
 }
 __name(handleDomains, "handleDomains");
 
+// src/api/fulfillment/queue.js
+async function getFulfillmentQueue(request, env, user) {
+  try {
+    const brandId = user.brand_id;
+    if (!brandId) {
+      return new Response(JSON.stringify({
+        error: "Brand not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const orders = await env.DB.prepare(`
+            SELECT 
+                o.*,
+                GROUP_CONCAT(oi.product_name) as items,
+                SUM(oi.quantity) as total_items
+            FROM orders o
+            LEFT JOIN order_items oi ON oi.order_id = o.order_id
+            WHERE o.brand_id = ? 
+            AND o.payment_status = 'paid'
+            AND o.status != 'delivered'
+            AND o.status != 'cancelled'
+            GROUP BY o.order_id
+            ORDER BY o.paid_at ASC
+            LIMIT 50
+        `).bind(brandId).all();
+    const counts = await env.DB.prepare(`
+            SELECT 
+                status,
+                COUNT(*) as count
+            FROM orders
+            WHERE brand_id = ? AND payment_status = 'paid'
+            GROUP BY status
+        `).bind(brandId).all();
+    const statusCounts = {};
+    for (const row of counts.results || []) {
+      statusCounts[row.status] = row.count;
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      queue: orders.results || [],
+      summary: {
+        pending: statusCounts["pending"] || 0,
+        processing: statusCounts["processing"] || 0,
+        ready: statusCounts["ready"] || 0,
+        shipped: statusCounts["shipped"] || 0,
+        delivered: statusCounts["delivered"] || 0,
+        total: (orders.results || []).length
+      }
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Queue error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to get fulfillment queue"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(getFulfillmentQueue, "getFulfillmentQueue");
+
+// src/api/fulfillment/process.js
+async function processOrder(request, env, user, orderId) {
+  try {
+    const brandId = user.brand_id;
+    if (!brandId) {
+      return new Response(JSON.stringify({
+        error: "Brand not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const order = await env.DB.prepare(`
+            SELECT * FROM orders 
+            WHERE order_id = ? AND brand_id = ?
+        `).bind(orderId, brandId).first();
+    if (!order) {
+      return new Response(JSON.stringify({
+        error: "Order not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (order.payment_status !== "paid") {
+      return new Response(JSON.stringify({
+        error: "Order not paid"
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const items = await env.DB.prepare(`
+            SELECT * FROM order_items 
+            WHERE order_id = ?
+        `).bind(orderId).all();
+    const totalQuantity = items.results?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+    let productionMethod = "dtf";
+    if (totalQuantity > 50) {
+      productionMethod = "screen-print";
+    } else if (totalQuantity > 20) {
+      productionMethod = "hybrid";
+    }
+    await env.DB.prepare(`
+            UPDATE orders 
+            SET status = 'processing',
+                production_method = ?,
+                fulfilment_data = ?,
+                updated_at = ?
+            WHERE order_id = ?
+        `).bind(
+      productionMethod,
+      JSON.stringify({
+        total_quantity: totalQuantity,
+        items: items.results || [],
+        processed_at: (/* @__PURE__ */ new Date()).toISOString()
+      }),
+      (/* @__PURE__ */ new Date()).toISOString(),
+      orderId
+    ).run();
+    await env.DB.prepare(`
+            UPDATE order_items 
+            SET fulfilment_status = 'processing',
+                updated_at = ?
+            WHERE order_id = ?
+        `).bind((/* @__PURE__ */ new Date()).toISOString(), orderId).run();
+    await sendFulfillmentNotification2(env, order, "processing");
+    return new Response(JSON.stringify({
+      success: true,
+      order_id: orderId,
+      production_method: productionMethod,
+      total_quantity: totalQuantity,
+      message: `Order processing started using ${productionMethod}`
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Process order error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to process order"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(processOrder, "processOrder");
+async function sendFulfillmentNotification2(env, order, status) {
+  try {
+    if (!env.MANYCHAT_API_TOKEN || !order.customer_phone) return;
+    let phone = String(order.customer_phone).replace(/\D/g, "");
+    if (phone.startsWith("0")) {
+      phone = "263" + phone.slice(1);
+    }
+    if (phone.length < 10) return;
+    const messages = {
+      "processing": "\u{1F3A8} Your order is being prepared! We're working on it.",
+      "ready": "\u2705 Your order is ready! We'll ship it soon.",
+      "shipped": "\u{1F4E6} Your order has been shipped! Tracking: ",
+      "delivered": "\u{1F4EC} Your order has been delivered! Enjoy!"
+    };
+    const findRes = await fetch(
+      `https://api.manychat.com/fb/subscriber/findByPhone?phone=%2B${phone}`,
+      {
+        headers: {
+          "Authorization": `Bearer ${env.MANYCHAT_API_TOKEN}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    if (!findRes.ok) return;
+    const findData = await findRes.json();
+    const subscriberId = findData?.data?.id;
+    if (!subscriberId) return;
+    await fetch("https://api.manychat.com/fb/sending/sendFlow", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${env.MANYCHAT_API_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        subscriber_id: subscriberId,
+        flow_ns: "content20260531175501_037112",
+        data: [
+          { field_name: "order_status", field_value: status },
+          { field_name: "order_message", field_value: messages[status] || "Your order is being processed." },
+          { field_name: "order_reference", field_value: order.order_id }
+        ]
+      })
+    });
+    console.log("\u2705 Fulfillment notification sent:", status);
+  } catch (error) {
+    console.error("\u274C Notification error:", error);
+  }
+}
+__name(sendFulfillmentNotification2, "sendFulfillmentNotification");
+
+// src/api/fulfillment/update.js
+async function updateFulfillmentStatus(request, env, user, orderId) {
+  try {
+    const brandId = user.brand_id;
+    const body = await request.json();
+    const { status, tracking_number, shipping_carrier } = body;
+    const allowedStatuses = ["pending", "processing", "ready", "shipped", "delivered", "cancelled"];
+    if (!status || !allowedStatuses.includes(status)) {
+      return new Response(JSON.stringify({
+        error: "Invalid status",
+        allowed: allowedStatuses
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const updates = ["status = ?", "updated_at = ?"];
+    const values = [status, (/* @__PURE__ */ new Date()).toISOString()];
+    if (tracking_number) {
+      updates.push("tracking_number = ?");
+      values.push(tracking_number);
+    }
+    if (shipping_carrier) {
+      updates.push("shipping_carrier = ?");
+      values.push(shipping_carrier);
+    }
+    if (status === "delivered") {
+      updates.push("delivered_at = ?");
+      values.push((/* @__PURE__ */ new Date()).toISOString());
+    }
+    values.push(orderId);
+    await env.DB.prepare(`
+            UPDATE orders 
+            SET ${updates.join(", ")}
+            WHERE order_id = ? AND brand_id = ?
+        `).bind(...values, brandId).run();
+    if (status === "delivered") {
+      await env.DB.prepare(`
+                UPDATE order_items 
+                SET fulfilment_status = 'delivered',
+                    updated_at = ?
+                WHERE order_id = ?
+            `).bind((/* @__PURE__ */ new Date()).toISOString(), orderId).run();
+    }
+    const order = await env.DB.prepare(`
+            SELECT * FROM orders WHERE order_id = ?
+        `).bind(orderId).first();
+    if (order) {
+      await sendFulfillmentNotification(env, order, status);
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      order_id: orderId,
+      status,
+      message: `Order status updated to ${status}`
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Update status error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to update status"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(updateFulfillmentStatus, "updateFulfillmentStatus");
+
+// src/api/fulfillment/batch.js
+async function createBatch(request, env, user) {
+  try {
+    const brandId = user.brand_id;
+    const body = await request.json();
+    const { order_ids, batch_name } = body;
+    if (!order_ids || !Array.isArray(order_ids) || order_ids.length === 0) {
+      return new Response(JSON.stringify({
+        error: "At least one order ID required"
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const placeholders = order_ids.map(() => "?").join(",");
+    const orders = await env.DB.prepare(`
+            SELECT * FROM orders 
+            WHERE order_id IN (${placeholders}) AND brand_id = ?
+        `).bind(...order_ids, brandId).all();
+    if ((orders.results || []).length !== order_ids.length) {
+      return new Response(JSON.stringify({
+        error: "Some orders not found or not owned by you"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const batchId = "BATCH-" + Date.now().toString(36).toUpperCase();
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    await env.DB.prepare(`
+            INSERT INTO batches (
+                batch_id, brand_id, batch_name, order_ids, 
+                status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, 'pending', ?, ?)
+        `).bind(
+      batchId,
+      brandId,
+      batch_name || `Batch ${(/* @__PURE__ */ new Date()).toLocaleDateString()}`,
+      JSON.stringify(order_ids),
+      now,
+      now
+    ).run();
+    for (const orderId of order_ids) {
+      await env.DB.prepare(`
+                UPDATE orders 
+                SET status = 'batched',
+                    fulfilment_data = json_set(
+                        COALESCE(fulfilment_data, '{}'),
+                        '$.batch_id', ?
+                    ),
+                    updated_at = ?
+                WHERE order_id = ?
+            `).bind(batchId, now, orderId).run();
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      batch_id: batchId,
+      batch_name: batch_name || `Batch ${(/* @__PURE__ */ new Date()).toLocaleDateString()}`,
+      order_count: order_ids.length,
+      order_ids,
+      status: "pending"
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Create batch error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to create batch"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(createBatch, "createBatch");
+async function getBatches(request, env, user) {
+  try {
+    const brandId = user.brand_id;
+    const batches = await env.DB.prepare(`
+            SELECT * FROM batches 
+            WHERE brand_id = ?
+            ORDER BY created_at DESC
+        `).bind(brandId).all();
+    return new Response(JSON.stringify({
+      success: true,
+      batches: batches.results || [],
+      count: (batches.results || []).length
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Get batches error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to get batches"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(getBatches, "getBatches");
+
+// src/api/fulfillment/shipping.js
+async function generateShippingLabel(request, env, user, orderId) {
+  try {
+    const brandId = user.brand_id;
+    const order = await env.DB.prepare(`
+            SELECT * FROM orders 
+            WHERE order_id = ? AND brand_id = ?
+        `).bind(orderId, brandId).first();
+    if (!order) {
+      return new Response(JSON.stringify({
+        error: "Order not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (order.status !== "ready" && order.status !== "processing") {
+      return new Response(JSON.stringify({
+        error: "Order must be ready or processing for shipping"
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const trackingNumber = "ZVK-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+    await env.DB.prepare(`
+            UPDATE orders 
+            SET tracking_number = ?,
+                shipping_carrier = 'ZVAKHO Express',
+                status = 'shipped',
+                updated_at = ?
+            WHERE order_id = ?
+        `).bind(trackingNumber, (/* @__PURE__ */ new Date()).toISOString(), orderId).run();
+    await sendFulfillmentNotification(env, order, "shipped");
+    return new Response(JSON.stringify({
+      success: true,
+      order_id: orderId,
+      tracking_number: trackingNumber,
+      carrier: "ZVAKHO Express",
+      message: "Shipping label generated"
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Shipping label error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to generate shipping label"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(generateShippingLabel, "generateShippingLabel");
+
+// src/api/fulfillment/index.js
+async function handleFulfillment(request, env, user) {
+  const url = new URL(request.url);
+  const path = url.pathname.replace("/api/fulfillment", "");
+  if (request.method === "GET" && path === "/queue") {
+    return getFulfillmentQueue(request, env, user);
+  }
+  if (request.method === "POST" && path.startsWith("/process/")) {
+    const orderId = path.split("/")[2];
+    return processOrder(request, env, user, orderId);
+  }
+  if (request.method === "PUT" && path.startsWith("/update/")) {
+    const orderId = path.split("/")[2];
+    return updateFulfillmentStatus(request, env, user, orderId);
+  }
+  if (request.method === "POST" && path === "/batch") {
+    return createBatch(request, env, user);
+  }
+  if (request.method === "GET" && path === "/batches") {
+    return getBatches(request, env, user);
+  }
+  if (request.method === "POST" && path.startsWith("/shipping/")) {
+    const orderId = path.split("/")[2];
+    return generateShippingLabel(request, env, user, orderId);
+  }
+  return new Response(JSON.stringify({ error: "Not found" }), {
+    status: 404,
+    headers: { "Content-Type": "application/json" }
+  });
+}
+__name(handleFulfillment, "handleFulfillment");
+
 // src/middleware/auth.js
 async function authenticate(request, env) {
   if (env.ENVIRONMENT === "development") {
@@ -2988,6 +3449,11 @@ var src_default = {
       if (user instanceof Response) return user;
       return handleDomains(request, env, user);
     }
+    if (path.startsWith("/api/fulfillment")) {
+      const user = await requireAuth(request, env);
+      if (user instanceof Response) return user;
+      return handleFulfillment(request, env, user);
+    }
     return new Response(
       JSON.stringify({
         error: "Not found - ZVAKHO v2 endpoint",
@@ -3000,7 +3466,8 @@ var src_default = {
           "/api/subscriptions",
           "/api/checkout",
           "/api/payments",
-          "/api/domains"
+          "/api/domains",
+          "/api/fulfillment"
         ]
       }),
       {
