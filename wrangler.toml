@@ -10,3 +10,6 @@ database_id = "aaa47b96-b264-4a73-b9c1-b36ca4d08d8e"
 [vars]
 ENVIRONMENT = "development"
 JWT_SECRET = "REDACTED_JWT_SECRET"
+PAYNOW_INTEGRATION_ID = "24331"
+PAYNOW_INTEGRATION_KEY = "REDACTED_PAYNOW_KEY"
+BASE_URL = "https://zvakho-payments-v2.yasibomedia.workers.dev"
