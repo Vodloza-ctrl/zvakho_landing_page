@@ -50,7 +50,6 @@ export async function createCheckout(request, env, user) {
         let unit_price = product.price;
         let variant = null;
         
-        // Get variant if specified
         if (variant_id) {
             variant = await env.DB.prepare(`
                 SELECT * FROM product_variants 
@@ -71,7 +70,7 @@ export async function createCheckout(request, env, user) {
         await env.DB.prepare(`
             INSERT INTO orders (
                 order_id, brand_id, order_number, customer_name, customer_email,
-                customer_phone, shipping_address, total_amount, currency,
+                customer_phone, shipping_address, amount, currency,
                 status, payment_status, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, ?)
         `).bind(
@@ -88,20 +87,24 @@ export async function createCheckout(request, env, user) {
             now
         ).run();
         
-        // Add order items
+        // Add order items - INCLUDING ALL REQUIRED FIELDS
         await env.DB.prepare(`
             INSERT INTO order_items (
-                item_id, order_id, product_id, variant_id, quantity,
-                unit_price, total_price, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                item_id, order_id, product_id, artist_id, 
+                product_name, product_type, quantity, 
+                unit_price, line_total, brand_id, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             crypto.randomUUID(),
             orderId,
             product_id,
-            variant_id || null,
+            brandId,  // artist_id (use brand_id)
+            product.product_name,
+            product.product_type,
             quantity,
             unit_price,
-            total_amount,
+            total_amount,  // line_total
+            brandId,
             now
         ).run();
         
@@ -128,9 +131,9 @@ export async function createCheckout(request, env, user) {
         });
         
     } catch (error) {
-        console.error('Create checkout error:', error);
+        console.error('❌ Create checkout error:', error);
         return new Response(JSON.stringify({ 
-            error: 'Failed to create checkout' 
+            error: 'Failed to create checkout: ' + error.message 
         }), { 
             status: 500,
             headers: { 'Content-Type': 'application/json' }

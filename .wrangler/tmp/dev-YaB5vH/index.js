@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// .wrangler/tmp/bundle-6nCT81/checked-fetch.js
+// .wrangler/tmp/bundle-991SoG/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -1540,7 +1540,7 @@ async function createCheckout(request, env, user) {
     await env.DB.prepare(`
             INSERT INTO orders (
                 order_id, brand_id, order_number, customer_name, customer_email,
-                customer_phone, shipping_address, total_amount, currency,
+                customer_phone, shipping_address, amount, currency,
                 status, payment_status, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending', ?, ?)
         `).bind(
@@ -1558,17 +1558,23 @@ async function createCheckout(request, env, user) {
     ).run();
     await env.DB.prepare(`
             INSERT INTO order_items (
-                item_id, order_id, product_id, variant_id, quantity,
-                unit_price, total_price, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                item_id, order_id, product_id, artist_id, 
+                product_name, product_type, quantity, 
+                unit_price, line_total, brand_id, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
       crypto.randomUUID(),
       orderId,
       product_id,
-      variant_id || null,
+      brandId,
+      // artist_id (use brand_id)
+      product.product_name,
+      product.product_type,
       quantity,
       unit_price,
       total_amount,
+      // line_total
+      brandId,
       now
     ).run();
     return new Response(JSON.stringify({
@@ -1593,9 +1599,9 @@ async function createCheckout(request, env, user) {
       headers: { "Content-Type": "application/json" }
     });
   } catch (error) {
-    console.error("Create checkout error:", error);
+    console.error("\u274C Create checkout error:", error);
     return new Response(JSON.stringify({
-      error: "Failed to create checkout"
+      error: "Failed to create checkout: " + error.message
     }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
@@ -1808,7 +1814,7 @@ var drainBody = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "drainBody");
 var middleware_ensure_req_body_drained_default = drainBody;
 
-// .wrangler/tmp/bundle-6nCT81/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-991SoG/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default
 ];
@@ -1839,7 +1845,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-6nCT81/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-991SoG/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
