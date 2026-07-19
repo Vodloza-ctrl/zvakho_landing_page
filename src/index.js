@@ -9,6 +9,7 @@ import { handleCheckout } from './api/checkout/index.js';
 import { handlePayments } from './api/payments/index.js';
 import { handleDomains } from './api/domains/index.js';
 import { handleFulfillment } from './api/fulfillment/index.js';
+import { handleStoreConfig } from './api/store-config.js';
 import { requireAuth } from './middleware/auth.js';
 import { startPoller } from './services/poller.js';
 
@@ -58,6 +59,11 @@ export default {
             if (user instanceof Response) return user;
 
             return handleProducts(request, env, user);
+        }
+
+        // Store Config endpoint (no auth required)
+        if (path === '/api/store-config' && request.method === 'GET') {
+            return handleStoreConfig(request, env, null);
         }
 
         // Dashboard endpoints (require auth)
@@ -113,15 +119,23 @@ export default {
             return handleFulfillment(request, env, user);
         }
 
-        // Default response
+        // Serve static assets (Cloudflare Pages)
+        if (env.ASSETS) {
+            return env.ASSETS.fetch(request);
+        }
+
+        // Default 404 response
         return new Response(
             JSON.stringify({
                 error: 'Not found - ZVAKHO v2 endpoint',
                 available: [
                     '/api/v2/test',
+                    '/api/test',
+                    '/health',
                     '/api/health',
                     '/api/brands',
                     '/api/products',
+                    '/api/store-config',
                     '/api/dashboard',
                     '/api/subscriptions',
                     '/api/checkout',

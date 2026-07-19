@@ -111,6 +111,7 @@ export async function handleMediaUpload(request, env, user) {
     }
 }
 
+// Delete image from gallery
 export async function deleteGalleryImage(request, env, user) {
     try {
         const brandId = user.brand_id;

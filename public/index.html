@@ -16,8 +16,8 @@
   
   <script src="/config.js?v=5"></script>
 
-  <title>ZVAKHO Artist Store</title>
-  <meta name="description" content="Official artist store powered by ZVAKHO.">
+  <title>ZVAKHO Store</title>
+  <meta name="description" content="Official store powered by ZVAKHO.">
 
   <style>
     /* ─── FIX: Premium Compact Featured Card ─── */
@@ -335,14 +335,13 @@
 <!-- ─── NAVIGATION ─── -->
 <nav class="store-nav" aria-label="Store navigation">
   <div class="store-shell store-nav-inner">
-    <a class="store-brand" href="/" aria-label="ZVAKHO home">
+    <a class="store-brand" href="/" aria-label="ZVAKHO home" data-zvakho-branding>
       <img id="navLogo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
     </a>
 
     <div class="store-nav-links">
       <a href="#drop">Drop</a>
       <a href="#products">Shop</a>
-      <a href="#music">Music</a>
       <a href="#about">About</a>
     </div>
 
@@ -356,8 +355,8 @@
 <!-- ─── TICKER ─── -->
 <div class="store-ticker" id="ticker" aria-label="Store announcement">
   <div class="store-ticker-track" id="tickerTrack">
-    <span>OFFICIAL STORE • MUSIC • MERCH • LIMITED RELEASES •</span>
-    <span>OFFICIAL STORE • MUSIC • MERCH • LIMITED RELEASES •</span>
+    <span>OFFICIAL STORE • LIMITED RELEASES •</span>
+    <span>OFFICIAL STORE • LIMITED RELEASES •</span>
   </div>
 </div>
 
@@ -369,21 +368,20 @@
   <div class="store-shell hero-grid-v2">
     <section class="hero-copy">
       <div class="store-pill" id="storeKicker">Official Store</div>
-      <h1 id="artistName">Loading...</h1>
-      <p id="artistSub">Loading store...</p>
+      <h1 id="storeName">Loading...</h1>
+      <p id="storeSub">Loading store...</p>
 
       <div class="hero-actions">
-        <a class="btn hero-primary" href="#drop">Shop the Drop</a>
-        <a class="btn hero-secondary" href="#music">Preview Music</a>
+        <a class="btn hero-primary" href="#drop">Shop Now</a>
       </div>
     </section>
 
     <aside class="artist-orb-card" id="artistOrbCard">
       <div class="artist-orb-image" id="artistProfileWrap">
-        <img id="artistProfile" src="/assets/brand/favicon.png" alt="Artist profile">
+        <img id="artistProfile" src="/assets/brand/favicon.png" alt="Brand profile">
       </div>
       <div>
-        <span id="artistGenre">Artist</span>
+        <span id="artistGenre">Brand</span>
         <strong id="artistCardName">ZVAKHO</strong>
       </div>
     </aside>
@@ -396,10 +394,10 @@
   <section class="featured-drop store-shell" id="drop">
     <div class="section-intro split-intro">
       <div>
-        <span class="micro-label">Featured release</span>
-        <h2 id="featuredTitle">Artist drop</h2>
+        <span class="micro-label">Featured</span>
+        <h2 id="featuredTitle">Featured drop</h2>
       </div>
-      <p id="featuredCopy">Official merchandise and music from the artist, fulfilled through ZVAKHO.</p>
+      <p id="featuredCopy">Official merchandise and products, fulfilled through ZVAKHO.</p>
     </div>
 
     <div class="featured-card" id="featuredProduct">
@@ -407,12 +405,12 @@
     </div>
   </section>
 
-  <!-- PRODUCTS -->
-  <section class="store-shell product-section" id="products">
+  <!-- PRODUCTS (Merch Section) -->
+  <section class="store-shell product-section" id="merchSection">
     <div class="section-intro">
       <span class="micro-label">Shop</span>
       <h2>Available now</h2>
-      <p>Merchandise first, music always close. Add items to your cart and check out with EcoCash/Paynow flow.</p>
+      <p>Add items to your cart and check out with EcoCash/Paynow flow.</p>
     </div>
 
     <div class="product-grid" id="productGrid">
@@ -420,8 +418,8 @@
     </div>
   </section>
 
-  <!-- MUSIC -->
-  <section class="music-section" id="music">
+  <!-- MUSIC – hidden by default, shown only if store_type is music/hybrid -->
+  <section class="music-section" id="musicSection" style="display:none;">
     <div class="store-shell music-layout">
       <div class="section-intro">
         <span class="micro-label">Preview before buying</span>
@@ -435,16 +433,16 @@
     </div>
   </section>
 
-  <!-- ABOUT / ARTIST WORLD -->
+  <!-- ABOUT / BRAND WORLD -->
   <section class="artist-story store-shell" id="about">
     <div class="story-card">
       <div class="story-profile">
-        <img id="storyProfileImage" src="/assets/brand/favicon.png" alt="Artist profile">
+        <img id="storyProfileImage" src="/assets/brand/favicon.png" alt="Brand profile">
       </div>
       <div>
-        <span class="micro-label">Artist world</span>
-        <h2 id="storyTitle">Official artist store</h2>
-        <p id="artistBio">Music, merch and direct-to-fan releases powered by ZVAKHO.</p>
+        <span class="micro-label">About the brand</span>
+        <h2 id="storyTitle">Official store</h2>
+        <p id="artistBio">Products and releases powered by ZVAKHO.</p>
         <div class="social-row" id="socialRow"></div>
       </div>
     </div>
@@ -455,16 +453,16 @@
 <footer class="artist-footer" id="artistFooter">
   <div class="store-shell artist-footer-grid">
     <div>
-      <img class="footer-logo" id="footerLogo" src="/assets/brand/zvakho-logo.webp" alt="Artist logo">
+      <img class="footer-logo" id="footerLogo" src="/assets/brand/zvakho-logo.webp" alt="Brand logo">
       <p id="footerQuote">Official store powered by ZVAKHO.</p>
     </div>
     <div>
-      <strong id="footerArtistName">Artist Store</strong>
-      <p id="footerMeta">Music • Merch • Direct-to-fan commerce</p>
+      <strong id="footerArtistName">Store</strong>
+      <p id="footerMeta">Products • Commerce</p>
     </div>
-    <div>
+    <div data-zvakho-branding>
       <strong>ZVAKHO</strong>
-      <p>Secure artist commerce infrastructure for music, merch and release campaigns.</p>
+      <p>Secure commerce infrastructure for brands, artists and creators.</p>
     </div>
   </div>
 </footer>
