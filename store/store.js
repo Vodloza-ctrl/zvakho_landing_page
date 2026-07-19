@@ -1,7 +1,4 @@
-// ── Import Skin System ──────────────────────────────
-// Skin system is loaded from store-skins.js
-// Make sure store-skins.js is loaded before store.js
-
+// store.js — v2.0 (Brand-Centric, Dynamic Storefront)
 const CONFIG = window.ZVAKHO_CONFIG || {};
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -27,58 +24,22 @@ function attr(value) {
   return escapeHTML(value).replace(/`/g, "&#096;");
 }
 
-/**
- * Artist slug detection order:
- * 1. Query string: /store/?artist=absoll
- * 2. Artist subdomain: absoll.zvakho.co.zw
- * 3. Path fallback: /absoll or /store/absoll
- */
+// ── Slug Detection (same as before) ──
 function slugFromURL() {
   const params = new URLSearchParams(location.search);
-  const query = params.get("artist") || params.get("slug");
-
-  if (query) {
-    return String(query).trim().toLowerCase();
-  }
+  const query = params.get("brand") || params.get("slug") || params.get("artist");
+  if (query) return String(query).trim().toLowerCase();
 
   const host = location.hostname.toLowerCase();
   const hostParts = host.split(".");
-  const firstHostPart = hostParts[0];
-
-  const ignoredSubdomains = [
-    "www",
-    "zvakho",
-    "store",
-    "api",
-    "assets",
-    "localhost",
-    "127"
-  ];
-
-  if (
-    host.endsWith("zvakho.co.zw") &&
-    hostParts.length >= 4 &&
-    !ignoredSubdomains.includes(firstHostPart)
-  ) {
-    return firstHostPart;
-  }
-
-  if (
-    hostParts.length > 2 &&
-    !ignoredSubdomains.includes(firstHostPart)
-  ) {
-    return firstHostPart;
-  }
+  const first = hostParts[0];
+  const ignored = ["www", "zvakho", "store", "api", "assets", "localhost", "127"];
+  if (host.endsWith("zvakho.co.zw") && hostParts.length >= 4 && !ignored.includes(first)) return first;
+  if (hostParts.length > 2 && !ignored.includes(first)) return first;
 
   const pathParts = location.pathname.split("/").filter(Boolean);
-
-  if (pathParts[0] && pathParts[0] !== "store") {
-    return pathParts[0].toLowerCase();
-  }
-
-  if (pathParts[0] === "store" && pathParts[1]) {
-    return pathParts[1].toLowerCase();
-  }
+  if (pathParts[0] && pathParts[0] !== "store") return pathParts[0].toLowerCase();
+  if (pathParts[0] === "store" && pathParts[1]) return pathParts[1].toLowerCase();
 
   return "";
 }
@@ -86,41 +47,23 @@ function slugFromURL() {
 async function fetchJSON(url) {
   const response = await fetch(url, { cache: "no-store" });
   const data = await response.json();
-
-  if (!response.ok || data.status === "error") {
-    throw new Error(data.message || "Request failed");
-  }
-
+  if (!response.ok || data.status === "error") throw new Error(data.message || "Request failed");
   return data;
 }
 
+// ── Theme / Logo Helpers ──
 function isDarkColor(hex) {
   const value = String(hex || "").replace("#", "");
   if (value.length !== 6) return true;
-
   const r = parseInt(value.slice(0, 2), 16);
   const g = parseInt(value.slice(2, 4), 16);
   const b = parseInt(value.slice(4, 6), 16);
-
   return (r * 299 + g * 587 + b * 114) / 1000 < 150;
 }
 
-function layoutFromStore(artist, theme) {
-  const style = String(artist.visual_style || theme.preset_id || "streetwear_dark").toLowerCase();
-
-  if (style.includes("gospel")) return "gospel_clean";
-  if (style.includes("luxury") || style.includes("minimal")) return "minimal_luxury";
-  if (style.includes("fashion")) return "fashion_brand";
-
-  return "streetwear_dark";
-}
-
-function applyTheme(artist, theme) {
-  const layout = layoutFromStore(artist, theme);
-  document.body.dataset.layout = layout;
-
+function applyTheme(brand, theme) {
   const root = document.documentElement;
-  const bg = theme.background_color || "#050505";
+  const bg = theme.background_color || "#0b0b0b";
   const text = theme.text_color || (isDarkColor(bg) ? "#ffffff" : "#111111");
   const primary = theme.primary_color || "#f5a400";
   const secondary = theme.secondary_color || "#ffffff";
@@ -136,90 +79,80 @@ function applyTheme(artist, theme) {
   root.style.setProperty("--store-line", isDarkColor(bg) ? "rgba(255,255,255,.16)" : "rgba(17,17,17,.13)");
 }
 
-function pickLogo(artist, theme) {
-  const bg = theme.background_color || "#050505";
+function pickLogo(brand) {
+  return brand.logo_url || "/assets/brand/zvakho-logo.webp";
+}
 
-  return isDarkColor(bg)
-    ? (artist.logo_white_url || artist.logo_url || "/assets/brand/zvakho-logo.webp")
-    : (artist.logo_black_url || artist.logo_url || "/assets/brand/zvakho-logo.webp");
+function setFavicon(url) {
+  const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+  link.type = 'image/x-icon';
+  link.rel = 'shortcut icon';
+  link.href = url;
+  document.head.appendChild(link);
 }
 
 function setImage(selector, src, fallback = "/assets/brand/favicon.png") {
   const image = $(selector);
   if (!image) return;
-
   image.src = src || fallback;
-  image.onerror = () => {
-    image.src = fallback;
-  };
+  image.onerror = () => { image.src = fallback; };
 }
 
-function productsByType(type) {
-  return (STORE?.products || []).filter((product) =>
-    String(product.product_type || "").toLowerCase() === type
-  );
-}
-
-function featuredProduct() {
-  const products = STORE.products || [];
-  const id = STORE.artist.featured_product_id;
-
-  return products.find((product) => product.product_id === id)
-    || products.find((product) => product.product_type === "merch")
-    || products[0]
-    || null;
-}
-
-function getProduct(productId) {
-  return (STORE.products || []).find((product) => product.product_id === productId);
-}
-
-function getVariant(product, variantId) {
-  return (product?.variants || []).find((variant) => variant.variant_id === variantId) || null;
-}
-
-function isMerch(product) {
-  return String(product?.product_type || "").toLowerCase() === "merch";
-}
-
-function selectedVariantForProduct(product) {
-  if (!product) return null;
-
-  const selectedId = SELECTED_VARIANTS[product.product_id];
-  return getVariant(product, selectedId);
-}
-
+// ── UI Render Functions ──
 function updateGlobalUI() {
-  const { artist, theme } = STORE;
+  const { artist, brand, theme, subscription, store_type } = STORE;
+  const isClothing = store_type === 'clothing';
+  const isMusic = store_type === 'music';
+  const isHybrid = store_type === 'hybrid';
 
-  document.title = `${artist.artist_name} — Official Store`;
+  // Store name & description
+  const storeName = brand?.brand_name || artist?.artist_name || "Store";
+  document.title = `${storeName} — Official Store`;
   document.body.classList.remove("is-loading");
 
-  const heroMedia = $(".hero-media");
-  if (heroMedia && artist.hero_image_url) {
-    heroMedia.style.backgroundImage = `url('${artist.hero_image_url}')`;
+  // Hero
+  $("#storeName").textContent = storeName;
+  $("#storeSub").textContent = brand?.tagline || artist?.tagline || "Official store";
+  $("#storeKicker").textContent = brand?.store_mode ? `${brand.store_mode} store` : "Official Store";
+  if (brand?.hero_image_url) {
+    const heroMedia = $(".hero-media");
+    if (heroMedia) heroMedia.style.backgroundImage = `url('${brand.hero_image_url}')`;
   }
 
-  $("#artistName").textContent = theme.hero_title || artist.artist_name;
-  $("#artistSub").textContent = artist.bio || artist.tagline || artist.genre || "Official music and merch store powered by ZVAKHO.";
-  $("#artistGenre").textContent = artist.genre || "Artist";
-  $("#artistCardName").textContent = artist.artist_name;
-  $("#storeKicker").textContent = artist.store_mode ? `${artist.store_mode} store` : "Official Store";
+  // Artist card (for backwards compatibility)
+  $("#artistCardName").textContent = storeName;
+  $("#artistGenre").textContent = brand?.genre || "Brand";
 
-  const logo = pickLogo(artist, theme);
-
+  // Logo and favicon
+  const logo = pickLogo(brand || artist);
   setImage("#navLogo", logo);
   setImage("#footerLogo", logo);
-  setImage("#artistProfile", artist.profile_image_url || artist.hero_image_url || logo);
-  setImage("#storyProfileImage", artist.profile_image_url || artist.hero_image_url || logo);
+  setImage("#artistProfile", logo);
+  setImage("#storyProfileImage", logo);
+  setFavicon(logo);
 
-  $("#storyTitle").textContent = `${artist.artist_name} world`;
-  $("#artistBio").textContent = artist.bio || artist.tagline || "Official music, merch and direct-to-fan releases powered by ZVAKHO.";
-  $("#footerQuote").textContent = artist.footer_quote || artist.tagline || "Official store powered by ZVAKHO.";
-  $("#footerArtistName").textContent = `${artist.artist_name} Official Store`;
-  $("#footerMeta").textContent = [artist.genre, "Music", "Merch"].filter(Boolean).join(" • ");
+  // Story section
+  $("#storyTitle").textContent = `${storeName} world`;
+  $("#artistBio").textContent = brand?.bio || artist?.bio || "Official store powered by ZVAKHO.";
+  $("#footerQuote").textContent = brand?.footer_quote || artist?.footer_quote || "Official store powered by ZVAKHO.";
+  $("#footerArtistName").textContent = `${storeName} Official Store`;
+  $("#footerMeta").textContent = brand?.genre ? `${brand.genre} • Clothing` : "Clothing • Merch";
 
-  const tickerText = theme.ticker_text || `${artist.artist_name} • OFFICIAL STORE • MUSIC • MERCH • LIMITED RELEASES •`;
+  // ZVAKHO branding visibility based on subscription
+  const isPaidPlan = subscription?.plan && !['launch', 'free'].includes(subscription.plan);
+  const brandingEls = document.querySelectorAll("[data-zvakho-branding]");
+  brandingEls.forEach(el => {
+    el.style.display = isPaidPlan ? 'none' : 'block';
+  });
+
+  // Store type section visibility
+  const musicSection = document.getElementById("musicSection");
+  const merchSection = document.getElementById("merchSection");
+  if (musicSection) musicSection.style.display = (isMusic || isHybrid) ? 'block' : 'none';
+  if (merchSection) merchSection.style.display = (isClothing || isHybrid) ? 'block' : 'none';
+
+  // Ticker text
+  const tickerText = theme?.ticker_text || `${storeName} • OFFICIAL STORE •`;
   $("#tickerTrack").innerHTML = `
     <span>${escapeHTML(tickerText)}</span>
     <span>${escapeHTML(tickerText)}</span>
@@ -231,98 +164,67 @@ function updateGlobalUI() {
 
 function renderSocials() {
   const row = $("#socialRow");
-  const artist = STORE.artist;
-
+  const brand = STORE.brand || STORE.artist;
   const socials = [
-    ["Instagram", artist.instagram_url],
-    ["TikTok", artist.tiktok_url],
-    ["YouTube", artist.youtube_url],
-    ["Spotify", artist.spotify_url],
-    ["Apple Music", artist.apple_music_url]
+    ["Instagram", brand?.instagram_url],
+    ["TikTok", brand?.tiktok_url],
+    ["YouTube", brand?.youtube_url],
+    ["WhatsApp", brand?.whatsapp_number ? `https://wa.me/${brand.whatsapp_number}` : null]
   ].filter(([, url]) => url);
 
+  if (!row) return;
   if (!socials.length) {
     row.innerHTML = `<span class="badge">Social links coming soon</span>`;
     return;
   }
-
   row.innerHTML = socials.map(([label, url]) => `
     <a href="${attr(url)}" target="_blank" rel="noopener" class="social-link">${escapeHTML(label)}</a>
   `).join("");
 }
 
-function productImage(product) {
-  return product.main_image_url || product.image_url || "/assets/brand/favicon.png";
-}
-
+// ── Product Helpers (unchanged) ──
+function productImage(product) { return product.main_image_url || product.image_url || "/assets/brand/favicon.png"; }
 function productDescription(product) {
   if (product.description) return product.description;
   if (product.product_type === "music") return "Preview the track and buy directly from the artist.";
   if (product.preorder_enabled) return "Limited preorder item fulfilled after the drop closes.";
-  return "Official artist product fulfilled through ZVAKHO.";
+  return "Official product fulfilled through ZVAKHO.";
 }
 
 function productBadges(product) {
   const badges = [];
-
   if (product.limited_release) badges.push(`<span class="badge hot">Limited</span>`);
   if (product.preorder_enabled) badges.push(`<span class="badge">Preorder</span>`);
   if (product.product_type === "music") badges.push(`<span class="badge">Instant delivery</span>`);
-  if (isMerch(product) && product.has_variants) badges.push(`<span class="badge">Choose size</span>`);
-
+  if (product.has_variants) badges.push(`<span class="badge">Choose size</span>`);
   return badges.join("");
 }
 
 function renderVariantSelector(product, context = "card") {
-  if (!isMerch(product) || !product.has_variants || !(product.variants || []).length) {
-    return "";
-  }
-
-  const selectedVariant = selectedVariantForProduct(product);
-  const selectedId = selectedVariant?.variant_id || "";
-
+  if (!product.has_variants || !product.variants.length) return "";
+  const selectedId = SELECTED_VARIANTS[product.product_id] || "";
   return `
     <div class="variant-block" data-variant-block="${attr(product.product_id)}">
       <div class="variant-label">Choose size</div>
-
       <div class="variant-options">
-        ${(product.variants || []).map((variant) => {
-          const disabled = Number(variant.stock_qty ?? 1) <= 0;
-          const active = selectedId && variant.variant_id === selectedId;
-
-          return `
-            <button
-              class="variant-option ${active ? "is-selected" : ""}"
-              type="button"
-              data-variant-select="${attr(product.product_id)}"
-              data-variant-id="${attr(variant.variant_id)}"
-              ${disabled ? "disabled" : ""}
-            >
-              ${escapeHTML(variant.size_code || variant.size_label || "Size")}
-            </button>
-          `;
-        }).join("")}
+        ${product.variants.map(v => {
+          const disabled = Number(v.stock_qty ?? 1) <= 0;
+          const active = selectedId && v.variant_id === selectedId;
+          return `<button class="variant-option ${active ? 'is-selected' : ''}" type="button" data-variant-select="${attr(product.product_id)}" data-variant-id="${attr(v.variant_id)}" ${disabled ? 'disabled' : ''}>${escapeHTML(v.size || 'Size')}</button>`;
+        }).join('')}
       </div>
-
-      <div class="variant-note ${selectedVariant ? "is-selected" : "needs-selection"}">
-        ${
-          selectedVariant
-            ? escapeHTML(`${selectedVariant.color || ""} ${selectedVariant.size_label || selectedVariant.size_code || ""}`.trim())
-            : "Please select a size before adding to cart"
-        }
+      <div class="variant-note ${selectedId ? 'is-selected' : 'needs-selection'}">
+        ${selectedId ? 'Selected' : 'Please select a size before adding to cart'}
       </div>
     </div>
   `;
 }
 
-// ═══════════════════════════════════════════════════════════
-// FIXED: Compact Featured Product Card - No Icons
-// ═══════════════════════════════════════════════════════════
+// ── Featured Card (unchanged but uses new data) ──
 function renderFeatured() {
-  const product = featuredProduct();
+  const product = STORE.featured_product || null;
   const box = $("#featuredProduct");
   if (!box) return;
-
   if (!product) {
     box.innerHTML = `<div class="featured-placeholder">No featured product yet.</div>`;
     return;
@@ -334,316 +236,188 @@ function renderFeatured() {
   box.innerHTML = `
     <div class="featured-card-inner">
       <div class="featured-image">
-        <img
-          src="${attr(productImage(product))}"
-          alt="${attr(product.product_name)}"
-          onerror="this.parentElement.innerHTML='<div class=&quot;product-media-fallback&quot;>${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}</div>'"
-        >
+        <img src="${attr(productImage(product))}" alt="${attr(product.product_name)}" onerror="this.parentElement.innerHTML='<div class=&quot;product-media-fallback&quot;>${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}</div>'">
       </div>
-
       <div class="featured-info">
         <div class="featured-badges">${productBadges(product)}</div>
-
         <h3>${escapeHTML(product.product_name)}</h3>
-
         <p>${escapeHTML(productDescription(product))}</p>
-
         ${renderVariantSelector(product, "featured")}
-
         <div class="featured-price">${escapeHTML(product.price_label || money(product.price))}</div>
-
         <div class="featured-actions">
-          <button class="btn hero-primary" type="button" data-add="${attr(product.product_id)}">
-            Add to cart
-          </button>
-
-          ${product.preview_url ? `
-            <button class="btn hero-secondary" type="button" data-preview="${attr(product.product_id)}">
-              Play preview
-            </button>
-          ` : ``}
+          <button class="btn hero-primary" type="button" data-add="${attr(product.product_id)}">Add to cart</button>
+          ${product.preview_url ? `<button class="btn hero-secondary" type="button" data-preview="${attr(product.product_id)}">Play preview</button>` : ''}
         </div>
       </div>
     </div>
   `;
 }
 
+// ── Product Grid ──
 function renderProducts() {
   const grid = $("#productGrid");
   const products = STORE.products || [];
-
   if (!grid) return;
-
   if (!products.length) {
     grid.innerHTML = `<div class="empty">No products available yet.</div>`;
     return;
   }
 
-  // Get skin-based sorting order
-  const skin = STORE.active_skin || { id: 'streetwear', layout: { grid_cols: '3' } };
-  
-  const productWeight = {
-    streetwear: { apparel: 1, merch: 2, music: 3 },
-    corporate: { apparel: 1, merch: 1, music: 4 },
-    earthy_natural: { apparel: 1, merch: 2, music: 3 },
-    luxury: { apparel: 1, merch: 3, music: 4 },
-    sports: { apparel: 1, merch: 2, music: 3 },
-    gospel: { apparel: 1, merch: 2, music: 3 }
-  };
-  
-  const weights = productWeight[skin.id] || { apparel: 1, merch: 2, music: 3 };
-
+  // Sort: clothing first, then music
   const sorted = [...products].sort((a, b) => {
-    const typeA = a.product_type || 'apparel';
-    const typeB = b.product_type || 'apparel';
-    return (weights[typeA] || 9) - (weights[typeB] || 9);
+    if (a.product_type === 'music' && b.product_type !== 'music') return 1;
+    if (b.product_type === 'music' && a.product_type !== 'music') return -1;
+    return 0;
   });
 
-  // Get grid columns from skin
-  const gridCols = skin.layout?.grid_cols || '3';
-  
-  // Apply grid class
-  grid.style.gridTemplateColumns = 
-    gridCols === '2' ? 'repeat(2, 1fr)' : 
-    gridCols === '3' ? 'repeat(3, 1fr)' : 
-    gridCols === '4' ? 'repeat(4, 1fr)' : 
-    'repeat(3, 1fr)';
-
-  grid.innerHTML = sorted.map((product) => `
-    <article class="product-card" data-skin="${skin.id}">
+  grid.innerHTML = sorted.map(product => `
+    <article class="product-card">
       <div class="product-media">
-        <img
-          src="${attr(productImage(product))}"
-          alt="${attr(product.product_name)}"
-          loading="lazy"
-          onerror="this.remove();this.parentElement.textContent='${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}'"
-        >
+        <img src="${attr(productImage(product))}" alt="${attr(product.product_name)}" loading="lazy" onerror="this.remove();this.parentElement.textContent='${escapeHTML((product.product_name || 'Z').slice(0,2).toUpperCase())}'">
       </div>
-
       <div class="product-body">
         <div class="product-type">${escapeHTML(product.product_type || "Apparel")}</div>
-
-        <h3 style="font-family:var(--skin-font-heading, inherit)">${escapeHTML(product.product_name)}</h3>
-
+        <h3>${escapeHTML(product.product_name)}</h3>
         <p>${escapeHTML(productDescription(product))}</p>
-
         <div class="featured-badges">${productBadges(product)}</div>
-
         ${renderVariantSelector(product, "card")}
-
         <div class="product-foot">
           <span class="product-price">${escapeHTML(product.price_label || money(product.price))}</span>
-          <button class="product-add" type="button" data-add="${attr(product.product_id)}">
-            Add
-          </button>
+          <button class="product-add" type="button" data-add="${attr(product.product_id)}">Add</button>
         </div>
       </div>
     </article>
   `).join("");
 }
 
+// ── Music Section (optional) ──
 function renderMusic() {
   const list = $("#musicList");
-  const tracks = productsByType("music");
-
+  const musicProducts = STORE.products?.filter(p => p.product_type === "music") || [];
   if (!list) return;
-
-  if (!tracks.length) {
+  if (!musicProducts.length) {
     list.innerHTML = `<div class="empty">No music previews available yet.</div>`;
     $("#floatingPlayer").hidden = true;
     return;
   }
 
-  list.innerHTML = tracks.map((track) => `
+  list.innerHTML = musicProducts.map(track => `
     <article class="music-row">
       <div class="music-art">
-        <img
-          src="${attr(productImage(track))}"
-          alt="${attr(track.product_name)}"
-          onerror="this.remove();this.parentElement.textContent='${escapeHTML((track.product_name || 'Z').slice(0,2).toUpperCase())}'"
-        >
+        <img src="${attr(productImage(track))}" alt="${attr(track.product_name)}" onerror="this.remove();this.parentElement.textContent='${escapeHTML((track.product_name || 'Z').slice(0,2).toUpperCase())}'">
       </div>
-
       <div>
         <h3>${escapeHTML(track.product_name)}</h3>
-        <p>${escapeHTML(track.price_label || money(track.price))} • Direct artist purchase</p>
+        <p>${escapeHTML(track.price_label || money(track.price))} • Direct purchase</p>
       </div>
-
-      <button class="preview-btn" type="button" ${track.preview_url ? `data-preview="${attr(track.product_id)}"` : `disabled`}>
-        ${track.preview_url ? "Play" : "No preview"}
-      </button>
-
-      <button class="mini-add" type="button" data-add="${attr(track.product_id)}">
-        Buy
-      </button>
+      <button class="preview-btn" type="button" ${track.preview_url ? `data-preview="${attr(track.product_id)}"` : "disabled"}>${track.preview_url ? "Play" : "No preview"}</button>
+      <button class="mini-add" type="button" data-add="${attr(track.product_id)}">Buy</button>
     </article>
   `).join("");
 
-  const firstPlayable = tracks.find((track) => track.preview_url);
+  const firstPlayable = musicProducts.find(t => t.preview_url);
   if (firstPlayable) setActivePreview(firstPlayable, false);
 }
 
+// ── Cart (mostly unchanged) ──
 function addToCart(productId, quantity = 1) {
-  const product = getProduct(productId);
+  const product = STORE.products?.find(p => p.product_id === productId);
   if (!product) return;
-
   let variant = null;
-
-  if (isMerch(product)) {
-    if (product.has_variants) {
-      variant = selectedVariantForProduct(product);
-
-      if (!variant) {
-        alert("Please select a size first.");
-        return;
-      }
-    } else {
-      alert("This merch item is missing sizes. Please contact ZVAKHO.");
-      return;
-    }
+  if (product.has_variants) {
+    const selectedId = SELECTED_VARIANTS[productId];
+    variant = product.variants.find(v => v.variant_id === selectedId);
+    if (!variant) { alert("Please select a size first."); return; }
   }
-
-  const cartKey = variant
-    ? `${product.product_id}::${variant.variant_id}`
-    : product.product_id;
-
-  const existing = CART.find((item) => item.cart_key === cartKey);
-
-  if (existing) {
-    existing.quantity += quantity;
-  } else {
+  const cartKey = variant ? `${productId}::${variant.variant_id}` : productId;
+  const existing = CART.find(item => item.cart_key === cartKey);
+  if (existing) existing.quantity += quantity;
+  else {
     CART.push({
       cart_key: cartKey,
-      product_id: product.product_id,
+      product_id: productId,
       variant_id: variant ? variant.variant_id : "",
       product_name: product.product_name,
       product_type: product.product_type,
-      color: variant ? variant.color : "",
-      size_code: variant ? variant.size_code : "",
-      size_label: variant ? variant.size_label : "",
+      color: variant?.color || "",
+      size: variant?.size || "",
       price: Number(product.price || 0),
       quantity
     });
   }
-
   updateCartUI();
   openCart();
 }
 
-function cartTotal() {
-  return CART.reduce((total, item) =>
-    total + Number(item.price || 0) * Number(item.quantity || 1), 0
-  );
-}
-
-function cartCount() {
-  return CART.reduce((total, item) =>
-    total + Number(item.quantity || 1), 0
-  );
-}
-
-function cartItemLabel(item) {
-  const variantLabel = [item.color, item.size_code].filter(Boolean).join(" ");
-  return variantLabel
-    ? `${item.product_name} (${variantLabel})`
-    : item.product_name;
-}
+function cartTotal() { return CART.reduce((t, i) => t + Number(i.price) * Number(i.quantity), 0); }
+function cartCount() { return CART.reduce((t, i) => t + Number(i.quantity), 0); }
 
 function updateCartUI() {
   const count = cartCount();
-
   $("#cartCount").textContent = count;
   $("#mobileCartCount").textContent = count;
   $("#cartTotal").textContent = money(cartTotal());
-  $("#mobileBuyBar").hidden = count === 0;
-
+  const bar = $("#mobileBuyBar");
+  if (bar) bar.hidden = count === 0;
   const items = $("#cartItems");
   if (!items) return;
-
   if (!CART.length) {
     items.innerHTML = `<div class="cart-empty">Your cart is empty.</div>`;
     return;
   }
-
-  items.innerHTML = CART.map((item) => `
+  items.innerHTML = CART.map(item => `
     <div class="cart-item">
       <div>
-        <strong>${escapeHTML(cartItemLabel(item))}</strong><br>
+        <strong>${escapeHTML(item.product_name + (item.size ? ` (${item.size})` : ''))}</strong><br>
         <span>${escapeHTML(money(item.price))} × ${item.quantity}</span>
-
         <div class="qty-controls">
           <button type="button" data-qty="${attr(item.cart_key)}" data-step="-1">−</button>
           <span>${item.quantity}</span>
           <button type="button" data-qty="${attr(item.cart_key)}" data-step="1">+</button>
         </div>
       </div>
-
       <div>
         <strong>${escapeHTML(money(item.price * item.quantity))}</strong><br>
-        <button class="remove-item" type="button" data-remove="${attr(item.cart_key)}">
-          Remove
-        </button>
+        <button class="remove-item" type="button" data-remove="${attr(item.cart_key)}">Remove</button>
       </div>
     </div>
   `).join("");
 }
 
 function changeQuantity(cartKey, step) {
-  const item = CART.find((cartItem) => cartItem.cart_key === cartKey);
+  const item = CART.find(i => i.cart_key === cartKey);
   if (!item) return;
-
   item.quantity += step;
-
-  if (item.quantity <= 0) {
-    CART = CART.filter((cartItem) => cartItem.cart_key !== cartKey);
-  }
-
+  if (item.quantity <= 0) CART = CART.filter(i => i.cart_key !== cartKey);
   updateCartUI();
 }
 
 function removeFromCart(cartKey) {
-  CART = CART.filter((item) => item.cart_key !== cartKey);
+  CART = CART.filter(i => i.cart_key !== cartKey);
   updateCartUI();
 }
 
-function openCart() {
-  const drawer = $("#cartDrawer");
-  drawer.classList.add("is-open");
-  drawer.setAttribute("aria-hidden", "false");
-}
-
-function closeCart() {
-  const drawer = $("#cartDrawer");
-  drawer.classList.remove("is-open");
-  drawer.setAttribute("aria-hidden", "true");
-}
+function openCart() { document.getElementById("cartDrawer").classList.add("is-open"); }
+function closeCart() { document.getElementById("cartDrawer").classList.remove("is-open"); }
 
 function setActivePreview(product, autoplay = true) {
   if (!product || !product.preview_url) return;
-
   ACTIVE_PREVIEW_PRODUCT = product;
-
   const player = $("#floatingPlayer");
   const audio = $("#audioPreview");
-
   $("#playerTitle").textContent = product.product_name;
-  $("#playerArtist").textContent = STORE.artist.artist_name;
-
+  $("#playerArtist").textContent = STORE.brand?.brand_name || STORE.artist?.artist_name || "Store";
   audio.src = product.preview_url;
   player.hidden = false;
   $("#playerToggle").textContent = "▶";
-
   if (autoplay) {
-    audio.play().then(() => {
-      $("#playerToggle").textContent = "Ⅱ";
-    }).catch(() => {});
+    audio.play().then(() => { $("#playerToggle").textContent = "Ⅱ"; }).catch(() => {});
   }
 }
 
 function togglePreview() {
   const audio = $("#audioPreview");
   if (!audio.src) return;
-
   if (audio.paused) {
     audio.play();
     $("#playerToggle").textContent = "Ⅱ";
@@ -653,61 +427,44 @@ function togglePreview() {
   }
 }
 
+// ── Checkout ──
 async function checkout() {
-  if (!STORE || !CART.length) {
-    openCart();
-    return;
-  }
-
+  if (!STORE || !CART.length) { openCart(); return; }
   const phone = $("#customerPhone").value.trim();
   const email = $("#customerEmail").value.trim();
   const note = $("#checkoutNote");
   const btn = $("#checkoutBtn");
-
-  if (!phone) {
-    note.textContent = "Enter your EcoCash number first.";
-    return;
-  }
-
-  if (!email) {
-    note.textContent = "Enter your email first. Paynow requires an email.";
-    return;
-  }
-
+  if (!phone) { note.textContent = "Enter your EcoCash number first."; return; }
+  if (!email) { note.textContent = "Enter your email first. Paynow requires an email."; return; }
   btn.disabled = true;
   btn.textContent = "Sending prompt...";
   note.textContent = "Creating your order and sending the mobile payment prompt...";
 
   try {
+    const artistId = STORE.brand?.brand_id || STORE.artist?.artist_id || "general";
+    const artistName = STORE.brand?.brand_name || STORE.artist?.artist_name || "Store";
     const response = await fetch(api("/web-checkout"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        artist_id: STORE.artist.artist_id,
-        artist_name: STORE.artist.artist_name,
+        artist_id: artistId,
+        artist_name: artistName,
         customer_name: "Guest",
         customer_phone: phone,
         customer_email: email,
-        items: CART.map((item) => ({
+        items: CART.map(item => ({
           product_id: item.product_id,
           variant_id: item.variant_id || "",
           quantity: item.quantity
         }))
       })
     });
-
     const data = await response.json();
-
-    if (!response.ok || data.status !== "success") {
-      throw new Error(data.message || "Checkout failed.");
-    }
-
+    if (!response.ok || data.status !== "success") throw new Error(data.message || "Checkout failed.");
     note.textContent = "Payment prompt sent. Enter your PIN on your phone.";
     btn.textContent = "Prompt sent";
-
     CART = [];
     updateCartUI();
-
   } catch (error) {
     note.textContent = error.message || "Checkout failed. Please try again.";
     btn.disabled = false;
@@ -715,157 +472,76 @@ async function checkout() {
   }
 }
 
-function rerenderVariantProduct(productId) {
-  const product = getProduct(productId);
-  if (!product) return;
-
-  renderFeatured();
-  renderProducts();
-}
-
+// ── Event Binding ──
 function bindEvents() {
-  document.addEventListener("click", (event) => {
-    const variantButton = event.target.closest("[data-variant-select]");
+  document.addEventListener("click", (e) => {
+    // Variant selection
+    const variantButton = e.target.closest("[data-variant-select]");
     if (variantButton) {
       const productId = variantButton.dataset.variantSelect;
       const variantId = variantButton.dataset.variantId;
-
       SELECTED_VARIANTS[productId] = variantId;
-      rerenderVariantProduct(productId);
+      renderFeatured();
+      renderProducts();
       return;
     }
-
-    const add = event.target.closest("[data-add]");
-    if (add) {
-      addToCart(add.dataset.add);
-      return;
-    }
-
-    const preview = event.target.closest("[data-preview]");
+    // Add to cart
+    const add = e.target.closest("[data-add]");
+    if (add) { addToCart(add.dataset.add); return; }
+    // Preview
+    const preview = e.target.closest("[data-preview]");
     if (preview) {
-      const product = getProduct(preview.dataset.preview);
-      setActivePreview(product, true);
+      const product = STORE.products?.find(p => p.product_id === preview.dataset.preview);
+      if (product) setActivePreview(product, true);
       return;
     }
-
-    const open = event.target.closest("[data-cart-open]");
-    if (open) {
-      openCart();
-      return;
-    }
-
-    const close = event.target.closest("[data-cart-close]");
-    if (close) {
-      closeCart();
-      return;
-    }
-
-    const qty = event.target.closest("[data-qty]");
-    if (qty) {
-      changeQuantity(qty.dataset.qty, Number(qty.dataset.step || 0));
-      return;
-    }
-
-    const remove = event.target.closest("[data-remove]");
-    if (remove) {
-      removeFromCart(remove.dataset.remove);
-    }
+    // Cart open/close
+    if (e.target.closest("[data-cart-open]")) { openCart(); return; }
+    if (e.target.closest("[data-cart-close]")) { closeCart(); return; }
+    // Quantity
+    const qty = e.target.closest("[data-qty]");
+    if (qty) { changeQuantity(qty.dataset.qty, Number(qty.dataset.step || 0)); return; }
+    // Remove
+    const remove = e.target.closest("[data-remove]");
+    if (remove) { removeFromCart(remove.dataset.remove); return; }
   });
 
-  const checkoutBtn = $("#checkoutBtn");
-  if (checkoutBtn) {
-    checkoutBtn.addEventListener("click", checkout);
-  }
-
-  const playerToggle = $("#playerToggle");
-  if (playerToggle) {
-    playerToggle.addEventListener("click", togglePreview);
-  }
-
-  const playerBuy = $("#playerBuy");
-  if (playerBuy) {
-    playerBuy.addEventListener("click", () => {
-      if (ACTIVE_PREVIEW_PRODUCT) {
-        addToCart(ACTIVE_PREVIEW_PRODUCT.product_id);
-      }
-    });
-  }
-
-  const audioPreview = $("#audioPreview");
-  if (audioPreview) {
-    audioPreview.addEventListener("ended", () => {
-      $("#playerToggle").textContent = "▶";
-    });
-  }
+  document.getElementById("checkoutBtn")?.addEventListener("click", checkout);
+  document.getElementById("playerToggle")?.addEventListener("click", togglePreview);
+  document.getElementById("playerBuy")?.addEventListener("click", () => {
+    if (ACTIVE_PREVIEW_PRODUCT) addToCart(ACTIVE_PREVIEW_PRODUCT.product_id);
+  });
+  document.getElementById("audioPreview")?.addEventListener("ended", () => {
+    document.getElementById("playerToggle").textContent = "▶";
+  });
 }
 
+// ── Init ──
 async function initStore() {
   bindEvents();
-
   const slug = slugFromURL();
-  const productGrid = $("#productGrid");
-
+  const grid = $("#productGrid");
   if (!slug) {
-    if (productGrid) {
-      productGrid.innerHTML = `
-        <div class="empty">
-          Artist not found. Open a store with <strong>/store/?artist=artist-slug</strong>.
-        </div>
-      `;
-    }
+    if (grid) grid.innerHTML = `<div class="empty">Brand not found. Use ?brand=your-brand-slug</div>`;
     return;
   }
 
   try {
-    STORE = await fetchJSON(api(`/store-config?artist=${encodeURIComponent(slug)}`));
-
-    // ── FIX: Ensure industry_preference is set ──
-    if (STORE.artist && !STORE.artist.industry_preference) {
-      STORE.artist.industry_preference = 'streetwear'; // Default fallback
-    }
-    console.log('🎨 Industry Preference:', STORE.artist.industry_preference);
-
-    // ── Initialize Skin System ──
-    if (typeof SkinManager !== 'undefined') {
-      const skinManager = new SkinManager();
-      const detectedSkin = skinManager.detectIndustry(STORE.artist);
-      console.log('🎨 Detected Skin:', detectedSkin);
-      const skin = skinManager.applySkin(detectedSkin);
-      STORE.active_skin = skin;
-    }
-
-    applyTheme(STORE.artist, STORE.theme || {});
+    STORE = await fetchJSON(api(`/store-config?brand=${encodeURIComponent(slug)}`));
+    // Ensure brand exists
+    if (!STORE.brand && STORE.artist) STORE.brand = STORE.artist;
+    applyTheme(STORE.brand, STORE.theme || {});
     updateGlobalUI();
     renderFeatured();
     renderProducts();
     renderMusic();
     updateCartUI();
-
   } catch (error) {
-    if (productGrid) {
-      productGrid.innerHTML = `
-        <div class="empty">
-          <strong>Store unavailable.</strong><br>
-          ${escapeHTML(error.message || "Please try again.")}
-        </div>
-      `;
-    }
-
-    const artistName = $("#artistName");
-    if (artistName) {
-      artistName.textContent = "Store unavailable";
-    }
-    
-    const artistSub = $("#artistSub");
-    if (artistSub) {
-      artistSub.textContent = error.message || "Please try again.";
-    }
+    if (grid) grid.innerHTML = `<div class="empty"><strong>Store unavailable.</strong><br>${escapeHTML(error.message || "Please try again.")}</div>`;
+    document.getElementById("storeName").textContent = "Store unavailable";
+    document.getElementById("storeSub").textContent = error.message || "Please try again.";
   }
 }
 
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initStore);
-} else {
-  initStore();
-}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initStore);
+else initStore();

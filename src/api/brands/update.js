@@ -18,8 +18,9 @@ export async function updateBrand(request, env, user, brandId) {
         const updates = [];
         const values = [];
         
-        // Allowed fields to update
+        // ── Allowed fields to update ──
         const allowedFields = {
+            // Existing fields
             'brand_name': validateBrandName,
             'brand_email': validateEmail,
             'brand_phone': validatePhone,
@@ -56,7 +57,31 @@ export async function updateBrand(request, env, user, brandId) {
             'store_hours': (val) => ({ valid: true }),
             'whatsapp_number': validatePhone,
             'logo_url': (val) => ({ valid: true }),
-            'custom_domain': (val) => ({ valid: true })
+            'custom_domain': (val) => ({ valid: true }),
+            
+            // ── New media fields ──
+            'gallery_layout': (val) => {
+                const valid = ['mosaic', 'grid', 'carousel'];
+                return valid.includes(val) ? { valid: true } : { valid: false, error: 'Invalid gallery layout' };
+            },
+            'gallery_visible': (val) => {
+                // Accept boolean or number; convert later
+                const bool = val === true || val === 1 || val === 'true';
+                return { valid: true, value: bool ? 1 : 0 };
+            },
+            'video_url': (val) => {
+                // Accept any string, optional
+                return { valid: true };
+            },
+            'video_visible': (val) => {
+                const bool = val === true || val === 1 || val === 'true';
+                return { valid: true, value: bool ? 1 : 0 };
+            },
+            'video_title': (val) => ({ valid: true }),
+            'media_position': (val) => {
+                const valid = ['above_products', 'below_products', 'before_hero'];
+                return valid.includes(val) ? { valid: true } : { valid: false, error: 'Invalid media position' };
+            }
         };
         
         for (const [field, validator] of Object.entries(allowedFields)) {
@@ -70,8 +95,10 @@ export async function updateBrand(request, env, user, brandId) {
                         headers: { 'Content-Type': 'application/json' }
                     });
                 }
+                // If validator returns a transformed value (e.g., boolean to int), use it
+                const value = validation.value !== undefined ? validation.value : body[field];
                 updates.push(`${field} = ?`);
-                values.push(body[field]);
+                values.push(value);
             }
         }
         

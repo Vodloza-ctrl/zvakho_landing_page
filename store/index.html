@@ -335,7 +335,7 @@
 <!-- ─── NAVIGATION ─── -->
 <nav class="store-nav" aria-label="Store navigation">
   <div class="store-shell store-nav-inner">
-    <a class="store-brand" href="/" aria-label="ZVAKHO home">
+    <a class="store-brand" href="/" aria-label="ZVAKHO home" data-zvakho-branding>
       <img id="navLogo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
     </a>
 
@@ -369,8 +369,8 @@
   <div class="store-shell hero-grid-v2">
     <section class="hero-copy">
       <div class="store-pill" id="storeKicker">Official Store</div>
-      <h1 id="artistName">Loading...</h1>
-      <p id="artistSub">Loading store...</p>
+      <h1 id="storeName">Loading...</h1>
+      <p id="storeSub">Loading store...</p>
 
       <div class="hero-actions">
         <a class="btn hero-primary" href="#drop">Shop the Drop</a>
@@ -407,8 +407,8 @@
     </div>
   </section>
 
-  <!-- PRODUCTS -->
-  <section class="store-shell product-section" id="products">
+  <!-- PRODUCTS (Merch Section) -->
+  <section class="store-shell product-section" id="merchSection">
     <div class="section-intro">
       <span class="micro-label">Shop</span>
       <h2>Available now</h2>
@@ -421,7 +421,7 @@
   </section>
 
   <!-- MUSIC -->
-  <section class="music-section" id="music">
+  <section class="music-section" id="musicSection">
     <div class="store-shell music-layout">
       <div class="section-intro">
         <span class="micro-label">Preview before buying</span>
@@ -462,7 +462,7 @@
       <strong id="footerArtistName">Artist Store</strong>
       <p id="footerMeta">Music • Merch • Direct-to-fan commerce</p>
     </div>
-    <div>
+    <div data-zvakho-branding>
       <strong>ZVAKHO</strong>
       <p>Secure artist commerce infrastructure for music, merch and release campaigns.</p>
     </div>
@@ -519,4 +519,4 @@
 <script src="/store/store-skins.js?v=5"></script>
 <script src="/store/store.js?v=5"></script>
 </body>
-</html>
+</html> 
