@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// .wrangler/tmp/bundle-qyRyQL/checked-fetch.js
+// .wrangler/tmp/bundle-CvtSWL/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -1859,28 +1859,34 @@ __name(generateHash, "generateHash");
 // src/api/payments/webhook.js
 async function handleWebhook(request, env) {
   try {
-    const body = await request.formData();
-    const data = Object.fromEntries(body);
-    console.log("\u{1F4E5} Webhook received:", data);
+    const rawBody = await request.text();
+    console.log("\u{1F4E5} Webhook received:", rawBody);
+    const data = parsePaynowResponse2(rawBody);
+    console.log("\u{1F4E6} Parsed webhook data:", data);
     const reference = data.reference || data.payment_reference || "";
     const status = data.status || data.payment_status || "";
     const paynowReference = data.paynowreference || data.transaction_reference || "";
+    const amount = parseFloat(data.amount || 0);
     if (!reference) {
+      console.log("\u274C No reference in webhook");
       return new Response("Missing reference", { status: 400 });
     }
     const order = await env.DB.prepare(`
             SELECT * FROM orders 
-            WHERE payment_reference = ?
-        `).bind(reference).first();
+            WHERE payment_reference = ? 
+            OR order_id = ?
+        `).bind(reference, reference).first();
     if (!order) {
       console.log("\u274C Order not found for reference:", reference);
       return new Response("Order not found", { status: 404 });
     }
     if (order.payment_status === "paid") {
-      return new Response("Already paid", { status: 200 });
+      console.log("\u2705 Order already paid:", order.order_id);
+      return new Response("OK - Already paid", { status: 200 });
     }
-    const isPaid = status.toLowerCase() === "paid" || status.toLowerCase() === "awaiting delivery";
+    const isPaid = status.toLowerCase() === "paid" || status.toLowerCase() === "awaiting delivery" || status.toLowerCase() === "completed";
     if (isPaid) {
+      console.log("\u{1F4B0} Payment confirmed for order:", order.order_id);
       await env.DB.prepare(`
                 UPDATE orders 
                 SET payment_status = 'paid',
@@ -1890,34 +1896,187 @@ async function handleWebhook(request, env) {
                     updated_at = ?
                 WHERE order_id = ?
             `).bind(
-        paynowReference,
-        status,
+        paynowReference || reference,
+        status || "Paid",
         (/* @__PURE__ */ new Date()).toISOString(),
         (/* @__PURE__ */ new Date()).toISOString(),
         order.order_id
       ).run();
-      console.log("\u2705 Payment confirmed for order:", order.order_id);
       await env.DB.prepare(`
                 UPDATE order_items 
                 SET fulfilment_status = 'processing',
                     updated_at = ?
                 WHERE order_id = ?
             `).bind((/* @__PURE__ */ new Date()).toISOString(), order.order_id).run();
-    } else {
-      await env.DB.prepare(`
-                UPDATE orders 
-                SET paynow_status = ?,
-                    updated_at = ?
-                WHERE order_id = ?
-            `).bind(status, (/* @__PURE__ */ new Date()).toISOString(), order.order_id).run();
+      await processPaidOrder(env, order);
+      await sendPaymentNotifications(env, order);
+      return new Response("OK - Payment confirmed", { status: 200 });
     }
-    return new Response("OK", { status: 200 });
+    await env.DB.prepare(`
+            UPDATE orders 
+            SET paynow_status = ?,
+                paynow_error = ?,
+                updated_at = ?
+            WHERE order_id = ?
+        `).bind(
+      status || "Pending",
+      data.error || "",
+      (/* @__PURE__ */ new Date()).toISOString(),
+      order.order_id
+    ).run();
+    return new Response("OK - Status updated", { status: 200 });
   } catch (error) {
     console.error("\u274C Webhook error:", error);
     return new Response("Error: " + error.message, { status: 500 });
   }
 }
 __name(handleWebhook, "handleWebhook");
+async function processPaidOrder(env, order) {
+  console.log("\u{1F504} Processing paid order:", order.order_id);
+  const orderItems = await env.DB.prepare(`
+        SELECT * FROM order_items 
+        WHERE order_id = ?
+    `).bind(order.order_id).all();
+  for (const item of orderItems.results || []) {
+    if (item.product_type === "subscription" || item.product_name?.toLowerCase().includes("subscription")) {
+      console.log("\u{1F3AF} Subscription detected:", item.product_name);
+      const product = await env.DB.prepare(`
+                SELECT * FROM products 
+                WHERE product_id = ?
+            `).bind(item.product_id).first();
+      if (product?.metadata) {
+        try {
+          const metadata = JSON.parse(product.metadata);
+          const plan = metadata.subscription_plan;
+          if (plan) {
+            console.log("\u{1F4CB} Upgrading to plan:", plan);
+            await upgradeSubscription(env, order.brand_id, plan);
+          }
+        } catch (e) {
+          console.log("\u26A0\uFE0F Failed to parse metadata:", e.message);
+        }
+      }
+    }
+  }
+}
+__name(processPaidOrder, "processPaidOrder");
+async function upgradeSubscription(env, brandId, plan) {
+  const planDetails = {
+    "grow": { fee: 6, max_products: 100 },
+    "business": { fee: 3, max_products: -1 },
+    "pro": { fee: 1, max_products: -1 }
+  };
+  const details = planDetails[plan];
+  if (!details) {
+    console.log("\u274C Invalid plan:", plan);
+    return;
+  }
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  await env.DB.prepare(`
+        UPDATE subscription_history 
+        SET status = 'completed'
+        WHERE brand_id = ? AND status = 'active'
+    `).bind(brandId).run();
+  await env.DB.prepare(`
+        INSERT INTO subscription_history (
+            brand_id, plan, status, fee_percentage, max_products, changed_at
+        ) VALUES (?, ?, 'active', ?, ?, ?)
+    `).bind(
+    brandId,
+    plan,
+    details.fee,
+    details.max_products,
+    now
+  ).run();
+  console.log("\u2705 Subscription upgraded to:", plan);
+}
+__name(upgradeSubscription, "upgradeSubscription");
+async function sendPaymentNotifications(env, order) {
+  try {
+    console.log("\u{1F4F1} Sending notifications for order:", order.order_id);
+    const brand = await env.DB.prepare(`
+            SELECT * FROM brands WHERE brand_id = ?
+        `).bind(order.brand_id).first();
+    if (env.MANYCHAT_API_TOKEN && order.customer_phone) {
+      await sendWhatsAppNotification(env, order, brand);
+    }
+    await env.DB.prepare(`
+            INSERT INTO audit_logs (
+                log_id, brand_id, user_id, action, resource, resource_id, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+      crypto.randomUUID(),
+      order.brand_id,
+      null,
+      "payment_received",
+      "order",
+      order.order_id,
+      (/* @__PURE__ */ new Date()).toISOString()
+    ).run();
+    console.log("\u2705 Notifications sent for order:", order.order_id);
+  } catch (error) {
+    console.error("\u274C Notification error:", error);
+  }
+}
+__name(sendPaymentNotifications, "sendPaymentNotifications");
+async function sendWhatsAppNotification(env, order, brand) {
+  try {
+    let phone = String(order.customer_phone).replace(/\D/g, "");
+    if (phone.startsWith("0")) {
+      phone = "263" + phone.slice(1);
+    }
+    if (phone.length < 10) return;
+    const findRes = await fetch(
+      `https://api.manychat.com/fb/subscriber/findByPhone?phone=%2B${phone}`,
+      {
+        headers: {
+          "Authorization": `Bearer ${env.MANYCHAT_API_TOKEN}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    if (!findRes.ok) return;
+    const findData = await findRes.json();
+    const subscriberId = findData?.data?.id;
+    if (!subscriberId) return;
+    await fetch("https://api.manychat.com/fb/sending/sendFlow", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${env.MANYCHAT_API_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        subscriber_id: subscriberId,
+        flow_ns: "content20260531175501_037112",
+        data: [
+          { field_name: "order_product", field_value: "Payment Confirmed" },
+          { field_name: "order_reference", field_value: order.order_id },
+          { field_name: "order_amount", field_value: String(order.amount || 0) },
+          { field_name: "artist_name", field_value: brand?.brand_name || "ZVAKHO" }
+        ]
+      })
+    });
+    console.log("\u2705 WhatsApp notification sent");
+  } catch (error) {
+    console.error("\u274C WhatsApp notification error:", error);
+  }
+}
+__name(sendWhatsAppNotification, "sendWhatsAppNotification");
+function parsePaynowResponse2(text) {
+  const result = {};
+  if (!text) return result;
+  const pairs = text.split(/[&\n]/);
+  for (const pair of pairs) {
+    const parts = pair.split("=");
+    if (parts.length >= 2) {
+      const key = decodeURIComponent(parts[0].trim());
+      const value = decodeURIComponent(parts.slice(1).join("=").trim());
+      result[key] = value;
+    }
+  }
+  return result;
+}
+__name(parsePaynowResponse2, "parsePaynowResponse");
 
 // src/api/payments/status.js
 async function getPaymentStatus(request, env, user) {
@@ -1967,7 +2126,7 @@ async function getPaymentStatus(request, env, user) {
       try {
         const pollRes = await fetch(order.poll_url);
         const pollText = await pollRes.text();
-        const parsed = parsePaynowResponse2(pollText);
+        const parsed = parsePaynowResponse3(pollText);
         if (parsed.status?.toLowerCase() === "paid" || parsed.status?.toLowerCase() === "awaiting delivery") {
           await env.DB.prepare(`
                         UPDATE orders 
@@ -2016,7 +2175,7 @@ async function getPaymentStatus(request, env, user) {
   }
 }
 __name(getPaymentStatus, "getPaymentStatus");
-function parsePaynowResponse2(text) {
+function parsePaynowResponse3(text) {
   const result = {};
   if (!text) return result;
   text.split("&").forEach((pair) => {
@@ -2026,7 +2185,7 @@ function parsePaynowResponse2(text) {
   });
   return result;
 }
-__name(parsePaynowResponse2, "parsePaynowResponse");
+__name(parsePaynowResponse3, "parsePaynowResponse");
 
 // src/api/payments/confirm.js
 async function confirmPayment(request, env, user) {
@@ -2266,7 +2425,7 @@ var drainBody = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "drainBody");
 var middleware_ensure_req_body_drained_default = drainBody;
 
-// .wrangler/tmp/bundle-qyRyQL/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-CvtSWL/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default
 ];
@@ -2297,7 +2456,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-qyRyQL/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-CvtSWL/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
