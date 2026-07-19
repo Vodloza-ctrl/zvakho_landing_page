@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// .wrangler/tmp/bundle-r7lHje/checked-fetch.js
+// .wrangler/tmp/bundle-qyRyQL/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -1700,17 +1700,23 @@ async function createPayment(request, env, user) {
     if (order.payment_status === "paid") {
       return new Response(JSON.stringify({
         success: true,
-        message: "Order already paid",
-        order_id: orderId,
-        payment_status: "paid"
+        message: "Order already paid"
       }), {
         headers: { "Content-Type": "application/json" }
       });
     }
-    const reference = `ZVAKHO_${user.brand_id.slice(0, 8)}_${Date.now()}`;
+    const items = await env.DB.prepare(`
+            SELECT * FROM order_items 
+            WHERE order_id = ?
+        `).bind(orderId).all();
+    const firstItem = items.results?.[0];
+    const productName = firstItem?.product_name || "Product";
+    const artistId = firstItem?.artist_id || user.brand_id || "GENERAL";
+    const safeArtistId = sanitizeId(artistId);
+    const reference = `ZVAKHO_${safeArtistId}_${Date.now()}`;
+    const baseUrl = env.BASE_URL || "https://zvakho-payments-v2.yasibomedia.workers.dev";
     const integrationId = env.PAYNOW_INTEGRATION_ID;
     const integrationKey = env.PAYNOW_INTEGRATION_KEY;
-    const baseUrl = env.BASE_URL || "https://zvakho-payments-v2.yasibomedia.workers.dev";
     if (!integrationId || !integrationKey) {
       return new Response(JSON.stringify({
         error: "Payment system not configured"
@@ -1719,11 +1725,7 @@ async function createPayment(request, env, user) {
         headers: { "Content-Type": "application/json" }
       });
     }
-    const items = await env.DB.prepare(`
-            SELECT * FROM order_items 
-            WHERE order_id = ?
-        `).bind(orderId).all();
-    const productName = items.results?.[0]?.product_name || "Product";
+    const phone = formatZimPhone(order.customer_phone || "");
     const fields = {
       resulturl: `${baseUrl}/api/payments/webhook`,
       returnurl: `${baseUrl}/api/payments/status?order_id=${orderId}`,
@@ -1732,11 +1734,11 @@ async function createPayment(request, env, user) {
       id: integrationId,
       additionalinfo: `${productName} - Order ${orderId}`,
       authemail: order.customer_email || "",
-      phone: order.customer_phone || "",
+      phone,
       method: "ecocash",
       status: "Message"
     };
-    const hash = await generatePaynowHash(fields, integrationKey);
+    const hash = await generateHash(fields, integrationKey);
     const paynowResponse = await fetch("https://www.paynow.co.zw/interface/remotetransaction", {
       method: "POST",
       headers: {
@@ -1749,6 +1751,24 @@ async function createPayment(request, env, user) {
     });
     const responseText = await paynowResponse.text();
     const parsed = parsePaynowResponse(responseText);
+    console.log("\u{1F4E8} Paynow Response:", parsed);
+    const pollUrl = parsed.pollurl || "";
+    const browserUrl = parsed.browserurl || "";
+    const paynowStatus = parsed.status || "";
+    const paynowError = parsed.error || "";
+    if (!pollUrl) {
+      return new Response(JSON.stringify({
+        status: "error",
+        reference,
+        payment_status: "failed",
+        paynow_status: paynowStatus,
+        paynow_error: paynowError || "Paynow did not return poll_url",
+        raw_response: responseText
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
     await env.DB.prepare(`
             UPDATE orders 
             SET payment_reference = ?,
@@ -1760,10 +1780,10 @@ async function createPayment(request, env, user) {
             WHERE order_id = ?
         `).bind(
       reference,
-      parsed.pollurl || "",
-      parsed.browserurl || "",
-      parsed.status || "pending",
-      parsed.error || "",
+      pollUrl,
+      browserUrl,
+      paynowStatus,
+      paynowError,
       (/* @__PURE__ */ new Date()).toISOString(),
       orderId
     ).run();
@@ -1773,13 +1793,15 @@ async function createPayment(request, env, user) {
             WHERE order_id = ?
         `).bind(reference, orderId).run();
     return new Response(JSON.stringify({
-      success: true,
-      order_id: orderId,
+      status: "success",
       reference,
-      payment_url: parsed.browserurl || "",
-      poll_url: parsed.pollurl || "",
+      transaction_reference: reference,
+      payment_url: browserUrl || "",
+      poll_url: pollUrl,
+      poll_url_received: true,
       payment_status: "pending",
-      paynow_status: parsed.status || "pending"
+      paynow_status: paynowStatus,
+      paynow_error: paynowError
     }), {
       headers: { "Content-Type": "application/json" }
     });
@@ -1794,23 +1816,19 @@ async function createPayment(request, env, user) {
   }
 }
 __name(createPayment, "createPayment");
-async function generatePaynowHash(fields, key) {
-  let str = "";
-  const exclude = ["hash"];
-  const sortedKeys = Object.keys(fields).sort();
-  for (const k of sortedKeys) {
-    if (!exclude.includes(k)) {
-      str += fields[k];
-    }
+function formatZimPhone(phone) {
+  if (!phone) return "";
+  let cleaned = String(phone).replace(/\D/g, "");
+  if (cleaned.startsWith("263")) {
+    cleaned = "0" + cleaned.slice(3);
   }
-  str += key;
-  const buf = await crypto.subtle.digest(
-    "SHA-512",
-    new TextEncoder().encode(str)
-  );
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+  return cleaned;
 }
-__name(generatePaynowHash, "generatePaynowHash");
+__name(formatZimPhone, "formatZimPhone");
+function sanitizeId(value) {
+  return String(value || "GENERAL").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+__name(sanitizeId, "sanitizeId");
 function parsePaynowResponse(text) {
   const result = {};
   if (!text) return result;
@@ -1822,6 +1840,21 @@ function parsePaynowResponse(text) {
   return result;
 }
 __name(parsePaynowResponse, "parsePaynowResponse");
+async function generateHash(fields, key) {
+  let str = "";
+  Object.keys(fields).forEach((k) => {
+    if (k !== "hash") {
+      str += fields[k];
+    }
+  });
+  str += key;
+  const buf = await crypto.subtle.digest(
+    "SHA-512",
+    new TextEncoder().encode(str)
+  );
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+__name(generateHash, "generateHash");
 
 // src/api/payments/webhook.js
 async function handleWebhook(request, env) {
@@ -2233,7 +2266,7 @@ var drainBody = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "drainBody");
 var middleware_ensure_req_body_drained_default = drainBody;
 
-// .wrangler/tmp/bundle-r7lHje/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-qyRyQL/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default
 ];
@@ -2264,7 +2297,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-r7lHje/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-qyRyQL/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

@@ -31,27 +31,8 @@ export async function createPayment(request, env, user) {
         if (order.payment_status === 'paid') {
             return new Response(JSON.stringify({
                 success: true,
-                message: 'Order already paid',
-                order_id: orderId,
-                payment_status: 'paid'
+                message: 'Order already paid'
             }), {
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
-        
-        // Generate payment reference
-        const reference = `ZVAKHO_${user.brand_id.slice(0, 8)}_${Date.now()}`;
-        
-        // Get Paynow credentials from env
-        const integrationId = env.PAYNOW_INTEGRATION_ID;
-        const integrationKey = env.PAYNOW_INTEGRATION_KEY;
-        const baseUrl = env.BASE_URL || 'https://zvakho-payments-v2.yasibomedia.workers.dev';
-        
-        if (!integrationId || !integrationKey) {
-            return new Response(JSON.stringify({ 
-                error: 'Payment system not configured' 
-            }), { 
-                status: 500,
                 headers: { 'Content-Type': 'application/json' }
             });
         }
@@ -62,9 +43,31 @@ export async function createPayment(request, env, user) {
             WHERE order_id = ?
         `).bind(orderId).all();
         
-        const productName = items.results?.[0]?.product_name || 'Product';
+        const firstItem = items.results?.[0];
+        const productName = firstItem?.product_name || 'Product';
+        const artistId = firstItem?.artist_id || user.brand_id || 'GENERAL';
         
-        // Build Paynow fields
+        // Generate reference (matching your working format)
+        const safeArtistId = sanitizeId(artistId);
+        const reference = `ZVAKHO_${safeArtistId}_${Date.now()}`;
+        
+        const baseUrl = env.BASE_URL || "https://zvakho-payments-v2.yasibomedia.workers.dev";
+        const integrationId = env.PAYNOW_INTEGRATION_ID;
+        const integrationKey = env.PAYNOW_INTEGRATION_KEY;
+        
+        if (!integrationId || !integrationKey) {
+            return new Response(JSON.stringify({ 
+                error: 'Payment system not configured' 
+            }), { 
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        
+        // Format phone (same as your working code)
+        const phone = formatZimPhone(order.customer_phone || '');
+        
+        // Build Paynow fields (EXACTLY like your working code)
         const fields = {
             resulturl: `${baseUrl}/api/payments/webhook`,
             returnurl: `${baseUrl}/api/payments/status?order_id=${orderId}`,
@@ -73,30 +76,51 @@ export async function createPayment(request, env, user) {
             id: integrationId,
             additionalinfo: `${productName} - Order ${orderId}`,
             authemail: order.customer_email || '',
-            phone: order.customer_phone || '',
-            method: 'ecocash',
-            status: 'Message'
+            phone: phone,
+            method: "ecocash",
+            status: "Message"
         };
         
-        // Generate hash
-        const hash = await generatePaynowHash(fields, integrationKey);
+        // Generate hash (using your working function)
+        const hash = await generateHash(fields, integrationKey);
         
         // Send to Paynow
-        const paynowResponse = await fetch('https://www.paynow.co.zw/interface/remotetransaction', {
-            method: 'POST',
+        const paynowResponse = await fetch("https://www.paynow.co.zw/interface/remotetransaction", {
+            method: "POST",
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                "Content-Type": "application/x-www-form-urlencoded"
             },
             body: new URLSearchParams({
                 ...fields,
-                hash: hash
+                hash
             })
         });
         
         const responseText = await paynowResponse.text();
         const parsed = parsePaynowResponse(responseText);
         
-        // Update order with payment details
+        console.log('📨 Paynow Response:', parsed);
+        
+        const pollUrl = parsed.pollurl || '';
+        const browserUrl = parsed.browserurl || '';
+        const paynowStatus = parsed.status || '';
+        const paynowError = parsed.error || '';
+        
+        if (!pollUrl) {
+            return new Response(JSON.stringify({
+                status: "error",
+                reference: reference,
+                payment_status: "failed",
+                paynow_status: paynowStatus,
+                paynow_error: paynowError || "Paynow did not return poll_url",
+                raw_response: responseText
+            }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        
+        // Update order
         await env.DB.prepare(`
             UPDATE orders 
             SET payment_reference = ?,
@@ -108,15 +132,15 @@ export async function createPayment(request, env, user) {
             WHERE order_id = ?
         `).bind(
             reference,
-            parsed.pollurl || '',
-            parsed.browserurl || '',
-            parsed.status || 'pending',
-            parsed.error || '',
+            pollUrl,
+            browserUrl,
+            paynowStatus,
+            paynowError,
             new Date().toISOString(),
             orderId
         ).run();
         
-        // Save payment reference in order_items
+        // Update order_items with payment reference
         await env.DB.prepare(`
             UPDATE order_items 
             SET payment_reference = ?
@@ -124,13 +148,15 @@ export async function createPayment(request, env, user) {
         `).bind(reference, orderId).run();
         
         return new Response(JSON.stringify({
-            success: true,
-            order_id: orderId,
+            status: "success",
             reference: reference,
-            payment_url: parsed.browserurl || '',
-            poll_url: parsed.pollurl || '',
-            payment_status: 'pending',
-            paynow_status: parsed.status || 'pending'
+            transaction_reference: reference,
+            payment_url: browserUrl || "",
+            poll_url: pollUrl,
+            poll_url_received: true,
+            payment_status: "pending",
+            paynow_status: paynowStatus,
+            paynow_error: paynowError
         }), {
             headers: { 'Content-Type': 'application/json' }
         });
@@ -146,40 +172,51 @@ export async function createPayment(request, env, user) {
     }
 }
 
-// Helper: Generate Paynow hash
-async function generatePaynowHash(fields, key) {
-    let str = '';
-    const exclude = ['hash'];
-    const sortedKeys = Object.keys(fields).sort();
-    
-    for (const k of sortedKeys) {
-        if (!exclude.includes(k)) {
-            str += fields[k];
-        }
+// ==============================
+// HELPERS (copied from your working code)
+// ==============================
+
+function formatZimPhone(phone) {
+    if (!phone) return "";
+    let cleaned = String(phone).replace(/\D/g, "");
+    if (cleaned.startsWith("263")) {
+        cleaned = "0" + cleaned.slice(3);
     }
-    str += key;
-    
-    const buf = await crypto.subtle.digest(
-        'SHA-512',
-        new TextEncoder().encode(str)
-    );
-    
-    return [...new Uint8Array(buf)]
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
-        .toUpperCase();
+    return cleaned;
 }
 
-// Helper: Parse Paynow response
+function sanitizeId(value) {
+    return String(value || "GENERAL")
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "");
+}
+
 function parsePaynowResponse(text) {
     const result = {};
     if (!text) return result;
-    
-    text.split('&').forEach(pair => {
-        const [k, v] = pair.split('=');
+    text.split("&").forEach(pair => {
+        const [k, v] = pair.split("=");
         if (!k) return;
-        result[decodeURIComponent(k).toLowerCase()] = decodeURIComponent(v || '');
+        result[decodeURIComponent(k).toLowerCase()] = decodeURIComponent(v || "");
     });
-    
     return result;
+}
+
+async function generateHash(fields, key) {
+    let str = "";
+    Object.keys(fields).forEach(k => {
+        if (k !== "hash") {
+            str += fields[k];
+        }
+    });
+    str += key;
+    const buf = await crypto.subtle.digest(
+        "SHA-512",
+        new TextEncoder().encode(str)
+    );
+    return [...new Uint8Array(buf)]
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("")
+        .toUpperCase();
 }
