@@ -6,6 +6,7 @@ import { handleProducts } from './api/products/index.js';
 import { handleDashboard } from './api/dashboard/index.js';
 import { handleSubscriptions } from './api/subscriptions/index.js';
 import { handleCheckout } from './api/checkout/index.js';
+import { handlePayments } from './api/payments/index.js';
 import { requireAuth } from './middleware/auth.js';
 
 export default {
@@ -66,6 +67,21 @@ export default {
             return handleCheckout(request, env, user);
         }
 
+        // Payments (some routes require auth, webhook doesn't)
+        if (path.startsWith('/api/payments')) {
+
+            // Webhook endpoint (no authentication)
+            if (path === '/api/payments/webhook') {
+                return handlePayments(request, env, null);
+            }
+
+            // All other payment routes require authentication
+            const user = await requireAuth(request, env);
+            if (user instanceof Response) return user;
+
+            return handlePayments(request, env, user);
+        }
+
         // Default response
         return new Response(JSON.stringify({
             error: 'Not found - ZVAKHO v2 endpoint',
@@ -79,7 +95,9 @@ export default {
                 '/api/products (POST, GET)',
                 '/api/products/:id (GET, PUT, DELETE)',
                 '/api/subscriptions',
-                '/api/checkout'
+                '/api/checkout',
+                '/api/payments',
+                '/api/payments/webhook'
             ]
         }), {
             status: 404,

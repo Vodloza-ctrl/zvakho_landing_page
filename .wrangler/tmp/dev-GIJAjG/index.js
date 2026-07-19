@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// .wrangler/tmp/bundle-991SoG/checked-fetch.js
+// .wrangler/tmp/bundle-r7lHje/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -1672,6 +1672,415 @@ async function handleCheckout(request, env, user) {
 }
 __name(handleCheckout, "handleCheckout");
 
+// src/api/payments/create.js
+async function createPayment(request, env, user) {
+  try {
+    const url = new URL(request.url);
+    const orderId = url.searchParams.get("order_id");
+    if (!orderId) {
+      return new Response(JSON.stringify({
+        error: "Order ID required"
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const order = await env.DB.prepare(`
+            SELECT * FROM orders 
+            WHERE order_id = ? AND brand_id = ?
+        `).bind(orderId, user.brand_id).first();
+    if (!order) {
+      return new Response(JSON.stringify({
+        error: "Order not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (order.payment_status === "paid") {
+      return new Response(JSON.stringify({
+        success: true,
+        message: "Order already paid",
+        order_id: orderId,
+        payment_status: "paid"
+      }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const reference = `ZVAKHO_${user.brand_id.slice(0, 8)}_${Date.now()}`;
+    const integrationId = env.PAYNOW_INTEGRATION_ID;
+    const integrationKey = env.PAYNOW_INTEGRATION_KEY;
+    const baseUrl = env.BASE_URL || "https://zvakho-payments-v2.yasibomedia.workers.dev";
+    if (!integrationId || !integrationKey) {
+      return new Response(JSON.stringify({
+        error: "Payment system not configured"
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const items = await env.DB.prepare(`
+            SELECT * FROM order_items 
+            WHERE order_id = ?
+        `).bind(orderId).all();
+    const productName = items.results?.[0]?.product_name || "Product";
+    const fields = {
+      resulturl: `${baseUrl}/api/payments/webhook`,
+      returnurl: `${baseUrl}/api/payments/status?order_id=${orderId}`,
+      reference,
+      amount: order.amount.toFixed(2),
+      id: integrationId,
+      additionalinfo: `${productName} - Order ${orderId}`,
+      authemail: order.customer_email || "",
+      phone: order.customer_phone || "",
+      method: "ecocash",
+      status: "Message"
+    };
+    const hash = await generatePaynowHash(fields, integrationKey);
+    const paynowResponse = await fetch("https://www.paynow.co.zw/interface/remotetransaction", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: new URLSearchParams({
+        ...fields,
+        hash
+      })
+    });
+    const responseText = await paynowResponse.text();
+    const parsed = parsePaynowResponse(responseText);
+    await env.DB.prepare(`
+            UPDATE orders 
+            SET payment_reference = ?,
+                poll_url = ?,
+                browser_url = ?,
+                paynow_status = ?,
+                paynow_error = ?,
+                updated_at = ?
+            WHERE order_id = ?
+        `).bind(
+      reference,
+      parsed.pollurl || "",
+      parsed.browserurl || "",
+      parsed.status || "pending",
+      parsed.error || "",
+      (/* @__PURE__ */ new Date()).toISOString(),
+      orderId
+    ).run();
+    await env.DB.prepare(`
+            UPDATE order_items 
+            SET payment_reference = ?
+            WHERE order_id = ?
+        `).bind(reference, orderId).run();
+    return new Response(JSON.stringify({
+      success: true,
+      order_id: orderId,
+      reference,
+      payment_url: parsed.browserurl || "",
+      poll_url: parsed.pollurl || "",
+      payment_status: "pending",
+      paynow_status: parsed.status || "pending"
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Create payment error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to create payment: " + error.message
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(createPayment, "createPayment");
+async function generatePaynowHash(fields, key) {
+  let str = "";
+  const exclude = ["hash"];
+  const sortedKeys = Object.keys(fields).sort();
+  for (const k of sortedKeys) {
+    if (!exclude.includes(k)) {
+      str += fields[k];
+    }
+  }
+  str += key;
+  const buf = await crypto.subtle.digest(
+    "SHA-512",
+    new TextEncoder().encode(str)
+  );
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+__name(generatePaynowHash, "generatePaynowHash");
+function parsePaynowResponse(text) {
+  const result = {};
+  if (!text) return result;
+  text.split("&").forEach((pair) => {
+    const [k, v] = pair.split("=");
+    if (!k) return;
+    result[decodeURIComponent(k).toLowerCase()] = decodeURIComponent(v || "");
+  });
+  return result;
+}
+__name(parsePaynowResponse, "parsePaynowResponse");
+
+// src/api/payments/webhook.js
+async function handleWebhook(request, env) {
+  try {
+    const body = await request.formData();
+    const data = Object.fromEntries(body);
+    console.log("\u{1F4E5} Webhook received:", data);
+    const reference = data.reference || data.payment_reference || "";
+    const status = data.status || data.payment_status || "";
+    const paynowReference = data.paynowreference || data.transaction_reference || "";
+    if (!reference) {
+      return new Response("Missing reference", { status: 400 });
+    }
+    const order = await env.DB.prepare(`
+            SELECT * FROM orders 
+            WHERE payment_reference = ?
+        `).bind(reference).first();
+    if (!order) {
+      console.log("\u274C Order not found for reference:", reference);
+      return new Response("Order not found", { status: 404 });
+    }
+    if (order.payment_status === "paid") {
+      return new Response("Already paid", { status: 200 });
+    }
+    const isPaid = status.toLowerCase() === "paid" || status.toLowerCase() === "awaiting delivery";
+    if (isPaid) {
+      await env.DB.prepare(`
+                UPDATE orders 
+                SET payment_status = 'paid',
+                    paynow_reference = ?,
+                    paynow_status = ?,
+                    paid_at = ?,
+                    updated_at = ?
+                WHERE order_id = ?
+            `).bind(
+        paynowReference,
+        status,
+        (/* @__PURE__ */ new Date()).toISOString(),
+        (/* @__PURE__ */ new Date()).toISOString(),
+        order.order_id
+      ).run();
+      console.log("\u2705 Payment confirmed for order:", order.order_id);
+      await env.DB.prepare(`
+                UPDATE order_items 
+                SET fulfilment_status = 'processing',
+                    updated_at = ?
+                WHERE order_id = ?
+            `).bind((/* @__PURE__ */ new Date()).toISOString(), order.order_id).run();
+    } else {
+      await env.DB.prepare(`
+                UPDATE orders 
+                SET paynow_status = ?,
+                    updated_at = ?
+                WHERE order_id = ?
+            `).bind(status, (/* @__PURE__ */ new Date()).toISOString(), order.order_id).run();
+    }
+    return new Response("OK", { status: 200 });
+  } catch (error) {
+    console.error("\u274C Webhook error:", error);
+    return new Response("Error: " + error.message, { status: 500 });
+  }
+}
+__name(handleWebhook, "handleWebhook");
+
+// src/api/payments/status.js
+async function getPaymentStatus(request, env, user) {
+  try {
+    const url = new URL(request.url);
+    const orderId = url.searchParams.get("order_id");
+    const reference = url.searchParams.get("reference");
+    if (!orderId && !reference) {
+      return new Response(JSON.stringify({
+        error: "Order ID or reference required"
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    let order;
+    if (orderId) {
+      order = await env.DB.prepare(`
+                SELECT * FROM orders 
+                WHERE order_id = ? AND brand_id = ?
+            `).bind(orderId, user.brand_id).first();
+    } else {
+      order = await env.DB.prepare(`
+                SELECT * FROM orders 
+                WHERE payment_reference = ? AND brand_id = ?
+            `).bind(reference, user.brand_id).first();
+    }
+    if (!order) {
+      return new Response(JSON.stringify({
+        error: "Order not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (order.payment_status === "paid") {
+      return new Response(JSON.stringify({
+        success: true,
+        order_id: order.order_id,
+        payment_status: "paid",
+        paid_at: order.paid_at
+      }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (order.poll_url) {
+      try {
+        const pollRes = await fetch(order.poll_url);
+        const pollText = await pollRes.text();
+        const parsed = parsePaynowResponse2(pollText);
+        if (parsed.status?.toLowerCase() === "paid" || parsed.status?.toLowerCase() === "awaiting delivery") {
+          await env.DB.prepare(`
+                        UPDATE orders 
+                        SET payment_status = 'paid',
+                            paynow_reference = ?,
+                            paynow_status = ?,
+                            paid_at = ?,
+                            updated_at = ?
+                        WHERE order_id = ?
+                    `).bind(
+            parsed.paynowreference || parsed.reference || "",
+            parsed.status || "Paid",
+            (/* @__PURE__ */ new Date()).toISOString(),
+            (/* @__PURE__ */ new Date()).toISOString(),
+            order.order_id
+          ).run();
+          return new Response(JSON.stringify({
+            success: true,
+            order_id: order.order_id,
+            payment_status: "paid",
+            paynow_status: parsed.status
+          }), {
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      } catch (err) {
+        console.log("Poll error:", err.message);
+      }
+    }
+    return new Response(JSON.stringify({
+      success: true,
+      order_id: order.order_id,
+      payment_status: "pending",
+      paynow_status: order.paynow_status || "pending"
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Status check error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to check status"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(getPaymentStatus, "getPaymentStatus");
+function parsePaynowResponse2(text) {
+  const result = {};
+  if (!text) return result;
+  text.split("&").forEach((pair) => {
+    const [k, v] = pair.split("=");
+    if (!k) return;
+    result[decodeURIComponent(k).toLowerCase()] = decodeURIComponent(v || "");
+  });
+  return result;
+}
+__name(parsePaynowResponse2, "parsePaynowResponse");
+
+// src/api/payments/confirm.js
+async function confirmPayment(request, env, user) {
+  try {
+    const body = await request.json();
+    const { order_id } = body;
+    if (!order_id) {
+      return new Response(JSON.stringify({
+        error: "Order ID required"
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    const order = await env.DB.prepare(`
+            SELECT * FROM orders 
+            WHERE order_id = ? AND brand_id = ?
+        `).bind(order_id, user.brand_id).first();
+    if (!order) {
+      return new Response(JSON.stringify({
+        error: "Order not found"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    if (order.payment_status === "paid") {
+      return new Response(JSON.stringify({
+        success: true,
+        message: "Already paid"
+      }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    await env.DB.prepare(`
+            UPDATE orders 
+            SET payment_status = 'paid',
+                paid_at = ?,
+                updated_at = ?
+            WHERE order_id = ?
+        `).bind(
+      (/* @__PURE__ */ new Date()).toISOString(),
+      (/* @__PURE__ */ new Date()).toISOString(),
+      order_id
+    ).run();
+    return new Response(JSON.stringify({
+      success: true,
+      message: "Payment confirmed manually",
+      order_id
+    }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    console.error("\u274C Confirm payment error:", error);
+    return new Response(JSON.stringify({
+      error: "Failed to confirm payment"
+    }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(confirmPayment, "confirmPayment");
+
+// src/api/payments/index.js
+async function handlePayments(request, env, user) {
+  const url = new URL(request.url);
+  const path = url.pathname.replace("/api/payments", "");
+  if (request.method === "POST" && path === "/create") {
+    return createPayment(request, env, user);
+  }
+  if (request.method === "POST" && path === "/webhook") {
+    return handleWebhook(request, env);
+  }
+  if (request.method === "GET" && path === "/status") {
+    return getPaymentStatus(request, env, user);
+  }
+  if (request.method === "POST" && path === "/confirm") {
+    return confirmPayment(request, env, user);
+  }
+  return new Response(JSON.stringify({ error: "Not found" }), {
+    status: 404,
+    headers: { "Content-Type": "application/json" }
+  });
+}
+__name(handlePayments, "handlePayments");
+
 // src/middleware/auth.js
 async function authenticate(request, env) {
   if (env.ENVIRONMENT === "development") {
@@ -1773,6 +2182,14 @@ var src_default = {
       if (user instanceof Response) return user;
       return handleCheckout(request, env, user);
     }
+    if (path.startsWith("/api/payments")) {
+      if (path === "/api/payments/webhook") {
+        return handlePayments(request, env, null);
+      }
+      const user = await requireAuth(request, env);
+      if (user instanceof Response) return user;
+      return handlePayments(request, env, user);
+    }
     return new Response(JSON.stringify({
       error: "Not found - ZVAKHO v2 endpoint",
       available: [
@@ -1785,7 +2202,9 @@ var src_default = {
         "/api/products (POST, GET)",
         "/api/products/:id (GET, PUT, DELETE)",
         "/api/subscriptions",
-        "/api/checkout"
+        "/api/checkout",
+        "/api/payments",
+        "/api/payments/webhook"
       ]
     }), {
       status: 404,
@@ -1814,7 +2233,7 @@ var drainBody = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "drainBody");
 var middleware_ensure_req_body_drained_default = drainBody;
 
-// .wrangler/tmp/bundle-991SoG/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-r7lHje/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default
 ];
@@ -1845,7 +2264,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-991SoG/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-r7lHje/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
