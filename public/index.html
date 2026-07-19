@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+  <link rel="icon" id="faviconTag" href="/assets/brand/favicon.png">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/store/store.css?v=5">
+  <link rel="stylesheet" href="/store/store-skins.css?v=5">
+  
+  <script src="/config.js?v=5"></script>
+
+  <title>ZVAKHO Artist Store</title>
+  <meta name="description" content="Official artist store powered by ZVAKHO.">
+
+  <style>
+    /* ─── FIX: Premium Compact Featured Card ─── */
+    
+    /* Fix the featured card container - remove full-width excess */
+    .featured-card {
+      display: block !important;
+      max-width: 100% !important;
+      overflow: hidden !important;
+      border-radius: 16px !important;
+      background: var(--store-surface, #141414) !important;
+      border: 1px solid var(--store-line, rgba(255,255,255,0.08)) !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    /* Inner flex container - image + text side by side */
+    .featured-card-inner {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: stretch !important;
+      min-height: 320px !important;
+      max-height: 480px !important;
+      gap: 0 !important;
+    }
+
+    /* Image side - 40% */
+    .featured-card .featured-image {
+      flex: 0 0 40% !important;
+      max-width: 40% !important;
+      min-height: 280px !important;
+      overflow: hidden !important;
+      background: var(--store-muted, rgba(255,255,255,0.05)) !important;
+      position: relative !important;
+    }
+
+    .featured-card .featured-image img {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      display: block !important;
+    }
+
+    /* Text side - 60% */
+    .featured-card .featured-info {
+      flex: 1 !important;
+      padding: 24px 28px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      gap: 10px !important;
+      min-height: 280px !important;
+      overflow-y: auto !important;
+    }
+
+    /* Compact typography */
+    .featured-card .featured-info h3 {
+      font-size: 22px !important;
+      line-height: 1.2 !important;
+      margin: 0 0 4px 0 !important;
+      font-weight: 700 !important;
+      color: var(--store-text, #ffffff) !important;
+    }
+
+    .featured-card .featured-info p {
+      font-size: 14px !important;
+      line-height: 1.4 !important;
+      margin: 0 0 4px 0 !important;
+      color: var(--store-muted, rgba(255,255,255,0.7)) !important;
+    }
+
+    .featured-card .featured-price {
+      font-size: 24px !important;
+      font-weight: 800 !important;
+      margin: 4px 0 !important;
+      color: var(--store-primary, #f5a400) !important;
+    }
+
+    /* Badges compact */
+    .featured-card .featured-badges {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+      margin-bottom: 2px !important;
+    }
+
+    .featured-card .featured-badges .badge {
+      font-size: 10px !important;
+      padding: 3px 10px !important;
+      border-radius: 999px !important;
+    }
+
+    /* Variant selector compact */
+    .featured-card .variant-block {
+      margin: 6px 0 4px 0 !important;
+    }
+
+    .featured-card .variant-label {
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.08em !important;
+      color: var(--store-muted, rgba(255,255,255,0.6)) !important;
+      margin-bottom: 4px !important;
+    }
+
+    .featured-card .variant-options {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
+
+    .featured-card .variant-option {
+      min-width: 36px !important;
+      height: 32px !important;
+      padding: 0 14px !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      border-radius: 999px !important;
+      border: 1px solid var(--store-line, rgba(255,255,255,0.15)) !important;
+      background: rgba(255,255,255,0.05) !important;
+      color: var(--store-text, #ffffff) !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .featured-card .variant-option.is-selected {
+      background: var(--store-primary, #f5a400) !important;
+      border-color: var(--store-primary, #f5a400) !important;
+      color: var(--store-text-inverse, #0a0a0a) !important;
+    }
+
+    .featured-card .variant-option:hover:not(.is-selected) {
+      border-color: var(--store-primary, #f5a400) !important;
+    }
+
+    .featured-card .variant-note {
+      font-size: 12px !important;
+      margin-top: 4px !important;
+      color: var(--store-muted, rgba(255,255,255,0.5)) !important;
+    }
+
+    .featured-card .variant-note.needs-selection {
+      color: var(--store-primary, #f5a400) !important;
+      font-weight: 600 !important;
+    }
+
+    /* Actions compact */
+    .featured-card .featured-actions {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 10px !important;
+      margin-top: 6px !important;
+    }
+
+    .featured-card .featured-actions .btn {
+      padding: 10px 22px !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      border-radius: 999px !important;
+      border: none !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      min-height: 42px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    .featured-card .hero-primary {
+      background: var(--store-primary, #f5a400) !important;
+      color: var(--store-text-inverse, #0a0a0a) !important;
+    }
+
+    .featured-card .hero-primary:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 8px 24px rgba(245,164,0,0.3) !important;
+    }
+
+    .featured-card .hero-secondary {
+      background: rgba(255,255,255,0.06) !important;
+      color: var(--store-text, #ffffff) !important;
+      border: 1px solid var(--store-line, rgba(255,255,255,0.15)) !important;
+    }
+
+    .featured-card .hero-secondary:hover {
+      background: rgba(255,255,255,0.12) !important;
+    }
+
+    /* Placeholder */
+    .featured-placeholder {
+      padding: 40px 20px !important;
+      text-align: center !important;
+      color: var(--store-muted, rgba(255,255,255,0.5)) !important;
+    }
+
+    /* ─── MOBILE RESPONSIVE ─── */
+    @media (max-width: 680px) {
+      .featured-card-inner {
+        flex-direction: column !important;
+        min-height: auto !important;
+        max-height: none !important;
+      }
+
+      .featured-card .featured-image {
+        flex: 0 0 200px !important;
+        max-width: 100% !important;
+        min-height: 200px !important;
+        height: 200px !important;
+      }
+
+      .featured-card .featured-info {
+        padding: 18px 20px !important;
+        min-height: auto !important;
+        gap: 8px !important;
+      }
+
+      .featured-card .featured-info h3 {
+        font-size: 20px !important;
+      }
+
+      .featured-card .featured-price {
+        font-size: 22px !important;
+      }
+
+      .featured-card .featured-actions .btn {
+        padding: 8px 18px !important;
+        font-size: 13px !important;
+        min-height: 38px !important;
+        flex: 1 !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .featured-card .featured-image {
+        flex: 0 0 160px !important;
+        height: 160px !important;
+        min-height: 160px !important;
+      }
+
+      .featured-card .featured-info {
+        padding: 14px 16px !important;
+      }
+
+      .featured-card .featured-info h3 {
+        font-size: 18px !important;
+      }
+
+      .featured-card .featured-info p {
+        font-size: 13px !important;
+      }
+
+      .featured-card .featured-price {
+        font-size: 20px !important;
+      }
+
+      .featured-card .variant-option {
+        min-width: 32px !important;
+        height: 28px !important;
+        padding: 0 10px !important;
+        font-size: 12px !important;
+      }
+
+      .featured-card .featured-actions {
+        flex-direction: column !important;
+      }
+
+      .featured-card .featured-actions .btn {
+        width: 100% !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="store-page is-loading" data-skin="streetwear" data-layout="universal">
+
+<!-- SVG SPRITE - Social Media Icons Only -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none;" id="iconSprite">
+  <defs>
+    <symbol id="icon-instagram" viewBox="0 0 24 24">
+      <rect class="icon-path" x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+      <path class="icon-path" d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+      <line class="icon-path" x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+    </symbol>
+    <symbol id="icon-youtube" viewBox="0 0 24 24">
+      <path class="icon-path" d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/>
+      <polygon class="icon-path" points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/>
+    </symbol>
+    <symbol id="icon-tiktok" viewBox="0 0 24 24">
+      <path class="icon-path" d="M16.6 5.82s.51.5 0 0A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/>
+    </symbol>
+    <symbol id="icon-twitter" viewBox="0 0 24 24">
+      <path class="icon-path" d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/>
+    </symbol>
+    <symbol id="icon-linkedin" viewBox="0 0 24 24">
+      <path class="icon-path" d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+      <rect class="icon-path" x="2" y="9" width="4" height="12"/>
+      <circle class="icon-path" cx="4" cy="4" r="2"/>
+    </symbol>
+    <symbol id="icon-spotify" viewBox="0 0 24 24">
+      <circle class="icon-path" cx="12" cy="12" r="10"/>
+      <path class="icon-path" d="M8 11.5a5.5 5.5 0 0 1 5.5 5.5"/>
+      <path class="icon-path" d="M6 8.5a8.5 8.5 0 0 1 8.5 8.5"/>
+      <path class="icon-path" d="M4 5.5A11.5 11.5 0 0 1 15.5 17"/>
+    </symbol>
+    <symbol id="icon-applemusic" viewBox="0 0 24 24">
+      <path class="icon-path" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+      <path class="icon-path" d="M15 9.5l-4.5 2.5V15"/>
+      <circle class="icon-path" cx="9" cy="15" r="1.5"/>
+      <circle class="icon-path" cx="15" cy="12" r="1.5"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ─── NAVIGATION ─── -->
+<nav class="store-nav" aria-label="Store navigation">
+  <div class="store-shell store-nav-inner">
+    <a class="store-brand" href="/" aria-label="ZVAKHO home">
+      <img id="navLogo" src="/assets/brand/zvakho-logo.webp" alt="ZVAKHO">
+    </a>
+
+    <div class="store-nav-links">
+      <a href="#drop">Drop</a>
+      <a href="#products">Shop</a>
+      <a href="#music">Music</a>
+      <a href="#about">About</a>
+    </div>
+
+    <button class="store-cart-trigger" type="button" data-cart-open aria-label="Open cart">
+      <span>Cart</span>
+      <strong id="cartCount">0</strong>
+    </button>
+  </div>
+</nav>
+
+<!-- ─── TICKER ─── -->
+<div class="store-ticker" id="ticker" aria-label="Store announcement">
+  <div class="store-ticker-track" id="tickerTrack">
+    <span>OFFICIAL STORE • MUSIC • MERCH • LIMITED RELEASES •</span>
+    <span>OFFICIAL STORE • MUSIC • MERCH • LIMITED RELEASES •</span>
+  </div>
+</div>
+
+<!-- ─── HERO ─── -->
+<header class="experience-hero" id="storeHero">
+  <div class="hero-media" aria-hidden="true"></div>
+  <div class="hero-overlay" aria-hidden="true"></div>
+
+  <div class="store-shell hero-grid-v2">
+    <section class="hero-copy">
+      <div class="store-pill" id="storeKicker">Official Store</div>
+      <h1 id="artistName">Loading...</h1>
+      <p id="artistSub">Loading store...</p>
+
+      <div class="hero-actions">
+        <a class="btn hero-primary" href="#drop">Shop the Drop</a>
+        <a class="btn hero-secondary" href="#music">Preview Music</a>
+      </div>
+    </section>
+
+    <aside class="artist-orb-card" id="artistOrbCard">
+      <div class="artist-orb-image" id="artistProfileWrap">
+        <img id="artistProfile" src="/assets/brand/favicon.png" alt="Artist profile">
+      </div>
+      <div>
+        <span id="artistGenre">Artist</span>
+        <strong id="artistCardName">ZVAKHO</strong>
+      </div>
+    </aside>
+  </div>
+</header>
+
+<!-- ─── MAIN CONTENT ─── -->
+<main>
+  <!-- FEATURED RELEASE -->
+  <section class="featured-drop store-shell" id="drop">
+    <div class="section-intro split-intro">
+      <div>
+        <span class="micro-label">Featured release</span>
+        <h2 id="featuredTitle">Artist drop</h2>
+      </div>
+      <p id="featuredCopy">Official merchandise and music from the artist, fulfilled through ZVAKHO.</p>
+    </div>
+
+    <div class="featured-card" id="featuredProduct">
+      <div class="featured-placeholder">Loading featured product...</div>
+    </div>
+  </section>
+
+  <!-- PRODUCTS -->
+  <section class="store-shell product-section" id="products">
+    <div class="section-intro">
+      <span class="micro-label">Shop</span>
+      <h2>Available now</h2>
+      <p>Merchandise first, music always close. Add items to your cart and check out with EcoCash/Paynow flow.</p>
+    </div>
+
+    <div class="product-grid" id="productGrid">
+      <div class="empty">Loading products...</div>
+    </div>
+  </section>
+
+  <!-- MUSIC -->
+  <section class="music-section" id="music">
+    <div class="store-shell music-layout">
+      <div class="section-intro">
+        <span class="micro-label">Preview before buying</span>
+        <h2>Music player</h2>
+        <p>Play previews, then add the track directly to your cart.</p>
+      </div>
+
+      <div class="music-list" id="musicList">
+        <div class="empty">Loading music...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT / ARTIST WORLD -->
+  <section class="artist-story store-shell" id="about">
+    <div class="story-card">
+      <div class="story-profile">
+        <img id="storyProfileImage" src="/assets/brand/favicon.png" alt="Artist profile">
+      </div>
+      <div>
+        <span class="micro-label">Artist world</span>
+        <h2 id="storyTitle">Official artist store</h2>
+        <p id="artistBio">Music, merch and direct-to-fan releases powered by ZVAKHO.</p>
+        <div class="social-row" id="socialRow"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ─── FOOTER ─── -->
+<footer class="artist-footer" id="artistFooter">
+  <div class="store-shell artist-footer-grid">
+    <div>
+      <img class="footer-logo" id="footerLogo" src="/assets/brand/zvakho-logo.webp" alt="Artist logo">
+      <p id="footerQuote">Official store powered by ZVAKHO.</p>
+    </div>
+    <div>
+      <strong id="footerArtistName">Artist Store</strong>
+      <p id="footerMeta">Music • Merch • Direct-to-fan commerce</p>
+    </div>
+    <div>
+      <strong>ZVAKHO</strong>
+      <p>Secure artist commerce infrastructure for music, merch and release campaigns.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- ─── CART DRAWER ─── -->
+<aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+  <div class="cart-backdrop" data-cart-close></div>
+  <section class="cart-panel" aria-label="Shopping cart">
+    <div class="cart-head">
+      <div>
+        <span class="micro-label">Cart</span>
+        <h3>Your order</h3>
+      </div>
+      <button class="cart-close" type="button" data-cart-close aria-label="Close cart">×</button>
+    </div>
+
+    <div class="cart-items" id="cartItems"></div>
+
+    <div class="cart-total-row">
+      <span>Total</span>
+      <strong id="cartTotal">$0.00</strong>
+    </div>
+
+    <div class="checkout-fields">
+      <input id="customerPhone" inputmode="tel" placeholder="EcoCash number, e.g. 2637...">
+      <input id="customerEmail" type="email" placeholder="Email required for payment">
+    </div>
+
+    <button class="btn checkout-btn" type="button" id="checkoutBtn">Checkout</button>
+    <p class="checkout-note" id="checkoutNote">You will receive a mobile payment prompt. Enter your PIN on your phone.</p>
+  </section>
+</aside>
+
+<!-- ─── FLOATING PLAYER ─── -->
+<div class="floating-player" id="floatingPlayer" hidden>
+  <button class="player-btn" type="button" id="playerToggle" aria-label="Play preview">▶</button>
+  <div class="player-meta">
+    <strong id="playerTitle">Preview</strong>
+    <span id="playerArtist">ZVAKHO</span>
+  </div>
+  <button class="player-buy" type="button" id="playerBuy">Buy track</button>
+  <audio id="audioPreview" preload="none"></audio>
+</div>
+
+<!-- ─── MOBILE BUY BAR ─── -->
+<div class="mobile-buy-bar" id="mobileBuyBar" hidden>
+  <span><strong id="mobileCartCount">0</strong> item(s)</span>
+  <button type="button" data-cart-open>Checkout</button>
+</div>
+
+<!-- ─── SCRIPTS ─── -->
+<script src="/store/store-skins.js?v=5"></script>
+<script src="/store/store.js?v=5"></script>
+</body>
+</html>
