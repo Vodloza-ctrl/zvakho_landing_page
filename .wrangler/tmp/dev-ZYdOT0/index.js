@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// .wrangler/tmp/bundle-dH2dvJ/checked-fetch.js
+// .wrangler/tmp/bundle-idvUrK/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -597,13 +597,35 @@ __name(listProducts, "listProducts");
 // src/api/products/get.js
 async function getProduct(request, env, user, productId) {
   try {
+    console.log("\u{1F50D} Getting product:", productId);
+    console.log("\u{1F464} User:", user);
+    console.log("\u{1F3F7}\uFE0F Brand ID:", user.brand_id);
+    const allProducts = await env.DB.prepare(`
+            SELECT * FROM products WHERE product_id = ?
+        `).bind(productId).first();
+    console.log("\u{1F4E6} Product in DB:", allProducts);
+    if (!allProducts) {
+      return new Response(JSON.stringify({
+        error: "Product not found in database"
+      }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
     const product = await env.DB.prepare(`
             SELECT * FROM products 
             WHERE product_id = ? AND brand_id = ?
         `).bind(productId, user.brand_id).first();
     if (!product) {
+      console.log("\u274C Product exists but brand_id mismatch");
+      console.log("Product brand_id:", allProducts.brand_id);
+      console.log("User brand_id:", user.brand_id);
       return new Response(JSON.stringify({
-        error: "Product not found"
+        error: "Product not found for your brand",
+        debug: {
+          productBrandId: allProducts.brand_id,
+          userBrandId: user.brand_id
+        }
       }), {
         status: 404,
         headers: { "Content-Type": "application/json" }
@@ -624,7 +646,7 @@ async function getProduct(request, env, user, productId) {
   } catch (error) {
     console.error("\u274C Get product error:", error);
     return new Response(JSON.stringify({
-      error: "Failed to get product"
+      error: "Failed to get product: " + error.message
     }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
@@ -1082,7 +1104,7 @@ var drainBody = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "drainBody");
 var middleware_ensure_req_body_drained_default = drainBody;
 
-// .wrangler/tmp/bundle-dH2dvJ/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-idvUrK/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default
 ];
@@ -1113,7 +1135,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-dH2dvJ/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-idvUrK/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
