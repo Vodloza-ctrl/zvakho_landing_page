@@ -1,7 +1,9 @@
 // src/index.js - Main Router
+
 import { handleTest } from './api/test.js';
 import { handleBrands } from './api/brands/index.js';
 import { handleProducts } from './api/products/index.js';
+import { handleDashboard } from './api/dashboard/index.js';
 import { requireAuth } from './middleware/auth.js';
 
 export default {
@@ -21,8 +23,17 @@ export default {
                 timestamp: new Date().toISOString(),
                 environment: 'development'
             }), {
-                headers: { 'Content-Type': 'application/json' }
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
+        }
+
+        // Dashboard endpoints (require auth)
+        if (path.startsWith('/api/dashboard')) {
+            const user = await requireAuth(request, env);
+            if (user instanceof Response) return user;
+            return handleDashboard(request, env, user);
         }
 
         // Brand endpoints (require auth)
@@ -46,14 +57,17 @@ export default {
                 '/api/v2/test',
                 '/api/test',
                 '/health',
+                '/api/dashboard',
                 '/api/brands (POST, GET)',
                 '/api/brands/:id (GET, PUT)',
                 '/api/products (POST, GET)',
                 '/api/products/:id (GET, PUT, DELETE)'
             ]
-        }), { 
+        }), {
             status: 404,
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
     }
 };
