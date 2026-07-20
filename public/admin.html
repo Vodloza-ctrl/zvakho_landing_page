@@ -1,0 +1,1213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — ZVAKHO</title>
+  <link rel="icon" href="/assets/brand/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    /* ── tokens ── */
+    :root {
+      --bg: #0a0908;
+      --surface: #141210;
+      --surface-2: #1c1814;
+      --line: rgba(255,255,255,.08);
+      --line-2: rgba(255,255,255,.15);
+      --text: #f5f1ea;
+      --muted: #a89e91;
+      --muted-2: #766c62;
+      --accent: #d4a574;
+      --accent-ink: #1a1409;
+      --success: #6fbb72;
+      --success-bg: rgba(111,187,114,.12);
+      --danger: #ff8b78;
+      --danger-bg: rgba(255,139,120,.1);
+      --gold: #c9a84c;
+      --gold-bg: rgba(201,168,76,.1);
+      --blue: #5b9bd5;
+      --blue-bg: rgba(91,155,213,.12);
+      --radius: 16px;
+      --radius-sm: 11px;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; margin:0; padding:0; }
+    html, body { height:100%; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    input, select, textarea { font-family: inherit; }
+    img { display: block; max-width: 100%; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 100vh;
+    }
+    @media (max-width: 800px) { .app { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+    /* ── sidebar ── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 10px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .sidebar-logo {
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: -.02em;
+      padding: 6px 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-logo img { height: 28px; }
+    .sidebar-logo span { color: var(--accent); }
+    .sidebar-logo .badge {
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--danger);
+      color: #0a0a0a;
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: .04em;
+      margin-left: auto;
+    }
+    .nav-section {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted-2);
+      padding: 12px 10px 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      transition: .12s;
+      margin-bottom: 2px;
+    }
+    .nav-item:hover { background: var(--surface-2); color: var(--text); }
+    .nav-item.active { background: rgba(212,165,116,.1); color: var(--accent); font-weight: 600; }
+    .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: .7; }
+    .nav-item.active svg { opacity: 1; }
+    .sidebar-bottom {
+      margin-top: auto;
+      padding: 12px 10px 0;
+      border-top: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--muted-2);
+    }
+    .sidebar-bottom a { color: var(--muted); font-weight: 600; }
+    .sidebar-bottom a:hover { color: var(--text); }
+
+    /* ── main ── */
+    main {
+      padding: 24px 28px 60px;
+      overflow-x: hidden;
+    }
+    @media (max-width:640px) { main { padding: 16px; } }
+
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .page-header h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .page-header .sub {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+    .stat-card .label {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: .03em;
+      margin-bottom: 6px;
+    }
+    .stat-card .value {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      line-height: 1;
+    }
+    .stat-card .sub {
+      font-size: 11px;
+      color: var(--muted-2);
+      margin-top: 4px;
+    }
+    .stat-card.green .value { color: var(--success); }
+    .stat-card.gold  .value { color: var(--gold); }
+    .stat-card.blue  .value { color: var(--blue); }
+    .stat-card.accent .value { color: var(--accent); }
+    .stat-card.danger .value { color: var(--danger); }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .panel-head {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .panel-head h2 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -.01em;
+      margin: 0;
+    }
+    .panel-body {
+      padding: 18px;
+      overflow-x: auto;
+    }
+
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted-2);
+      text-align: left;
+      padding: 0 12px 10px;
+    }
+    td {
+      padding: 10px 12px;
+      border-top: 1px solid var(--line);
+      vertical-align: middle;
+    }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    td.name { font-weight: 600; color: var(--text); }
+    td.url { font-size: 12px; color: var(--muted); font-family: monospace; }
+    td.url a { color: var(--accent); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+    .badge-green { background: var(--success-bg); color: var(--success); }
+    .badge-gold  { background: var(--gold-bg);  color: var(--gold); }
+    .badge-blue  { background: var(--blue-bg);  color: var(--blue); }
+    .badge-red   { background: var(--danger-bg); color: var(--danger); }
+    .badge-grey  { background: var(--surface-2); color: var(--muted-2); }
+    .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 12.5px;
+      padding: 7px 14px;
+      transition: .12s;
+      border: 1.5px solid transparent;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--accent-ink);
+      border-color: var(--accent);
+    }
+    .btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border-color: var(--line-2);
+    }
+    .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+    .btn-danger {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border-color: var(--danger-bg);
+    }
+    .btn-danger:hover { background: rgba(255,139,120,.2); }
+    .btn-sm { padding: 5px 10px; font-size: 11.5px; }
+
+    .search-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .search-row input, .search-row select {
+      background: var(--surface-2);
+      border: 1.5px solid var(--line-2);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      min-width: 140px;
+      flex: 1;
+    }
+    .search-row input:focus, .search-row select:focus { border-color: var(--accent); }
+    .search-row input::placeholder { color: var(--muted-2); }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.7);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--line-2);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-head h3 { font-size: 15px; font-weight: 700; }
+    .modal-close { font-size: 22px; color: var(--muted); line-height: 1; padding: 2px; cursor: pointer; }
+    .modal-body { padding: 18px; }
+    .modal-foot {
+      padding: 14px 18px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .fld-group { margin-bottom: 14px; }
+    .fld {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .input, .select {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1.5px solid var(--line-2);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      font-size: 13.5px;
+      color: var(--text);
+      transition: border-color .15s;
+    }
+    .input:focus, .select:focus { outline: none; border-color: var(--accent); }
+    .select { cursor: pointer; }
+    textarea.input { resize: vertical; min-height: 60px; }
+
+    .toast-wrap {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .toast {
+      background: var(--surface-2);
+      border: 1px solid var(--line-2);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0;
+      transform: translateX(20px);
+      transition: .25s;
+      pointer-events: none;
+      max-width: 320px;
+    }
+    .toast.show { opacity: 1; transform: none; }
+    .toast.ok { background: var(--success-bg); border-color: var(--success); color: var(--success); }
+    .toast.err { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+
+    .empty-state {
+      text-align: center;
+      padding: 30px 16px;
+      color: var(--muted-2);
+      font-size: 13px;
+      border: 1.5px dashed var(--line);
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── sections ── */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) { .app-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="/assets/brand/zvakho-mark.webp" alt="ZVAKHO">
+      <span>ZVAKHO</span>
+      <span class="badge">ADMIN</span>
+    </div>
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" data-page="overview">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".4"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-section">Platform</div>
+    <div class="nav-item" data-page="sites">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M1 6h14" stroke="currentColor" stroke-width="1.2"/></svg>
+      Sites
+    </div>
+    <div class="nav-item" data-page="domains">
+      <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5c1.5 2 2.5 5.5 0 13M1.5 8h13M2 5h12M2 11h12" stroke="currentColor" stroke-width="1.2"/></svg>
+      Domains
+    </div>
+    <div class="nav-item" data-page="email">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M1 6l7 4 7-4" stroke="currentColor" stroke-width="1.2"/></svg>
+      Email Routes
+    </div>
+    <div class="nav-section">Content</div>
+    <div class="nav-item" data-page="applications">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      A&amp;R Applications
+    </div>
+    <div class="nav-item" data-page="submissions">
+      <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 4v4l2.5 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Music Submissions
+    </div>
+    <div class="nav-section">Commerce</div>
+    <div class="nav-item" data-page="orders">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M3 5h10l-1 8H4L3 5z" stroke="currentColor" stroke-width="1.4"/><circle cx="6.5" cy="13" r="1" fill="currentColor"/><circle cx="10.5" cy="13" r="1" fill="currentColor"/></svg>
+      Orders &amp; Fulfilment
+    </div>
+    <div class="nav-item" data-page="revenue">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M2 13v-3M6 13V6M10 13V9M14 13V3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Revenue
+    </div>
+    <div class="sidebar-bottom">
+      <div style="margin-bottom:6px">Signed in as <strong id="adminUser">Admin</strong></div>
+      <a href="#" id="logoutLink">Sign out</a>
+    </div>
+  </aside>
+
+  <main id="mainContent">
+    <!-- Page: Overview -->
+    <section id="page-overview" class="page active">
+      <div class="page-header">
+        <div><h1>Platform overview</h1><div class="sub" id="overviewSub">Loading…</div></div>
+        <button class="btn btn-ghost" onclick="loadOverview()">↻ Refresh</button>
+      </div>
+      <div class="stat-grid" id="statGrid"></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Recent sites</h2><span id="recentCount" style="font-size:12px;color:var(--muted)"></span></div>
+        <div class="panel-body">
+          <div class="table-wrap">
+            <table><thead><tr><th>Business</th><th>Subdomain</th><th>Template</th><th>Status</th><th>Published</th><th></th></tr></thead>
+              <tbody id="recentSitesTbl"><tr><td colspan="6" class="empty-state">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page: Sites -->
+    <section id="page-sites" class="page">
+      <div class="page-header">
+        <div><h1>All sites</h1><div class="sub">Search, filter, and manage all sites on the platform</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="search-row" style="margin:0;flex:1">
+            <input class="input" id="siteSearch" placeholder="Search by name or subdomain…" oninput="filterSites()" style="flex:2">
+            <select class="select" id="siteStatusFilter" onchange="filterSites()" style="flex:1">
+              <option value="">All statuses</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="grace">Grace</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="table-wrap">
+            <table><thead><tr><th>Site name</th><th>Subdomain</th><th>Owner</th><th>Template</th><th>Status</th><th>AI gens</th><th></th></tr></thead>
+              <tbody id="allSitesTbl"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page: Domains -->
+    <section id="page-domains" class="page">
+      <div class="page-header">
+        <div><h1>Domain queue</h1><div class="sub">Customer domain registration wishes — assign and verify</div></div>
+        <div style="display:flex;gap:8px">
+          <select class="select" id="domainStatusFilter" onchange="loadDomainQueue()">
+            <option value="pending">Pending</option>
+            <option value="all">All</option>
+          </select>
+          <button class="btn btn-ghost" onclick="loadDomainQueue()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <div class="table-wrap">
+            <table><thead><tr><th>Choices</th><th>Site</th><th>Owner</th><th>Plan</th><th>Requested</th><th>Status / Assigned</th><th></th></tr></thead>
+              <tbody id="domainQueueTbl"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page: Email Routes -->
+    <section id="page-email" class="page">
+      <div class="page-header">
+        <div><h1>Email routes</h1><div class="sub">Cloudflare Email Routing forwarding rules</div></div>
+        <button class="btn btn-ghost" onclick="loadEmailRoutes()">↻ Refresh</button>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <div class="table-wrap">
+            <table><thead><tr><th>Address</th><th>Forwards to</th><th>Site</th><th>Verified</th><th>Status</th><th></th></tr></thead>
+              <tbody id="emailRoutesTbl"><tr><td colspan="6" class="empty-state">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page: Applications -->
+    <section id="page-applications" class="page">
+      <div class="page-header">
+        <div><h1>Artist applications</h1><div class="sub">A&amp;R intake queue with fit scoring</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select class="select" id="appStatusFilter" onchange="loadApplications()">
+            <option value="">All</option>
+            <option value="shortlisted">Shortlisted</option>
+            <option value="review">Review</option>
+            <option value="rejected">Rejected</option>
+            <option value="onboarding_pending">Onboarding pending</option>
+            <option value="onboarded">Onboarded</option>
+          </select>
+          <button class="btn btn-ghost" onclick="loadApplications()">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="applicationsBody"><div class="empty-state">Loading applications…</div></div>
+    </section>
+
+    <!-- Page: Submissions -->
+    <section id="page-submissions" class="page">
+      <div class="page-header">
+        <div><h1>Music submissions</h1><div class="sub">Review artist uploads and update status</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select class="select" id="submissionStatusFilter" onchange="loadSubmissions()">
+            <option value="">All</option>
+            <option value="submitted">Submitted</option>
+            <option value="under_review">Under review</option>
+            <option value="needs_fixes">Needs fixes</option>
+            <option value="approved">Approved</option>
+            <option value="live">Live</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <button class="btn btn-ghost" onclick="loadSubmissions()">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="submissionsBody"><div class="empty-state">Loading submissions…</div></div>
+    </section>
+
+    <!-- Page: Orders & Fulfilment -->
+    <section id="page-orders" class="page">
+      <div class="page-header">
+        <div><h1>Orders &amp; fulfilment</h1><div class="sub">Line-item view for all orders and fulfilment status</div></div>
+        <button class="btn btn-ghost" onclick="loadFulfilment()">↻ Refresh</button>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <div class="table-wrap">
+            <table><thead><tr><th>Date</th><th>Artist</th><th>Product</th><th>Color</th><th>Size</th><th>Qty</th><th>Amount</th><th>Payment</th><th>Fulfilment</th><th>Ref</th></tr></thead>
+              <tbody id="fulfilmentBody"><tr><td colspan="10" class="empty-state">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page: Revenue -->
+    <section id="page-revenue" class="page">
+      <div class="page-header">
+        <div><h1>Confirmed revenue</h1><div class="sub">All paid platform sales</div></div>
+        <button class="btn btn-ghost" onclick="loadRevenue()">↻ Refresh</button>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <div class="table-wrap">
+            <table><thead><tr><th>Date</th><th>Artist</th><th>Product</th><th>Amount</th><th>Status</th><th>Ref</th></tr></thead>
+              <tbody id="revenueBody"><tr><td colspan="6" class="empty-state">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Edit site modal -->
+<div class="modal-backdrop" id="editSiteModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Edit site</h3><button class="modal-close" onclick="closeModal('editSiteModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="editSiteId">
+      <div class="fld-group"><label class="fld">Site name</label><input class="input" id="editSiteName"></div>
+      <div class="fld-group"><label class="fld">Status</label><select class="select" id="editSiteStatus"><option value="draft">Draft</option><option value="published">Published</option><option value="grace">Grace</option><option value="suspended">Suspended</option></select></div>
+      <div class="fld-group"><label class="fld">Plan</label><select class="select" id="editSitePlan"><option value="starter">Starter</option><option value="pro">Pro</option></select></div>
+      <div class="fld-group"><label class="fld">Expires (Unix timestamp)</label><input class="input" id="editSiteExpires" type="number" placeholder="e.g. 1780000000"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('editSiteModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditSite()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign domain modal -->
+<div class="modal-backdrop" id="assignDomainModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Assign domain</h3><button class="modal-close" onclick="closeModal('assignDomainModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="assignDomainWishId">
+      <div class="fld-group"><label class="fld">Registered domain</label><input class="input" id="assignDomainValue" placeholder="e.g. elitesports.co.zw"></div>
+      <div class="fld-group"><label class="fld">Notes</label><input class="input" id="assignDomainNotes" placeholder="Reference or notes"></div>
+      <div class="fld-group"><label class="fld">Status</label><select class="select" id="assignDomainStatus"><option value="checking">Checking</option><option value="registered">Submitted</option><option value="active">Active</option><option value="failed">Failed</option></select></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('assignDomainModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAssignDomain()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  const API_BASE = window.location.origin + '/api';
+  const ADMIN_API = API_BASE + '/admin';
+  const TOKEN_KEY = 'zvakho_token';
+
+  function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+  function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
+
+  function authHeaders() {
+    const token = getToken();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': token ? 'Bearer ' + token : ''
+    };
+  }
+
+  function esc(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function toast(msg, type) {
+    const wrap = document.getElementById('toastWrap');
+    const el = document.createElement('div');
+    el.className = 'toast' + (type ? ' ' + type : '');
+    el.textContent = msg;
+    wrap.appendChild(el);
+    requestAnimationFrame(function(){ el.classList.add('show'); });
+    setTimeout(function(){ el.classList.remove('show'); setTimeout(function(){ el.remove(); }, 300); }, 4000);
+  }
+
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  // ── Navigation ──
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+      this.classList.add('active');
+      const page = this.dataset.page;
+      document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+      const target = document.getElementById('page-' + page);
+      if (target) target.classList.add('active');
+      if (page === 'overview') loadOverview();
+      else if (page === 'sites') loadAllSites();
+      else if (page === 'domains') loadDomainQueue();
+      else if (page === 'email') loadEmailRoutes();
+      else if (page === 'applications') loadApplications();
+      else if (page === 'submissions') loadSubmissions();
+      else if (page === 'orders') loadFulfilment();
+      else if (page === 'revenue') loadRevenue();
+    });
+  });
+
+  // ── Logout ──
+  document.getElementById('logoutLink').addEventListener('click', function(e) {
+    e.preventDefault();
+    localStorage.removeItem(TOKEN_KEY);
+    window.location.href = '/login.html';
+  });
+
+  // ── Overview ──
+  async function loadOverview() {
+    try {
+      const res = await fetch(ADMIN_API + '/stats', { headers: authHeaders() });
+      if (!res.ok) throw new Error('Failed to load stats');
+      const data = await res.json();
+      const stats = data.stats || {};
+      document.getElementById('statGrid').innerHTML = [
+        { label: 'Total sites', value: stats.total_sites || 0, cls: '' },
+        { label: 'Published', value: stats.published_sites || 0, cls: 'green' },
+        { label: 'Draft', value: stats.draft_sites || 0, cls: '' },
+        { label: 'Grace period', value: stats.grace_sites || 0, cls: 'gold' },
+        { label: 'Total revenue', value: '$' + (stats.total_revenue || 0).toFixed(2), cls: 'accent' },
+        { label: 'Active artists', value: stats.active_artists || 0, cls: 'blue' },
+        { label: 'Pending orders', value: stats.pending_orders || 0, cls: 'gold' },
+        { label: 'AI generations', value: stats.ai_generations || 0, cls: '' },
+      ].map(function(s){
+        return '<div class="stat-card' + (s.cls ? ' ' + s.cls : '') + '">' +
+          '<div class="label">' + esc(s.label) + '</div>' +
+          '<div class="value">' + esc(String(s.value)) + '</div>' +
+        '</div>';
+      }).join('');
+
+      // Recent sites
+      const sitesRes = await fetch(ADMIN_API + '/sites?limit=10', { headers: authHeaders() });
+      const sitesData = await sitesRes.json();
+      const recent = sitesData.sites || [];
+      document.getElementById('recentCount').textContent = recent.length + ' sites';
+      document.getElementById('recentSitesTbl').innerHTML = recent.length ?
+        recent.map(function(s){
+          return '<tr>' +
+            '<td class="name">' + esc(s.site_name || 'Untitled') + '</td>' +
+            '<td class="url"><a href="https://' + esc(s.draft_subdomain || '') + '.websites.co.zw" target="_blank">' + esc(s.draft_subdomain || '—') + '</a></td>' +
+            '<td style="color:var(--muted)">' + esc(s.template_id || '—') + '</td>' +
+            '<td>' + statusBadge(s.status) + '</td>' +
+            '<td style="color:var(--muted-2)">' + (s.published_at ? new Date(s.published_at*1000).toLocaleDateString() : '—') + '</td>' +
+            '<td><button class="btn btn-ghost btn-sm" onclick="openEditSite(\'' + esc(s.id) + '\')">Edit</button></td>' +
+          '</tr>';
+        }).join('') :
+        '<tr><td colspan="6" class="empty-state">No sites yet</td></tr>';
+
+      document.getElementById('overviewSub').textContent = 'Last updated ' + new Date().toLocaleTimeString();
+    } catch (e) {
+      toast(e.message || 'Overview failed', 'err');
+    }
+  }
+
+  function statusBadge(st) {
+    const map = { published:'green', active:'green', draft:'grey', grace:'gold', suspended:'red', pending_payment:'blue' };
+    const cls = map[st] || 'grey';
+    return '<span class="badge badge-' + cls + '">' + esc(st || '—') + '</span>';
+  }
+
+  // ── Sites ──
+  let allSites = [];
+
+  async function loadAllSites() {
+    try {
+      const res = await fetch(ADMIN_API + '/sites?limit=500', { headers: authHeaders() });
+      const data = await res.json();
+      allSites = data.sites || [];
+      renderSites(allSites);
+    } catch (e) {
+      toast('Failed to load sites', 'err');
+    }
+  }
+
+  function renderSites(sites) {
+    const tbody = document.getElementById('allSitesTbl');
+    if (!sites.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No sites match your filter</td></tr>';
+      return;
+    }
+    tbody.innerHTML = sites.map(function(s){
+      return '<tr>' +
+        '<td class="name">' + esc(s.site_name || 'Untitled') + '</td>' +
+        '<td class="url"><a href="https://' + esc(s.draft_subdomain || '') + '.websites.co.zw" target="_blank">' + esc(s.draft_subdomain || '—') + '</a></td>' +
+        '<td style="color:var(--muted)">' + esc(s.owner_id || '—') + '</td>' +
+        '<td style="color:var(--muted)">' + esc(s.template_id || '—') + '</td>' +
+        '<td>' + statusBadge(s.status) + '</td>' +
+        '<td style="text-align:center">' + (s.ai_generations_used || 0) + '</td>' +
+        '<td><button class="btn btn-ghost btn-sm" onclick="openEditSite(\'' + esc(s.id) + '\')">Edit</button></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  window.filterSites = function() {
+    const q = document.getElementById('siteSearch').value.toLowerCase();
+    const st = document.getElementById('siteStatusFilter').value;
+    const filtered = allSites.filter(function(s){
+      const name = (s.site_name || '').toLowerCase();
+      const sub = (s.draft_subdomain || '').toLowerCase();
+      return (!q || name.includes(q) || sub.includes(q)) &&
+             (!st || s.status === st);
+    });
+    renderSites(filtered);
+  };
+
+  window.openEditSite = function(siteId) {
+    const site = allSites.find(function(s){ return s.id === siteId; });
+    if (!site) return;
+    document.getElementById('editSiteId').value = site.id;
+    document.getElementById('editSiteName').value = site.site_name || '';
+    document.getElementById('editSiteStatus').value = site.status || 'draft';
+    document.getElementById('editSitePlan').value = site.plan || 'starter';
+    document.getElementById('editSiteExpires').value = site.expires_at || '';
+    document.getElementById('editSiteModal').classList.add('open');
+  };
+
+  window.saveEditSite = async function() {
+    const id = document.getElementById('editSiteId').value;
+    const body = {
+      site_name: document.getElementById('editSiteName').value.trim(),
+      status: document.getElementById('editSiteStatus').value,
+      plan: document.getElementById('editSitePlan').value,
+      expires_at: parseInt(document.getElementById('editSiteExpires').value) || null
+    };
+    try {
+      const res = await fetch(ADMIN_API + '/sites/' + encodeURIComponent(id), {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error('Update failed');
+      toast('Site updated ✓', 'ok');
+      closeModal('editSiteModal');
+      loadAllSites();
+    } catch (e) {
+      toast(e.message || 'Update failed', 'err');
+    }
+  };
+
+  // ── Domains ──
+  async function loadDomainQueue() {
+    const status = document.getElementById('domainStatusFilter').value;
+    try {
+      const res = await fetch(ADMIN_API + '/domain-queue?limit=200&status=' + (status || 'pending'), { headers: authHeaders() });
+      const data = await res.json();
+      const wishes = data.wishes || [];
+      const tbody = document.getElementById('domainQueueTbl');
+      if (!wishes.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No domain requests.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = wishes.map(function(w){
+        const choices = [w.choice_1, w.choice_2, w.choice_3].filter(Boolean).map(function(c){ return c + (w.tld || '.co.zw'); });
+        const badgeMap = { pending:'gold', checking:'blue', registered:'blue', active:'green', failed:'red' };
+        const badgeCls = badgeMap[w.status] || 'grey';
+        return '<tr>' +
+          '<td>' + choices.map(function(c,i){ return '<div style="font-size:'+(i===0?'13':'11.5')+'px;font-weight:'+(i===0?'600':'400')+';opacity:'+(i===0?'1':'.55')+'">' + esc(c) + '</div>'; }).join('') + '</td>' +
+          '<td style="color:var(--muted)">' + esc(w.site_name || w.site_id || '—') + '</td>' +
+          '<td style="color:var(--muted)">' + esc(w.owner_id || '—') + '</td>' +
+          '<td><span class="badge badge-grey">' + esc((w.plan||'starter').toUpperCase()) + '</span></td>' +
+          '<td style="color:var(--muted-2)">' + (w.created_at ? new Date(w.created_at*1000).toLocaleDateString() : '—') + '</td>' +
+          '<td><span class="badge badge-' + badgeCls + '">' + esc(w.status || 'pending') + '</span>' + (w.assigned ? '<div style="color:var(--success);font-size:11px;margin-top:3px">→ ' + esc(w.assigned) + '</div>' : '') + '</td>' +
+          '<td><button class="btn btn-primary btn-sm" onclick="openAssignDomain(\'' + esc(w.id) + '\',\'' + esc(choices[0]||'') + '\')">Assign</button></td>' +
+        '</tr>';
+      }).join('');
+    } catch (e) {
+      toast('Domain queue error', 'err');
+    }
+  }
+
+  window.openAssignDomain = function(wishId, suggested) {
+    document.getElementById('assignDomainWishId').value = wishId;
+    document.getElementById('assignDomainValue').value = suggested || '';
+    document.getElementById('assignDomainNotes').value = '';
+    document.getElementById('assignDomainStatus').value = 'active';
+    document.getElementById('assignDomainModal').classList.add('open');
+  };
+
+  window.saveAssignDomain = async function() {
+    const wishId = document.getElementById('assignDomainWishId').value;
+    const body = {
+      assigned: document.getElementById('assignDomainValue').value.trim(),
+      notes: document.getElementById('assignDomainNotes').value.trim(),
+      status: document.getElementById('assignDomainStatus').value
+    };
+    try {
+      const res = await fetch(ADMIN_API + '/domain-queue/' + encodeURIComponent(wishId), {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error('Failed');
+      toast('Domain updated ✓', 'ok');
+      closeModal('assignDomainModal');
+      loadDomainQueue();
+    } catch (e) {
+      toast(e.message || 'Update failed', 'err');
+    }
+  };
+
+  // ── Email routes ──
+  async function loadEmailRoutes() {
+    try {
+      const res = await fetch(ADMIN_API + '/email-routes', { headers: authHeaders() });
+      const data = await res.json();
+      const routes = data.routes || [];
+      const tbody = document.getElementById('emailRoutesTbl');
+      if (!routes.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No email routes.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = routes.map(function(r){
+        const verified = r.verified ? '<span class="badge badge-green">Verified</span>' : '<span class="badge badge-gold">Pending</span>';
+        return '<tr>' +
+          '<td class="name" style="font-family:monospace;font-size:12px">' + esc(r.local_part) + '@websites.co.zw</td>' +
+          '<td style="color:var(--muted)">' + esc(r.destination) + '</td>' +
+          '<td style="color:var(--muted)">' + esc(r.site_name || '—') + '</td>' +
+          '<td>' + verified + '</td>' +
+          '<td><span class="badge badge-' + (r.status === 'active' ? 'green' : 'grey') + '">' + esc(r.status || 'pending') + '</span></td>' +
+          '<td><button class="btn btn-primary btn-sm" onclick="verifyEmailRoute(\'' + esc(r.id) + '\')">Verify</button></td>' +
+        '</tr>';
+      }).join('');
+    } catch (e) {
+      toast('Email routes error', 'err');
+    }
+  }
+
+  window.verifyEmailRoute = async function(routeId) {
+    try {
+      const res = await fetch(ADMIN_API + '/email-routes/' + encodeURIComponent(routeId) + '/verify', {
+        method: 'PUT',
+        headers: authHeaders()
+      });
+      if (!res.ok) throw new Error('Verification failed');
+      toast('Email route verified ✓', 'ok');
+      loadEmailRoutes();
+    } catch (e) {
+      toast(e.message || 'Verification failed', 'err');
+    }
+  };
+
+  // ── Applications ──
+  async function loadApplications() {
+    const status = document.getElementById('appStatusFilter').value;
+    try {
+      const res = await fetch(API_BASE + '/applications?status=' + (status || '') + '&limit=100', { headers: authHeaders() });
+      const data = await res.json();
+      const apps = data.applications || [];
+      const body = document.getElementById('applicationsBody');
+      if (!apps.length) {
+        body.innerHTML = '<div class="empty-state">No applications found.</div>';
+        return;
+      }
+      body.innerHTML = apps.map(function(a){
+        const score = Number(a.fit_score || 0);
+        const scoreCls = score >= 80 ? 'green' : score >= 60 ? 'gold' : 'grey';
+        const statusCls = a.vetting_status === 'shortlisted' ? 'green' : a.vetting_status === 'rejected' ? 'red' : 'gold';
+        return '<div class="panel" style="margin-bottom:12px;">' +
+          '<div class="panel-head">' +
+            '<div><strong>' + esc(a.artist_name || 'Unknown') + '</strong> <span style="color:var(--muted);font-size:13px">' + esc(a.genre || '') + ' • ' + esc(a.city || '') + '</span></div>' +
+            '<div><span class="badge badge-' + statusCls + '">' + esc(a.vetting_status || 'review') + '</span> <span class="badge badge-' + scoreCls + '">Score: ' + score + '</span></div>' +
+          '</div>' +
+          '<div class="panel-body" style="padding-top:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;">' +
+            '<div><small style="color:var(--muted-2)">Songs</small><div>' + esc(a.songs_released || '—') + '</div></div>' +
+            '<div><small style="color:var(--muted-2)">Releases (12mo)</small><div>' + (a.releases_12_months ?? '—') + '</div></div>' +
+            '<div><small style="color:var(--muted-2)">Engagement</small><div>' + esc(a.fan_engagement || '—') + '</div></div>' +
+            '<div><small style="color:var(--muted-2)">Fans pay</small><div>' + esc(a.fans_pay || '—') + '</div></div>' +
+            '<div><small style="color:var(--muted-2)">Phone</small><div>' + esc(a.phone || '—') + '</div></div>' +
+            '<div><small style="color:var(--muted-2)">Email</small><div>' + esc(a.email || '—') + '</div></div>' +
+            (a.music_link ? '<div><small style="color:var(--muted-2)">Music</small><div><a href="' + esc(a.music_link) + '" target="_blank">Link</a></div></div>' : '') +
+          '</div>' +
+          '<div class="panel-body" style="border-top:1px solid var(--line);padding-top:12px;">' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+              '<select class="select" id="appStatus_' + esc(a.application_id) + '" style="flex:1;min-width:140px;">' +
+                '<option value="review" ' + (a.vetting_status === 'review' ? 'selected' : '') + '>Review</option>' +
+                '<option value="shortlisted" ' + (a.vetting_status === 'shortlisted' ? 'selected' : '') + '>Shortlisted</option>' +
+                '<option value="onboarding_pending" ' + (a.vetting_status === 'onboarding_pending' ? 'selected' : '') + '>Onboarding pending</option>' +
+                '<option value="onboarded" ' + (a.vetting_status === 'onboarded' ? 'selected' : '') + '>Onboarded</option>' +
+                '<option value="rejected" ' + (a.vetting_status === 'rejected' ? 'selected' : '') + '>Rejected</option>' +
+              '</select>' +
+              '<textarea class="input" id="appNote_' + esc(a.application_id) + '" placeholder="Internal note…" style="flex:2;min-height:40px;">' + esc(a.notes || '') + '</textarea>' +
+              '<button class="btn btn-primary" onclick="updateApplication(\'' + esc(a.application_id) + '\')">Update</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    } catch (e) {
+      toast('Applications load failed', 'err');
+    }
+  }
+
+  window.updateApplication = async function(appId) {
+    const status = document.getElementById('appStatus_' + appId).value;
+    const notes = document.getElementById('appNote_' + appId).value;
+    try {
+      const res = await fetch(API_BASE + '/applications/' + encodeURIComponent(appId), {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ vetting_status: status, notes: notes })
+      });
+      if (!res.ok) throw new Error('Update failed');
+      toast('Application updated ✓', 'ok');
+      loadApplications();
+    } catch (e) {
+      toast(e.message || 'Update failed', 'err');
+    }
+  };
+
+  // ── Submissions ──
+  async function loadSubmissions() {
+    const status = document.getElementById('submissionStatusFilter').value;
+    try {
+      const res = await fetch(API_BASE + '/submissions?status=' + (status || '') + '&limit=100', { headers: authHeaders() });
+      const data = await res.json();
+      const subs = data.submissions || [];
+      const body = document.getElementById('submissionsBody');
+      if (!subs.length) {
+        body.innerHTML = '<div class="empty-state">No music submissions.</div>';
+        return;
+      }
+      body.innerHTML = subs.map(function(s){
+        const statusCls = s.submission_status === 'approved' || s.submission_status === 'live' ? 'green' : s.submission_status === 'rejected' ? 'red' : 'gold';
+        return '<div class="panel" style="margin-bottom:12px;">' +
+          '<div class="panel-head">' +
+            '<div><strong>' + esc(s.song_title || 'Untitled') + '</strong> <span style="color:var(--muted)">' + esc(s.artist_name || s.artist_id || '—') + '</span></div>' +
+            '<span class="badge badge-' + statusCls + '">' + esc(s.submission_status || 'submitted') + '</span>' +
+          '</div>' +
+          '<div class="panel-body" style="padding-top:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">' +
+            '<div><small style="color:var(--muted-2)">Release type</small><div>' + esc(s.release_type || 'single') + '</div></div>' +
+            '<div><small style="color:var(--muted-2)">Genre</small><div>' + esc(s.genre || '—') + '</div></div>' +
+            '<div><small style="color:var(--muted-2)">Price</small><div>$' + Number(s.price || 0).toFixed(2) + '</div></div>' +
+            '<div><small style="color:var(--muted-2)">Explicit</small><div>' + (s.explicit_content ? 'Yes' : 'No') + '</div></div>' +
+            '<div><small style="color:var(--muted-2)">Rights</small><div>' + (Number(s.rights_confirmed) ? '✓' : '✗') + '</div></div>' +
+            (s.audio_r2_key ? '<div><small style="color:var(--muted-2)">Audio</small><div><button class="btn btn-ghost btn-sm" onclick="downloadSubmissionFile(\'' + esc(s.submission_id) + '\',\'audio\')">Download</button></div></div>' : '') +
+            (s.artwork_r2_key ? '<div><small style="color:var(--muted-2)">Artwork</small><div><button class="btn btn-ghost btn-sm" onclick="downloadSubmissionFile(\'' + esc(s.submission_id) + '\',\'artwork\')">View</button></div></div>' : '') +
+          '</div>' +
+          '<div class="panel-body" style="border-top:1px solid var(--line);padding-top:12px;">' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+              '<select class="select" id="subStatus_' + esc(s.submission_id) + '" style="flex:1;min-width:140px;">' +
+                '<option value="submitted" ' + (s.submission_status === 'submitted' ? 'selected' : '') + '>Submitted</option>' +
+                '<option value="under_review" ' + (s.submission_status === 'under_review' ? 'selected' : '') + '>Under review</option>' +
+                '<option value="needs_fixes" ' + (s.submission_status === 'needs_fixes' ? 'selected' : '') + '>Needs fixes</option>' +
+                '<option value="approved" ' + (s.submission_status === 'approved' ? 'selected' : '') + '>Approved</option>' +
+                '<option value="live" ' + (s.submission_status === 'live' ? 'selected' : '') + '>Live</option>' +
+                '<option value="rejected" ' + (s.submission_status === 'rejected' ? 'selected' : '') + '>Rejected</option>' +
+              '</select>' +
+              '<textarea class="input" id="subNote_' + esc(s.submission_id) + '" placeholder="Review note…" style="flex:2;min-height:40px;">' + esc(s.review_note || '') + '</textarea>' +
+              '<button class="btn btn-primary" onclick="updateSubmission(\'' + esc(s.submission_id) + '\')">Update</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    } catch (e) {
+      toast('Submissions load failed', 'err');
+    }
+  }
+
+  window.updateSubmission = async function(subId) {
+    const status = document.getElementById('subStatus_' + subId).value;
+    const note = document.getElementById('subNote_' + subId).value;
+    try {
+      const res = await fetch(API_BASE + '/submissions/' + encodeURIComponent(subId), {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ submission_status: status, review_note: note })
+      });
+      if (!res.ok) throw new Error('Update failed');
+      toast('Submission updated ✓', 'ok');
+      loadSubmissions();
+    } catch (e) {
+      toast(e.message || 'Update failed', 'err');
+    }
+  };
+
+  window.downloadSubmissionFile = function(subId, type) {
+    const url = API_BASE + '/submissions/' + encodeURIComponent(subId) + '/file?type=' + encodeURIComponent(type);
+    window.open(url, '_blank');
+  };
+
+  // ── Fulfilment ──
+  async function loadFulfilment() {
+    try {
+      const res = await fetch(ADMIN_API + '/fulfilment', { headers: authHeaders() });
+      const data = await res.json();
+      const items = data.items || [];
+      const tbody = document.getElementById('fulfilmentBody');
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No fulfilment items.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = items.map(function(item){
+        const ps = item.payment_status || 'pending';
+        const fs = item.fulfilment_status || 'not_started';
+        const size = (item.size_label || item.size_code || '—');
+        return '<tr>' +
+          '<td>' + (item.paid_at ? new Date(item.paid_at*1000).toLocaleDateString() : '—') + '</td>' +
+          '<td>' + esc(item.artist_name || item.artist_id || '—') + '</td>' +
+          '<td>' + esc(item.product_name || '—') + '</td>' +
+          '<td>' + esc(item.color || '—') + '</td>' +
+          '<td>' + esc(size) + '</td>' +
+          '<td>' + (item.quantity || 1) + '</td>' +
+          '<td>$' + Number(item.line_total || item.amount || 0).toFixed(2) + '</td>' +
+          '<td><span class="badge badge-' + (ps === 'paid' ? 'green' : 'gold') + '">' + esc(ps) + '</span></td>' +
+          '<td>' +
+            '<select class="select" style="width:auto;display:inline-block;" onchange="updateFulfilmentStatus(\'' + esc(item.payment_reference || '') + '\', this.value)">' +
+              '<option value="not_started" ' + (fs === 'not_started' ? 'selected' : '') + '>Not started</option>' +
+              '<option value="processing" ' + (fs === 'processing' ? 'selected' : '') + '>Processing</option>' +
+              '<option value="ready_for_delivery" ' + (fs === 'ready_for_delivery' ? 'selected' : '') + '>Ready</option>' +
+              '<option value="delivered" ' + (fs === 'delivered' ? 'selected' : '') + '>Delivered</option>' +
+              '<option value="cancelled" ' + (fs === 'cancelled' ? 'selected' : '') + '>Cancelled</option>' +
+            '</select>' +
+          '</td>' +
+          '<td>' + esc(item.payment_reference || '—') + '</td>' +
+        '</tr>';
+      }).join('');
+    } catch (e) {
+      toast('Fulfilment load failed', 'err');
+    }
+  }
+
+  window.updateFulfilmentStatus = async function(paymentRef, newStatus) {
+    if (!paymentRef) return;
+    try {
+      const res = await fetch(ADMIN_API + '/fulfilment', {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ payment_reference: paymentRef, fulfilment_status: newStatus })
+      });
+      if (!res.ok) throw new Error('Update failed');
+      toast('Fulfilment status updated ✓', 'ok');
+      loadFulfilment();
+    } catch (e) {
+      toast(e.message || 'Update failed', 'err');
+    }
+  };
+
+  // ── Revenue ──
+  async function loadRevenue() {
+    try {
+      const res = await fetch(ADMIN_API + '/revenue', { headers: authHeaders() });
+      const data = await res.json();
+      const orders = data.orders || [];
+      const tbody = document.getElementById('revenueBody');
+      if (!orders.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No paid orders yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = orders.map(function(o){
+        return '<tr>' +
+          '<td>' + (o.paid_at ? new Date(o.paid_at*1000).toLocaleDateString() : '—') + '</td>' +
+          '<td>' + esc(o.artist_name || o.artist_id || '—') + '</td>' +
+          '<td>' + esc(o.product_name || 'Music purchase') + '</td>' +
+          '<td>$' + Number(o.amount || 0).toFixed(2) + '</td>' +
+          '<td><span class="badge badge-green">Paid</span></td>' +
+          '<td>' + esc(o.payment_reference || '—') + '</td>' +
+        '</tr>';
+      }).join('');
+    } catch (e) {
+      toast('Revenue load failed', 'err');
+    }
+  }
+
+  // ── Close modal on backdrop click ──
+  document.querySelectorAll('.modal-backdrop').forEach(function(m) {
+    m.addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('open');
+    });
+  });
+
+  // ── Keyboard escape ──
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-backdrop.open').forEach(function(m){ m.classList.remove('open'); });
+    }
+  });
+
+  // ── Auto‑load default page ──
+  // Check token presence; if none, redirect to login.
+  if (!getToken()) {
+    window.location.href = '/login.html';
+  } else {
+    // Initially load overview
+    loadOverview();
+  }
+
+})();
+</script>
+</body>
+</html>

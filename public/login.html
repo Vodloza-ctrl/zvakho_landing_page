@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in — ZVAKHO</title>
+  <link rel="icon" href="/assets/brand/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0b0b0b;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .auth-card {
+      background: linear-gradient(180deg, #1c1814, #141210);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 28px;
+      padding: 40px 34px;
+      width: min(460px, 100%);
+      box-shadow: 0 24px 80px rgba(0,0,0,.4);
+    }
+    .auth-card .brand {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .auth-card .brand img {
+      height: 36px;
+    }
+    .auth-card h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -.04em;
+      margin: 8px 0 10px;
+      color: #f5f1ea;
+    }
+    .auth-card p {
+      color: #a89e91;
+      line-height: 1.6;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .auth-form {
+      display: grid;
+      gap: 16px;
+    }
+    .auth-form label {
+      display: grid;
+      gap: 6px;
+      font-weight: 700;
+      font-size: 13px;
+      color: rgba(255,255,255,.8);
+    }
+    .auth-form input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.05);
+      color: #f5f1ea;
+      font: inherit;
+      outline: none;
+      transition: border .15s;
+    }
+    .auth-form input:focus {
+      border-color: #d4a574;
+      box-shadow: 0 0 0 4px rgba(212,165,116,.15);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+      transition: .15s;
+      background: #d4a574;
+      color: #0a0a0a;
+      width: 100%;
+    }
+    .btn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+    .btn:disabled {
+      opacity: .5;
+      cursor: default;
+      transform: none;
+    }
+    .auth-error {
+      display: none;
+      background: rgba(201,92,69,.12);
+      border: 1px solid rgba(201,92,69,.35);
+      color: #ffb2a4;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .auth-error.show { display: block; }
+    .footer-note {
+      text-align: center;
+      margin-top: 18px;
+      color: #766c62;
+      font-size: 12px;
+    }
+    .footer-note a {
+      color: #d4a574;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .footer-note a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="auth-card">
+    <div class="brand">
+      <img src="/assets/brand/zvakho-mark.webp" alt="ZVAKHO">
+      <span style="font-weight:900; font-size:20px; color:#f5f1ea;">ZVAKHO</span>
+    </div>
+    <h1>Sign in</h1>
+    <p>Access your brand dashboard or platform admin panel.</p>
+    <form id="loginForm" class="auth-form">
+      <div id="authError" class="auth-error"></div>
+      <label>Email address
+        <input type="email" id="loginEmail" placeholder="you@example.com" required>
+      </label>
+      <label>Password
+        <input type="password" id="loginPassword" placeholder="••••••••" required>
+      </label>
+      <button class="btn" id="loginBtn" type="submit">Sign in</button>
+    </form>
+    <div class="footer-note">
+      New to ZVAKHO? <a href="https://wa.me/263719362231?text=ZVAKHO">Request access</a>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const API_BASE = window.location.origin + '/api';
+      const TOKEN_KEY = 'zvakho_token';
+      const USER_KEY = 'zvakho_user';
+
+      function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+      function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
+      function setUser(u) { localStorage.setItem(USER_KEY, JSON.stringify(u || {})); }
+      function clearSession() {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+      }
+
+      const form = document.getElementById('loginForm');
+      const emailInput = document.getElementById('loginEmail');
+      const passwordInput = document.getElementById('loginPassword');
+      const errorEl = document.getElementById('authError');
+      const loginBtn = document.getElementById('loginBtn');
+
+      function showError(msg) {
+        errorEl.textContent = msg || 'Login failed.';
+        errorEl.classList.add('show');
+      }
+      function clearError() {
+        errorEl.textContent = '';
+        errorEl.classList.remove('show');
+      }
+
+      // If already logged in, redirect to appropriate dashboard
+      const existingToken = getToken();
+      if (existingToken) {
+        // Optionally, we could fetch /me to check role and redirect, but we'll just redirect to dashboard
+        // The dashboard will handle unauthorized redirects.
+        window.location.href = '/dashboard.html';
+        return;
+      }
+
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        clearError();
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        if (!email || !password) {
+          showError('Please fill in both fields.');
+          return;
+        }
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Signing in…';
+
+        try {
+          const response = await fetch(API_BASE + '/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          const data = await response.json();
+          if (!response.ok || data.status !== 'success' || !data.token) {
+            throw new Error(data.message || 'Invalid credentials.');
+          }
+          setToken(data.token);
+          setUser(data.user || { email });
+          // Redirect based on role – if admin/owner, go to admin, else brand dashboard
+          const role = (data.user && data.user.role) || '';
+          if (['admin', 'owner'].includes(role.toLowerCase())) {
+            window.location.href = '/admin.html';
+          } else {
+            window.location.href = '/dashboard.html';
+          }
+        } catch (err) {
+          showError(err.message || 'Login failed. Please try again.');
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Sign in';
+        }
+      });
+
+      // Allow Enter key in password field
+      passwordInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') form.dispatchEvent(new Event('submit'));
+      });
+    })();
+  </script>
+</body>
+</html>

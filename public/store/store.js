@@ -483,6 +483,64 @@ function renderMusic() {
   if (firstPlayable) setActivePreview(firstPlayable, false);
 }
 
+// ─── RENDER GALLERY ─────────────────────────────────────────
+function renderGallery() {
+  const media = STORE.media || {};
+  const section = document.getElementById('gallerySection');
+  const grid = document.getElementById('galleryGrid');
+  if (!section || !grid) return;
+
+  // Only show if gallery is enabled AND has images
+  if (!media.gallery_enabled || !media.gallery_images || media.gallery_images.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  grid.className = 'gallery-grid ' + (media.gallery_layout || 'mosaic');
+  grid.innerHTML = media.gallery_images.map(url => `
+    <div class="gallery-item">
+      <img src="${escapeHTML(url)}" alt="Gallery image" loading="lazy">
+    </div>
+  `).join('');
+}
+
+// ─── RENDER VIDEO ──────────────────────────────────────────
+function renderVideo() {
+  const media = STORE.media || {};
+  const section = document.getElementById('videoSection');
+  const embed = document.getElementById('videoEmbed');
+  const title = document.getElementById('videoTitle');
+  if (!section || !embed) return;
+
+  // Only show if video is enabled AND has a URL
+  if (!media.video_enabled || !media.video_url) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  title.textContent = media.video_title || 'Featured video';
+  
+  let videoId = '';
+  const url = media.video_url;
+  if (url.includes('youtu.be/')) {
+    videoId = url.split('youtu.be/')[1].split('?')[0];
+  } else if (url.includes('watch?v=')) {
+    videoId = url.split('v=')[1].split('&')[0];
+  } else if (url.includes('embed/')) {
+    videoId = url.split('embed/')[1].split('?')[0];
+  }
+  
+  if (videoId) {
+    embed.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>`;
+  } else {
+    embed.innerHTML = `<p style="color:var(--store-muted);">Invalid video URL</p>`;
+  }
+}
+
+// ─── CART FUNCTIONS ─────────────────────────────────────────
+
 function addToCart(productId, quantity = 1) {
   const product = getProduct(productId);
   if (!product) return;
@@ -839,6 +897,8 @@ async function initStore() {
     renderFeatured();
     renderProducts();
     renderMusic();
+    renderGallery();
+    renderVideo();
     updateCartUI();
 
   } catch (error) {
