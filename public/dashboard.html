@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brand Dashboard — ZVAKHO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/config.js"></script>
+  <style>
+    /* ============ TOKENS ============ */
+    :root{
+      --bg:#0a0908;
+      --surface:#141210;
+      --surface-2:#1c1814;
+      --line:rgba(255,255,255,.08);
+      --line-2:rgba(255,255,255,.15);
+      --text:#f5f1ea;
+      --muted:#a89e91;
+      --muted-2:#766c62;
+      --accent:var(--store-primary,#d4a574);
+      --accent-ink:#1a1409;
+      --success:#6fbb72;
+      --success-bg:rgba(111,187,114,.12);
+      --danger:#ff8b78;
+      --danger-bg:rgba(255,139,120,.1);
+      --upgrade:#d4a574;
+      --upgrade-bg:rgba(212,165,116,.09);
+      --r:16px; --r-sm:11px; --r-xs:7px;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+      --bar:60px; --sidebar:236px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:'Inter',system-ui,sans-serif; font-size:14.5px;
+      background:
+        radial-gradient(circle at top left, rgba(212,165,116,.10), transparent 38%),
+        var(--bg);
+      color:var(--text); -webkit-font-smoothing:antialiased;
+    }
+    button,input,select,textarea{font-family:inherit}
+    button{cursor:pointer}
+    a{color:inherit}
+    img{display:block; max-width:100%}
+    :focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px}
+
+    /* ============ TOPBAR ============ */
+    .topbar{
+      position:fixed; top:0; left:0; right:0; z-index:100; height:var(--bar);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 20px; gap:16px;
+      background:rgba(10,9,8,.85); backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .topbar-brand{display:flex; align-items:center; gap:10px; min-width:0}
+    .brand-mark{
+      width:30px; height:30px; border-radius:8px; flex-shrink:0;
+      background:var(--accent); color:var(--accent-ink);
+      display:flex; align-items:center; justify-content:center;
+      font-weight:800; font-size:14px;
+    }
+    .topbar-brand .name{font-weight:800; font-size:15px; letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    .status-pill{
+      display:inline-flex; align-items:center; gap:6px; padding:3px 10px 3px 8px;
+      border-radius:999px; font-size:11.5px; font-weight:700; margin-left:4px; flex-shrink:0;
+    }
+    .status-pill .dot{width:6px; height:6px; border-radius:50%}
+    .status-pill.draft{background:rgba(255,255,255,.06); color:var(--muted)}
+    .status-pill.draft .dot{background:var(--muted-2)}
+    .status-pill.active{background:var(--success-bg); color:var(--success)}
+    .status-pill.active .dot{background:var(--success)}
+
+    .topbar-actions{display:flex; align-items:center; gap:10px; flex-shrink:0}
+    .plan-badge{
+      font-size:11.5px; font-weight:700; padding:4px 11px; border-radius:999px;
+      background:var(--surface-2); border:1px solid var(--line-2); color:var(--muted);
+      text-transform:capitalize;
+    }
+    .plan-badge.grow{color:var(--accent); border-color:rgba(212,165,116,.35)}
+    .plan-badge.business{color:#c9a4ff; border-color:rgba(201,164,255,.35); background:rgba(201,164,255,.08)}
+
+    .btn{
+      display:inline-flex; align-items:center; gap:7px; padding:9px 16px;
+      border-radius:999px; font-weight:700; font-size:13.5px; border:1.5px solid transparent;
+      cursor:pointer; transition:.15s; text-decoration:none; white-space:nowrap;
+    }
+    .btn-primary{background:var(--accent); color:var(--accent-ink)}
+    .btn-primary:hover{filter:brightness(1.08); transform:translateY(-1px)}
+    .btn-primary:disabled{opacity:.5; cursor:default; transform:none}
+    .btn-outline{background:transparent; border-color:var(--line-2); color:var(--text)}
+    .btn-outline:hover{background:rgba(255,255,255,.05); border-color:var(--muted)}
+    .btn-ghost{background:transparent; color:var(--muted)}
+    .btn-ghost:hover{color:var(--text)}
+    .btn-danger{background:transparent; color:var(--danger); border-color:rgba(255,139,120,.3)}
+    .btn-danger:hover{background:var(--danger-bg)}
+    .btn-sm{padding:6px 13px; font-size:12.5px}
+
+    /* ============ PREVIEW WARNING ============ */
+    .preview-warning{
+      display:none; align-items:center; justify-content:center; gap:14px;
+      position:fixed; top:var(--bar); left:0; right:0; z-index:99;
+      padding:9px 20px; background:var(--upgrade-bg); border-bottom:1px solid rgba(212,165,116,.3);
+      font-size:12.5px; font-weight:600; color:var(--upgrade); text-align:center;
+    }
+    .preview-warning.show{display:flex}
+    .preview-warning .btn{padding:5px 12px; font-size:12px}
+    .layout.warning-active{padding-top:calc(var(--bar) + 38px)}
+
+    /* ============ LAYOUT ============ */
+    .layout{display:flex; padding-top:var(--bar); min-height:100vh}
+    .sidebar{
+      width:var(--sidebar); flex-shrink:0; position:fixed; top:var(--bar); bottom:0; left:0;
+      border-right:1px solid var(--line); overflow-y:auto; padding:18px 10px 24px;
+      background:var(--bg);
+      transition:transform .2s ease;
+      transform:translateX(0);
+      z-index:200;
+    }
+    .nav-group{margin-bottom:6px}
+    .nav-group-label{
+      padding:14px 12px 6px; font-size:10.5px; font-weight:800; letter-spacing:.1em;
+      text-transform:uppercase; color:var(--muted-2);
+    }
+    .nav-item{
+      display:flex; align-items:center; gap:10px; padding:9px 12px; margin:1px 0;
+      border-radius:var(--r-xs); font-size:13.8px; font-weight:600; color:var(--muted);
+      cursor:pointer; transition:.12s; position:relative; border:none; background:none; width:100%; text-align:left;
+    }
+    .nav-item .ico{font-size:15px; width:18px; text-align:center; flex-shrink:0; opacity:.85}
+    .nav-item span.label{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    .nav-item:hover{background:rgba(255,255,255,.04); color:var(--text)}
+    .nav-item.active{background:rgba(212,165,116,.1); color:var(--accent)}
+    .nav-badge{
+      font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px;
+      background:var(--upgrade-bg); color:var(--upgrade); letter-spacing:.02em; flex-shrink:0;
+    }
+    .nav-badge.count{background:var(--surface-2); color:var(--muted); border:1px solid var(--line)}
+
+    .main{flex:1; margin-left:var(--sidebar); padding:28px 32px 120px; min-width:0}
+    .main-inner{max-width:940px}
+    .page-head{margin-bottom:22px}
+    .page-head h1{margin:0 0 4px; font-size:21px; font-weight:800; letter-spacing:-.01em}
+    .page-head p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.5}
+    .page{display:none}
+    .page.active{display:block}
+
+    /* ============ CARDS / PANELS ============ */
+    .card{
+      background:linear-gradient(180deg, var(--surface-2), var(--surface));
+      border:1px solid var(--line); border-radius:var(--r); margin-bottom:18px; overflow:hidden;
+    }
+    .card-head{
+      padding:16px 20px; border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    .card-head h2{margin:0; font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px}
+    .card-body{padding:20px}
+    .card-body p.desc{color:var(--muted); font-size:13.5px; line-height:1.6; margin:0 0 16px}
+
+    .form-group{margin-bottom:16px}
+    .form-group:last-child{margin-bottom:0}
+    .form-group label{display:block; font-size:12.5px; font-weight:700; color:var(--muted); margin-bottom:6px}
+    .form-group input[type="text"],
+    .form-group input[type="url"],
+    .form-group input[type="number"],
+    .form-group select,
+    .form-group textarea{
+      width:100%; padding:10px 13px; border-radius:var(--r-xs); border:1.5px solid var(--line-2);
+      background:rgba(255,255,255,.03); color:var(--text); font-size:14px; font-family:inherit; transition:border .15s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus{outline:none; border-color:var(--accent)}
+    .form-group .hint{font-size:12px; color:var(--muted-2); margin-top:5px}
+    .form-row{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+
+    /* ============ LOCKED / UPGRADE STATE ============ */
+    .locked-wrap{position:relative}
+    .locked-wrap .locked-content{filter:blur(3px); opacity:.4; pointer-events:none; user-select:none}
+    .locked-overlay{
+      position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      text-align:center; padding:24px; gap:10px; background:linear-gradient(180deg, rgba(20,18,16,0), rgba(20,18,16,.55) 30%);
+    }
+    .locked-overlay .lock-icon{
+      width:38px; height:38px; border-radius:50%; background:var(--upgrade-bg); color:var(--upgrade);
+      display:flex; align-items:center; justify-content:center; font-size:16px;
+    }
+    .locked-overlay .lock-title{font-weight:700; font-size:14.5px}
+    .locked-overlay .lock-sub{color:var(--muted); font-size:12.5px; max-width:280px; line-height:1.5}
+    .upsell-inline{
+      display:flex; align-items:center; gap:10px; padding:12px 14px; margin-top:12px;
+      border:1.5px dashed rgba(212,165,116,.4); border-radius:var(--r-sm); background:var(--upgrade-bg);
+      font-size:12.5px; font-weight:600; color:var(--upgrade); cursor:pointer;
+    }
+    .upsell-inline:hover{border-color:var(--upgrade)}
+
+    /* ============ UPLOAD ============ */
+    .upload-zone{
+      border:2px dashed var(--line-2); border-radius:var(--r-sm); padding:28px 20px; text-align:center;
+      cursor:pointer; transition:.15s; margin-bottom:14px; background:rgba(255,255,255,.015);
+    }
+    .upload-zone:hover, .upload-zone.dragover{border-color:var(--accent); background:rgba(212,165,116,.05)}
+    .upload-zone input[type="file"]{display:none}
+    .upload-zone .uz-icon{font-size:24px; margin-bottom:6px; display:block}
+    .upload-zone .uz-label{color:var(--text); font-size:13.5px; font-weight:600; margin:0}
+    .upload-zone .uz-sub{font-size:12px; color:var(--muted-2); margin:4px 0 0}
+
+    .upload-queue{display:flex; flex-direction:column; gap:8px; margin-bottom:14px}
+    .upload-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:var(--r-xs); background:rgba(255,255,255,.03)}
+    .upload-row .thumb{width:34px; height:34px; border-radius:6px; object-fit:cover; flex-shrink:0; background:var(--surface-2)}
+    .upload-row .info{flex:1; min-width:0}
+    .upload-row .fname{font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    .upload-row .bar-track{height:3px; border-radius:2px; background:var(--line); margin-top:5px; overflow:hidden}
+    .upload-row .bar-fill{height:100%; background:var(--accent); width:0%; transition:width .2s}
+    .upload-row.done .bar-fill{background:var(--success)}
+    .upload-row.error .bar-fill{background:var(--danger)}
+    .upload-row .pct{font-size:11px; color:var(--muted); flex-shrink:0; width:34px; text-align:right}
+
+    .gallery-grid-preview{display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px}
+    .gallery-grid-preview .gallery-item{position:relative; aspect-ratio:1/1; border-radius:9px; overflow:hidden; background:var(--surface-2); border:1px solid var(--line)}
+    .gallery-grid-preview .gallery-item img{width:100%; height:100%; object-fit:cover}
+    .gallery-grid-preview .gallery-item .delete-btn{
+      position:absolute; top:5px; right:5px; background:rgba(0,0,0,.75); border:none; color:#fff;
+      border-radius:50%; width:22px; height:22px; font-size:11px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .15s;
+    }
+    .gallery-grid-preview .gallery-item:hover .delete-btn{opacity:1}
+    .empty-state{
+      text-align:center; padding:26px 16px; color:var(--muted-2); font-size:13px;
+      border:1.5px dashed var(--line); border-radius:var(--r-sm);
+    }
+
+    /* ============ PRODUCT CARDS ============ */
+    .product-list{display:flex; flex-direction:column; gap:10px}
+    .product-card{border:1.5px solid var(--line); border-radius:var(--r-sm); overflow:hidden; background:rgba(255,255,255,.02)}
+    .product-card-head{display:flex; align-items:center; gap:10px; padding:11px 13px; cursor:pointer}
+    .product-thumb, .product-thumb-placeholder{width:40px; height:40px; border-radius:7px; flex-shrink:0; object-fit:cover; background:var(--surface-2)}
+    .product-thumb-placeholder{display:flex; align-items:center; justify-content:center; font-size:16px; color:var(--muted-2); border:1px dashed var(--line-2)}
+    .product-name{font-weight:700; font-size:13.8px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    .product-price{font-weight:800; font-size:13.5px; color:var(--accent); white-space:nowrap}
+    .product-card-body{padding:0 13px 14px; display:none}
+    .product-card.open .product-card-body{display:block}
+    .product-card.open .product-card-head{border-bottom:1px solid var(--line)}
+    .limit-note{font-size:12px; color:var(--muted-2); margin-top:10px; text-align:center}
+
+    /* ============ STATS & REVENUE BREAKDOWN ============ */
+    .stats-grid{
+      display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; margin-bottom:18px;
+    }
+    .stat-card{
+      background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:var(--r-sm); padding:16px;
+    }
+    .stat-card .label{color:var(--muted); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em}
+    .stat-card .value{font-size:24px; font-weight:800; margin-top:4px; color:var(--accent)}
+    .stat-card .sub{color:var(--muted-2); font-size:12px; margin-top:2px}
+
+    .payout-card{
+      background:rgba(212,165,116,.05); border-color:rgba(212,165,116,.2);
+    }
+
+    .breakdown-grid{
+      display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:6px;
+    }
+    .stream-card{
+      background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:var(--r-sm); padding:14px;
+    }
+    .stream-card.highlight{
+      background:rgba(212,165,116,.06); border-color:rgba(212,165,116,.25);
+    }
+    .stream-title{color:var(--accent); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px}
+    .stream-main{font-size:22px; font-weight:800; margin-bottom:8px}
+    .stream-row{
+      display:flex; justify-content:space-between; padding:6px 0; border-top:1px solid var(--line);
+      font-size:12.5px; color:var(--muted);
+    }
+    .stream-row b{color:var(--text); font-weight:700}
+    .stream-note{font-size:11px; color:var(--muted-2); margin-top:10px; line-height:1.4}
+
+    .progress-track{
+      width:100%; height:10px; background:rgba(255,255,255,.08); border-radius:999px; overflow:hidden; margin:6px 0 10px;
+    }
+    .progress-fill{height:100%; background:linear-gradient(90deg, var(--accent), #c9a84c); border-radius:999px; transition:width .35s ease;}
+
+    .table-wrap{overflow-x:auto; margin-top:8px}
+    table{width:100%; border-collapse:collapse; font-size:13px}
+    th{text-align:left; padding:10px 8px; color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.05em; border-bottom:1px solid var(--line)}
+    td{padding:10px 8px; border-bottom:1px solid var(--line)}
+    .status{display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700}
+    .status.paid{background:var(--success-bg); color:var(--success)}
+    .type-pill{background:rgba(212,165,116,.12); color:var(--accent); padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700}
+
+    /* ============ TOAST ============ */
+    .toast{
+      position:fixed; bottom:22px; right:22px; background:var(--surface-2); border:1px solid var(--line-2);
+      border-radius:var(--r-sm); padding:13px 18px; font-size:13.5px; font-weight:600; box-shadow:var(--shadow);
+      opacity:0; transform:translateY(14px); transition:.25s; z-index:1000; max-width:320px;
+    }
+    .toast.show{opacity:1; transform:translateY(0)}
+    .toast.success{border-left:3px solid var(--success)}
+    .toast.error{border-left:3px solid var(--danger)}
+
+    /* ============ STICKY SAVE BAR ============ */
+    .save-bar{
+      position:fixed; left:var(--sidebar); right:0; bottom:0; z-index:90;
+      display:none; align-items:center; justify-content:space-between; gap:16px;
+      padding:14px 32px; background:rgba(20,18,16,.92); backdrop-filter:blur(10px);
+      border-top:1px solid var(--line-2);
+      transform:translateY(100%); transition:transform .2s;
+    }
+    .save-bar.show{display:flex; transform:translateY(0)}
+    .save-bar .msg{font-size:13.5px; font-weight:600; color:var(--text)}
+    .save-bar .msg small{display:block; font-weight:400; color:var(--muted); font-size:12px; margin-top:1px}
+    .save-bar .actions{display:flex; gap:10px}
+
+    /* ============ MOBILE ============ */
+    .sidebar-toggle{display:none}
+    @media (max-width:860px){
+      .form-row{grid-template-columns:1fr}
+      .sidebar{
+        transform:translateX(-100%);
+        width:280px;
+      }
+      .sidebar.open{transform:translateX(0); box-shadow:20px 0 60px rgba(0,0,0,.5)}
+      .main{margin-left:0; padding:24px 18px 120px}
+      .save-bar{left:0}
+      .sidebar-toggle{display:inline-flex}
+      .topbar-brand .name{max-width:120px}
+      .breakdown-grid{grid-template-columns:1fr 1fr}
+      .stats-grid{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width:480px){
+      .breakdown-grid{grid-template-columns:1fr}
+      .stats-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-brand">
+    <button class="btn btn-ghost btn-sm sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">☰</button>
+    <div class="brand-mark" id="brandMark">Z</div>
+    <span class="name" id="brandName">Dashboard</span>
+    <span class="status-pill draft" id="statusPill"><span class="dot"></span><span id="statusPillText">Draft</span></span>
+  </div>
+  <div class="topbar-actions">
+    <span class="plan-badge" id="planBadge">Launch</span>
+    <button class="btn btn-ghost btn-sm" id="refreshBtn">↻ Refresh</button>
+    <button class="btn btn-outline btn-sm" id="logoutBtn">Sign out</button>
+    <button class="btn btn-outline btn-sm" id="previewBtn">Preview store ↗</button>
+    <button class="btn btn-primary btn-sm" id="publishBtn">Publish store</button>
+  </div>
+</header>
+<div class="preview-warning" id="previewWarning" role="status">
+  <span>You have unsaved changes — preview will show your last saved version.</span>
+  <button class="btn btn-primary btn-sm" id="previewWarningSave">Save now</button>
+</div>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-group">
+      <div class="nav-group-label">Store</div>
+      <button class="nav-item active" data-page="overview"><span class="ico">🏠</span><span class="label">Overview</span></button>
+      <button class="nav-item" data-page="brand"><span class="ico">✏️</span><span class="label">Brand settings</span></button>
+      <button class="nav-item" data-page="payout"><span class="ico">💰</span><span class="label">Payout settings</span></button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Media</div>
+      <button class="nav-item" data-page="gallery"><span class="ico">🖼️</span><span class="label">Gallery</span><span class="nav-badge" id="galleryNavBadge" style="display:none">Grow</span></button>
+      <button class="nav-item" data-page="video"><span class="ico">🎬</span><span class="label">Video</span><span class="nav-badge" id="videoNavBadge" style="display:none">Business</span></button>
+      <button class="nav-item" data-page="placement"><span class="ico">📐</span><span class="label">Placement</span></button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Catalogue</div>
+      <button class="nav-item" data-page="products"><span class="ico">🛍️</span><span class="label">Products</span><span class="nav-badge count" id="productNavBadge">0</span></button>
+      <button class="nav-item" data-page="domains"><span class="ico">🌐</span><span class="label">Domains</span><span class="nav-badge" id="domainsNavBadge" style="display:none">Business</span></button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Plan</div>
+      <button class="nav-item" data-page="billing"><span class="ico">⚡</span><span class="label">Plan & Billing</span></button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="main-inner">
+
+      <!-- ===================== OVERVIEW ===================== -->
+      <section class="page active" id="page-overview">
+        <div class="page-head">
+          <h1>Overview</h1>
+          <p>Your store’s performance, earnings, and next steps.</p>
+        </div>
+
+        <!-- Stats grid -->
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card"><div class="label">Combined Revenue</div><div class="value" id="totalRevenue">$0.00</div></div>
+          <div class="stat-card"><div class="label">Confirmed Sales</div><div class="value" id="totalSales">0</div></div>
+          <div class="stat-card"><div class="label">Last 7 Days</div><div class="value" id="sevenDaysRevenue">$0.00</div></div>
+          <div class="stat-card"><div class="label">Artist Share</div><div class="value" id="artistShare">$0.00</div></div>
+          <div class="stat-card"><div class="label">ZVAKHO Share</div><div class="value" id="zvakhoShare">$0.00</div></div>
+          <div class="stat-card"><div class="label">Payout Threshold</div><div class="value" id="payoutThresholdDisplay">$50.00</div></div>
+        </div>
+
+        <!-- Payout progress -->
+        <div class="card">
+          <div class="card-head"><h2>Payout progress</h2></div>
+          <div class="card-body">
+            <div style="display:flex; justify-content:space-between; gap:16px; align-items:flex-end;">
+              <div>
+                <div style="font-size:13px; color:var(--muted); font-weight:600;" id="progressText">You are $50.00 away from your next payout.</div>
+              </div>
+              <div style="font-size:22px; font-weight:800; color:var(--accent);" id="payoutProgressPercent">0%</div>
+            </div>
+            <div class="progress-track"><div class="progress-fill" id="payoutProgressFill" style="width:0%;"></div></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px;">
+              <div style="background:rgba(255,255,255,.03); padding:12px; border-radius:var(--r-xs);">
+                <div style="color:var(--muted); font-size:12px; font-weight:600;">Amount remaining</div>
+                <div style="font-size:20px; font-weight:800;" id="amountRemaining">$50.00</div>
+              </div>
+              <div style="background:rgba(255,255,255,.03); padding:12px; border-radius:var(--r-xs);">
+                <div style="color:var(--muted); font-size:12px; font-weight:600;">Eligible for payout</div>
+                <div style="font-size:20px; font-weight:800;" id="payoutEligible">No</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Revenue breakdown -->
+        <div class="card">
+          <div class="card-head"><h2>Revenue breakdown</h2></div>
+          <div class="card-body">
+            <div class="breakdown-grid">
+              <!-- Music -->
+              <div class="stream-card">
+                <div class="stream-title">Music Sales</div>
+                <div class="stream-main" id="musicRevenue">$0.00</div>
+                <div class="stream-row"><span>Artist Share</span><b id="musicArtistShare">$0.00</b></div>
+                <div class="stream-row"><span>ZVAKHO Share</span><b id="musicZvakhoShare">$0.00</b></div>
+                <div class="stream-row"><span>Units</span><b id="musicUnits">0</b></div>
+                <div class="stream-note">80% Artist / 20% ZVAKHO</div>
+              </div>
+              <!-- VIP -->
+              <div class="stream-card">
+                <div class="stream-title">VIP Revenue</div>
+                <div class="stream-main" id="vipRevenue">$0.00</div>
+                <div class="stream-row"><span>Artist Share</span><b id="vipArtistShare">$0.00</b></div>
+                <div class="stream-row"><span>ZVAKHO Share</span><b id="vipZvakhoShare">$0.00</b></div>
+                <div class="stream-row"><span>Units</span><b id="vipUnits">0</b></div>
+                <div class="stream-note">80% Artist / 20% ZVAKHO</div>
+              </div>
+              <!-- Merch -->
+              <div class="stream-card">
+                <div class="stream-title">Merch Revenue</div>
+                <div class="stream-main" id="merchRevenue">$0.00</div>
+                <div class="stream-row"><span>Artist Share</span><b id="merchArtistShare">Pending</b></div>
+                <div class="stream-row"><span>ZVAKHO Share</span><b id="merchZvakhoShare">Pending</b></div>
+                <div class="stream-row"><span>Units</span><b id="merchUnits">0</b></div>
+                <div class="stream-note">Gross revenue – final split after costs</div>
+              </div>
+              <!-- Combined -->
+              <div class="stream-card highlight">
+                <div class="stream-title">Combined Total</div>
+                <div class="stream-main" id="combinedRevenue">$0.00</div>
+                <div class="stream-row"><span>Artist Share</span><b id="combinedArtistShare">$0.00</b></div>
+                <div class="stream-row"><span>ZVAKHO Share</span><b id="combinedZvakhoShare">$0.00</b></div>
+                <div class="stream-row"><span>Units</span><b id="combinedUnits">0</b></div>
+                <div class="stream-note">Music & VIP use 80/20; merch separate</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top products -->
+        <div class="card">
+          <div class="card-head"><h2>Top products</h2></div>
+          <div class="card-body" id="topProductsList">
+            <div class="empty-state">No product sales yet.</div>
+          </div>
+        </div>
+
+        <!-- Recent sales -->
+        <div class="card">
+          <div class="card-head"><h2>Recent paid sales</h2></div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Product</th><th>Type</th><th>Amount</th><th>Artist Share</th><th>Status</th><th>Reference</th><th>Date</th></tr></thead>
+                <tbody id="recentSales"><tr><td colspan="7" style="text-align:center; color:var(--muted-2); padding:20px;">No confirmed paid sales yet.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Store link & action -->
+        <div class="card">
+          <div class="card-body" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+            <div>
+              <div style="font-size:12.5px; color:var(--muted); font-weight:600; margin-bottom:4px;">Store link</div>
+              <div style="font-weight:700; font-size:14.5px;" id="storeLinkText">zvakho.com/store/your-brand</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-outline btn-sm" id="copyStoreLink">Copy link</button>
+              <a class="btn btn-outline btn-sm" id="viewStoreLink" href="#" target="_blank">Preview ↗</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action / Checklist -->
+        <div class="card">
+          <div class="card-head"><h2>What's next</h2></div>
+          <div class="card-body" id="checklistBody"></div>
+        </div>
+      </section>
+
+      <!-- ===================== BRAND SETTINGS ===================== -->
+      <section class="page" id="page-brand">
+        <div class="page-head">
+          <h1>Brand settings</h1>
+          <p>Your name, tagline, and logo appear across your storefront.</p>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <form id="brandForm">
+              <div class="form-group">
+                <label for="brandNameInput">Brand name</label>
+                <input type="text" id="brandNameInput" placeholder="Your brand name">
+              </div>
+              <div class="form-group">
+                <label for="brandTagline">Tagline</label>
+                <input type="text" id="brandTagline" placeholder="One line that sums up your brand">
+              </div>
+              <div class="form-group">
+                <label for="brandLogo">Logo URL</label>
+                <input type="url" id="brandLogo" placeholder="https://...">
+                <div class="hint">Upload a logo from the Gallery page, or paste a link here.</div>
+              </div>
+              <button type="submit" class="btn btn-primary">Save brand settings</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== PAYOUT SETTINGS ===================== -->
+      <section class="page" id="page-payout">
+        <div class="page-head">
+          <h1>Payout settings</h1>
+          <p>Where should ZVAKHO send your earnings when you reach the threshold?</p>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <div class="form-group">
+              <label for="payoutMethod">Payout method</label>
+              <select id="payoutMethod">
+                <option value="ecocash">EcoCash</option>
+                <option value="bank">Bank transfer</option>
+              </select>
+            </div>
+            <div id="payoutEcocashFields">
+              <div class="form-group">
+                <label for="payoutEcocashNumber">EcoCash number</label>
+                <input type="tel" id="payoutEcocashNumber" placeholder="e.g. 0771234567">
+                <div class="hint">We'll send payouts to this number.</div>
+              </div>
+            </div>
+            <div id="payoutBankFields" style="display:none;">
+              <div class="form-group">
+                <label for="payoutAccountName">Account holder name</label>
+                <input type="text" id="payoutAccountName" placeholder="e.g. Tendai Moyo">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="payoutBankName">Bank name</label>
+                  <input type="text" id="payoutBankName" placeholder="e.g. Stanbic">
+                </div>
+                <div class="form-group">
+                  <label for="payoutBankBranch">Branch</label>
+                  <input type="text" id="payoutBankBranch" placeholder="e.g. Bulawayo">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="payoutAccountNumber">Account number</label>
+                <input type="text" id="payoutAccountNumber" placeholder="e.g. 1234567890">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="payoutThreshold">Payout threshold (USD)</label>
+              <input type="number" id="payoutThreshold" min="50" max="1000" step="10" value="50">
+              <div class="hint">Minimum $50 – Maximum $1000. Payouts are triggered automatically when earnings reach this amount.</div>
+            </div>
+            <button class="btn btn-primary" id="savePayoutBtn">Save payout settings</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== GALLERY ===================== -->
+      <section class="page" id="page-gallery">
+        <div class="page-head">
+          <h1>Gallery</h1>
+          <p>Upload up to 20 photos to showcase your brand on your storefront.</p>
+        </div>
+        <div class="locked-wrap" id="galleryLockWrap">
+          <div class="locked-content" id="galleryLockedContent">
+            <div class="card">
+              <div class="card-body">
+                <div class="upload-zone" id="galleryDropZone">
+                  <input type="file" id="galleryFileInput" accept="image/*" multiple>
+                  <span class="uz-icon">📁</span>
+                  <p class="uz-label">Drag photos here, or click to browse</p>
+                  <p class="uz-sub">PNG, JPG, WEBP, SVG — up to 5MB each</p>
+                </div>
+                <div id="uploadQueue" class="upload-queue"></div>
+                <div id="galleryPreview" class="gallery-grid-preview"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h2>Layout</h2></div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="galleryLayout">Layout style</label>
+                    <select id="galleryLayout">
+                      <option value="mosaic">Mosaic</option>
+                      <option value="grid">Grid</option>
+                      <option value="carousel">Carousel</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="galleryVisible">Visible on storefront</label>
+                    <select id="galleryVisible">
+                      <option value="1">Yes</option>
+                      <option value="0">No</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="locked-overlay" id="galleryLockOverlay" style="display:none">
+            <div class="lock-icon">🔒</div>
+            <div class="lock-title">Gallery is a Grow feature</div>
+            <div class="lock-sub">Upload photos and let customers see your brand's story. Upgrade to Grow to unlock it.</div>
+            <button class="btn btn-primary btn-sm" id="upgradeFromGallery">Upgrade to Grow</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== VIDEO ===================== -->
+      <section class="page" id="page-video">
+        <div class="page-head">
+          <h1>Video</h1>
+          <p>Add a YouTube or Vimeo video to bring your storefront to life.</p>
+        </div>
+        <div class="locked-wrap" id="videoLockWrap">
+          <div class="locked-content" id="videoLockedContent">
+            <div class="card">
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="videoUrl">Video URL</label>
+                  <input type="url" id="videoUrl" placeholder="https://www.youtube.com/watch?v=...">
+                </div>
+                <div class="form-group">
+                  <label for="videoTitleInput">Video title</label>
+                  <input type="text" id="videoTitleInput" placeholder="Behind the scenes">
+                </div>
+                <div class="form-group">
+                  <label for="videoVisible">Visible on storefront</label>
+                  <select id="videoVisible">
+                    <option value="1">Yes</option>
+                    <option value="0">No</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="locked-overlay" id="videoLockOverlay" style="display:none">
+            <div class="lock-icon">🔒</div>
+            <div class="lock-title">Video is a Business feature</div>
+            <div class="lock-sub">Showcase a behind-the-scenes video or product demo. Upgrade to Business to unlock it.</div>
+            <button class="btn btn-primary btn-sm" id="upgradeFromVideo">Upgrade to Business</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== PLACEMENT ===================== -->
+      <section class="page" id="page-placement">
+        <div class="page-head">
+          <h1>Placement</h1>
+          <p>Choose where your gallery and video appear on your storefront.</p>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <div class="form-group">
+              <label for="mediaPosition">Position on store</label>
+              <select id="mediaPosition">
+                <option value="above_products">Above products</option>
+                <option value="below_products">Below products</option>
+                <option value="before_hero">Before hero</option>
+              </select>
+              <div class="hint">This applies to both your gallery and video.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== PRODUCTS ===================== -->
+      <section class="page" id="page-products">
+        <div class="page-head">
+          <h1>Products</h1>
+          <p>Add the products customers will see and buy on your storefront.</p>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>All products (<span id="productCount">0</span>)</h2>
+            <button class="btn btn-primary btn-sm" id="addProductBtn">+ Add product</button>
+          </div>
+          <div class="card-body">
+            <div class="product-list" id="productList">
+              <div class="empty-state">No products yet — add your first one to start selling.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== DOMAINS ===================== -->
+      <section class="page" id="page-domains">
+        <div class="page-head">
+          <h1>Domains</h1>
+          <p>Add your own domain (e.g., mybrand.com) to use instead of the ZVAKHO subdomain.</p>
+        </div>
+        <div class="locked-wrap" id="domainsLockWrap">
+          <div class="locked-content" id="domainsLockedContent">
+            <div class="card">
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="domainInput">Domain name</label>
+                  <div style="display:flex; gap:10px;">
+                    <input type="text" id="domainInput" placeholder="e.g. mybrand.com" style="flex:1;">
+                    <button class="btn btn-primary" id="addDomainBtn">Add</button>
+                  </div>
+                </div>
+                <div id="domainList" class="domain-list">
+                  <div class="empty-state">No domains added yet.</div>
+                </div>
+                <div class="hint">We'll provide DNS records to verify ownership after you add a domain.</div>
+              </div>
+            </div>
+          </div>
+          <div class="locked-overlay" id="domainsLockOverlay" style="display:none">
+            <div class="lock-icon">🔒</div>
+            <div class="lock-title">Custom domains are a Business feature</div>
+            <div class="lock-sub">Use your own domain instead of the ZVAKHO subdomain. Upgrade to Business to unlock it.</div>
+            <button class="btn btn-primary btn-sm" id="upgradeFromDomains">Upgrade to Business</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== PLAN & BILLING ===================== -->
+      <section class="page" id="page-billing">
+        <div class="page-head">
+          <h1>Plan & Billing</h1>
+          <p>View your current plan, usage, and upgrade options.</p>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Your plan</h2></div>
+          <div class="card-body">
+            <div id="currentPlanDisplay">
+              <div style="font-size:20px; font-weight:800; color:var(--accent);" id="currentPlanName">Launch</div>
+              <div style="color:var(--muted);" id="currentPlanFeatures">5 products · 12% fee · Basic storefront</div>
+            </div>
+            <hr style="border-color:var(--line); margin:16px 0;">
+            <h3 style="font-weight:700; margin-top:0;">Upgrade</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:12px 0;">
+              <div class="plan-card" data-plan="grow">
+                <div class="name">Grow</div>
+                <div class="price">$5/mo</div>
+                <div class="features">100 products · 6% fee · Media gallery</div>
+              </div>
+              <div class="plan-card" data-plan="business">
+                <div class="name">Business</div>
+                <div class="price">$15/mo</div>
+                <div class="features">Unlimited products · 3% fee · Custom domain</div>
+              </div>
+              <div class="plan-card" data-plan="pro">
+                <div class="name">Pro</div>
+                <div class="price">$39/mo</div>
+                <div class="features">Unlimited · 1% fee · White‑label</div>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="openUpgradeBtn" style="width:100%;">Upgrade now</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Sticky save bar -->
+<div class="save-bar" id="saveBar">
+  <div class="msg">You have unsaved changes<small id="saveBarSub">Your edits haven't been saved yet.</small></div>
+  <div class="actions">
+    <button class="btn btn-outline btn-sm" id="discardChanges">Discard</button>
+    <button class="btn btn-primary btn-sm" id="saveChanges">Save changes</button>
+  </div>
+</div>
+
+<!-- Upgrade Modal -->
+<div class="modal-overlay" id="upgradeModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2000; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface-2); border:1px solid var(--line-2); border-radius:var(--r); max-width:480px; width:100%; padding:30px; box-shadow:var(--shadow);">
+    <button onclick="closeUpgradeModal()" style="float:right; background:transparent; border:none; color:var(--muted); font-size:22px; cursor:pointer;">×</button>
+    <h2 style="margin-top:0;">Upgrade your plan</h2>
+    <p style="color:var(--muted);">Select the plan that fits your business.</p>
+    <div id="modalPlanCards">
+      <div class="plan-card" data-plan="grow">
+        <div class="name">Grow</div>
+        <div class="price">$5/mo</div>
+        <div class="features">100 products · 6% fee · Media gallery</div>
+      </div>
+      <div class="plan-card" data-plan="business">
+        <div class="name">Business</div>
+        <div class="price">$15/mo</div>
+        <div class="features">Unlimited products · 3% fee · Custom domain</div>
+      </div>
+      <div class="plan-card" data-plan="pro">
+        <div class="name">Pro</div>
+        <div class="price">$39/mo</div>
+        <div class="features">Unlimited · 1% fee · White‑label</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="checkoutBtn" style="width:100%; margin-top:16px;">Continue to checkout</button>
+    <div id="checkoutError" style="color:var(--danger); margin-top:8px; font-size:13px; display:none;"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  const apiBase = window.ZVAKHO_CONFIG?.apiBase || window.location.origin + '/api';
+  const token = localStorage.getItem('zvakho_token');
+
+  if (!token) window.location.href = '/login.html';
+
+  function apiFetch(path, options = {}) {
+    const headers = { 'Content-Type': 'application/json', ...(token ? { 'Authorization': 'Bearer ' + token } : {}) };
+    return fetch(apiBase + path, { ...options, headers: { ...headers, ...options.headers } }).then(r => r.json());
+  }
+
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type + ' show';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('show'), 3200);
+  }
+
+  function escapeHTML(s) {
+    return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  let brandData = {}, mediaData = {}, subscription = {}, products = [], orders = [], domains = [];
+  let dirty = { brand: false, media: false, products: false, payout: false, domains: false };
+
+  // ── Navigation ──
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + item.dataset.page).classList.add('active');
+      document.getElementById('sidebar').classList.remove('open');
+    });
+  });
+
+  // ── Sidebar toggle ──
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+  });
+
+  // ── Refresh button ──
+  document.getElementById('refreshBtn').addEventListener('click', () => {
+    loadDashboard();
+  });
+
+  // ── Load dashboard ──
+  async function loadDashboard() {
+    try {
+      const data = await apiFetch('/brands');
+      if (data.success && data.brands && data.brands.length > 0) {
+        brandData = data.brands[0];
+        const store = await apiFetch('/store-config?brand=' + brandData.brand_slug);
+        if (store.status === 'success') {
+          mediaData = store.media || {};
+          subscription = store.subscription || { plan: 'launch' };
+          products = store.products || [];
+        }
+        // Get orders for revenue
+        try {
+          const ordersData = await apiFetch('/orders?limit=200');
+          if (ordersData.success) orders = ordersData.orders || [];
+        } catch (e) { orders = []; }
+        try {
+          const domainsData = await apiFetch('/brands/domains');
+          if (domainsData.success) domains = domainsData.domains || [];
+        } catch (e) { domains = []; }
+        renderAll();
+      } else {
+        showToast('Could not load brand data', 'error');
+      }
+    } catch (e) {
+      showToast('Error loading dashboard: ' + e.message, 'error');
+    }
+  }
+
+  function renderAll() {
+    renderOverview();
+    renderBrandForm();
+    renderPayoutForm();
+    renderGallery();
+    renderVideo();
+    renderProducts();
+    renderDomains();
+    renderBilling();
+    renderChecklist();
+    updateProductNavBadge();
+    updateLockStates();
+  }
+
+  // ── Overview ──
+  function renderOverview() {
+    const paidOrders = orders.filter(o => o.payment_status === 'paid');
+    const totalRevenue = paidOrders.reduce((s, o) => s + Number(o.amount || 0), 0);
+    const totalSales = paidOrders.length;
+    const sevenDays = paidOrders.filter(o => {
+      const d = new Date(o.created_at);
+      const diff = (new Date() - d) / (1000*60*60*24);
+      return diff <= 7;
+    }).reduce((s, o) => s + Number(o.amount || 0), 0);
+    const musicRevenue = paidOrders.filter(o => o.product_type === 'music').reduce((s,o) => s + Number(o.amount||0),0);
+    const vipRevenue = paidOrders.filter(o => o.product_type === 'vip').reduce((s,o) => s + Number(o.amount||0),0);
+    const merchRevenue = paidOrders.filter(o => o.product_type === 'merch').reduce((s,o) => s + Number(o.amount||0),0);
+
+    const artistShareMusic = musicRevenue * 0.8;
+    const zvakhoShareMusic = musicRevenue * 0.2;
+    const artistShareVip = vipRevenue * 0.8;
+    const zvakhoShareVip = vipRevenue * 0.2;
+    const artistShareTotal = artistShareMusic + artistShareVip;
+    const zvakhoShareTotal = zvakhoShareMusic + zvakhoShareVip;
+
+    document.getElementById('totalRevenue').textContent = '$' + totalRevenue.toFixed(2);
+    document.getElementById('totalSales').textContent = totalSales;
+    document.getElementById('sevenDaysRevenue').textContent = '$' + sevenDays.toFixed(2);
+    document.getElementById('artistShare').textContent = '$' + artistShareTotal.toFixed(2);
+    document.getElementById('zvakhoShare').textContent = '$' + zvakhoShareTotal.toFixed(2);
+    const threshold = brandData.payout_threshold || 50;
+    document.getElementById('payoutThresholdDisplay').textContent = '$' + threshold.toFixed(2);
+
+    const progress = Math.min((artistShareTotal / threshold) * 100, 100);
+    document.getElementById('payoutProgressPercent').textContent = Math.round(progress) + '%';
+    document.getElementById('payoutProgressFill').style.width = progress + '%';
+    const remaining = Math.max(threshold - artistShareTotal, 0);
+    document.getElementById('amountRemaining').textContent = '$' + remaining.toFixed(2);
+    document.getElementById('payoutEligible').textContent = artistShareTotal >= threshold ? 'Yes' : 'No';
+    document.getElementById('progressText').textContent = artistShareTotal >= threshold
+      ? 'You have reached the payout threshold.'
+      : 'You are $' + remaining.toFixed(2) + ' away from your next payout.';
+
+    // Breakdown
+    document.getElementById('musicRevenue').textContent = '$' + musicRevenue.toFixed(2);
+    document.getElementById('musicArtistShare').textContent = '$' + artistShareMusic.toFixed(2);
+    document.getElementById('musicZvakhoShare').textContent = '$' + zvakhoShareMusic.toFixed(2);
+    document.getElementById('musicUnits').textContent = paidOrders.filter(o => o.product_type === 'music').length;
+
+    document.getElementById('vipRevenue').textContent = '$' + vipRevenue.toFixed(2);
+    document.getElementById('vipArtistShare').textContent = '$' + artistShareVip.toFixed(2);
+    document.getElementById('vipZvakhoShare').textContent = '$' + zvakhoShareVip.toFixed(2);
+    document.getElementById('vipUnits').textContent = paidOrders.filter(o => o.product_type === 'vip').length;
+
+    document.getElementById('merchRevenue').textContent = '$' + merchRevenue.toFixed(2);
+    document.getElementById('merchArtistShare').textContent = 'Pending';
+    document.getElementById('merchZvakhoShare').textContent = 'Pending';
+    document.getElementById('merchUnits').textContent = paidOrders.filter(o => o.product_type === 'merch').length;
+
+    document.getElementById('combinedRevenue').textContent = '$' + totalRevenue.toFixed(2);
+    document.getElementById('combinedArtistShare').textContent = '$' + artistShareTotal.toFixed(2);
+    document.getElementById('combinedZvakhoShare').textContent = '$' + zvakhoShareTotal.toFixed(2);
+    document.getElementById('combinedUnits').textContent = totalSales;
+
+    // Top products
+    const productSales = {};
+    paidOrders.forEach(o => {
+      const key = o.product_id || o.product_name || 'unknown';
+      if (!productSales[key]) productSales[key] = { name: o.product_name || 'Product', revenue: 0, count: 0 };
+      productSales[key].revenue += Number(o.amount || 0);
+      productSales[key].count += 1;
+    });
+    const sorted = Object.values(productSales).sort((a,b) => b.revenue - a.revenue).slice(0,5);
+    const topContainer = document.getElementById('topProductsList');
+    if (sorted.length === 0) {
+      topContainer.innerHTML = '<div class="empty-state">No product sales yet.</div>';
+    } else {
+      topContainer.innerHTML = sorted.map(p => `
+        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line);">
+          <span>${escapeHTML(p.name)}</span>
+          <span style="font-weight:700;">${p.count} sold · $${p.revenue.toFixed(2)}</span>
+        </div>`).join('');
+    }
+
+    // Recent sales
+    const recent = paidOrders.slice(0, 10);
+    const tbody = document.getElementById('recentSales');
+    if (!recent.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--muted-2); padding:20px;">No confirmed paid sales yet.</td></tr>';
+    } else {
+      tbody.innerHTML = recent.map(o => {
+        const artistShare = (o.product_type === 'music' || o.product_type === 'vip') ? '$' + (Number(o.amount)*0.8).toFixed(2) : 'After costs';
+        return `<tr>
+          <td>${escapeHTML(o.product_name || 'Product')}</td>
+          <td><span class="type-pill">${escapeHTML(o.product_type || 'Music')}</span></td>
+          <td>$${Number(o.amount||0).toFixed(2)}</td>
+          <td>${artistShare}</td>
+          <td><span class="status paid">Paid</span></td>
+          <td>${escapeHTML(o.paynow_reference || '—')}</td>
+          <td>${new Date(o.created_at).toLocaleDateString()}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Store link
+    const link = 'zvakho.com/store/' + (brandData.brand_slug || 'your-brand');
+    document.getElementById('storeLinkText').textContent = link;
+    const previewToken = brandData.preview_token ? ('&t=' + encodeURIComponent(brandData.preview_token)) : '';
+    const previewUrl = 'https://' + link + '?preview=1' + previewToken;
+    document.getElementById('viewStoreLink').href = previewUrl;
+    document.getElementById('previewBtn').dataset.url = previewUrl;
+
+    // Plan badge
+    const plan = (subscription.plan || 'launch').toLowerCase();
+    const planBadge = document.getElementById('planBadge');
+    planBadge.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+    planBadge.className = 'plan-badge ' + plan;
+
+    const isActive = brandData.store_status === 'active';
+    const pill = document.getElementById('statusPill');
+    pill.className = 'status-pill ' + (isActive ? 'active' : 'draft');
+    document.getElementById('statusPillText').textContent = isActive ? 'Live' : 'Draft';
+    document.getElementById('publishBtn').textContent = isActive ? 'Published' : 'Publish store';
+    document.getElementById('publishBtn').disabled = isActive;
+  }
+
+  // ── Brand settings form ──
+  function renderBrandForm() {
+    document.getElementById('brandNameInput').value = brandData.brand_name || '';
+    document.getElementById('brandTagline').value = brandData.tagline || '';
+    document.getElementById('brandLogo').value = brandData.logo_url || '';
+  }
+
+  // ── Payout form ──
+  function renderPayoutForm() {
+    document.getElementById('payoutMethod').value = brandData.payout_method || 'ecocash';
+    document.getElementById('payoutEcocashNumber').value = brandData.payout_ecocash_number || '';
+    document.getElementById('payoutAccountName').value = brandData.payout_account_name || '';
+    document.getElementById('payoutBankName').value = brandData.payout_bank_name || '';
+    document.getElementById('payoutBankBranch').value = brandData.payout_bank_branch || '';
+    document.getElementById('payoutAccountNumber').value = brandData.payout_account_number || '';
+    document.getElementById('payoutThreshold').value = brandData.payout_threshold || 50;
+    togglePayoutFields();
+  }
+  function togglePayoutFields() {
+    const method = document.getElementById('payoutMethod').value;
+    document.getElementById('payoutEcocashFields').style.display = method === 'ecocash' ? 'block' : 'none';
+    document.getElementById('payoutBankFields').style.display = method === 'bank' ? 'block' : 'none';
+  }
+  document.getElementById('payoutMethod').addEventListener('change', togglePayoutFields);
+
+  // ── Gallery ──
+  function renderGallery() {
+    const gallery = mediaData.gallery_images || [];
+    const container = document.getElementById('galleryPreview');
+    container.innerHTML = gallery.length === 0
+      ? '<div class="empty-state" style="grid-column:1/-1;">No photos uploaded yet.</div>'
+      : gallery.map(url => `
+          <div class="gallery-item">
+            <img src="${url}" alt="Gallery photo">
+            <button class="delete-btn" data-url="${escapeHTML(url)}" aria-label="Remove photo">✕</button>
+          </div>`).join('');
+    container.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); deleteGalleryImage(btn.dataset.url); });
+    });
+    document.getElementById('galleryLayout').value = mediaData.gallery_layout || 'mosaic';
+    document.getElementById('galleryVisible').value = mediaData.gallery_visible ? '1' : '0';
+  }
+
+  function renderVideo() {
+    document.getElementById('videoUrl').value = mediaData.video_url || '';
+    document.getElementById('videoTitleInput').value = mediaData.video_title || '';
+    document.getElementById('videoVisible').value = mediaData.video_visible ? '1' : '0';
+  }
+
+  // ── Products ──
+  function renderProducts() {
+    document.getElementById('productCount').textContent = products.length;
+    document.getElementById('productNavBadge').textContent = products.length;
+    const list = document.getElementById('productList');
+    if (!products.length) {
+      list.innerHTML = '<div class="empty-state">No products yet — add your first one to start selling.</div>';
+      return;
+    }
+    list.innerHTML = products.map((p, i) => `
+      <div class="product-card" data-idx="${i}">
+        <div class="product-card-head">
+          ${p.main_image_url ? `<img class="product-thumb" src="${escapeHTML(p.main_image_url)}" alt="">` : `<div class="product-thumb-placeholder">🛍️</div>`}
+          <span class="product-name">${escapeHTML(p.product_name || 'Untitled product')}</span>
+          <span class="product-price">${p.price != null ? '$' + Number(p.price).toFixed(2) : '—'}</span>
+        </div>
+        <div class="product-card-body">
+          <p class="desc" style="margin:12px 0;">${escapeHTML(p.description || 'No description yet.')}</p>
+          <button class="btn btn-danger btn-sm remove-product" data-idx="${i}">Remove</button>
+        </div>
+      </div>`).join('');
+    list.querySelectorAll('.product-card-head').forEach(head => {
+      head.addEventListener('click', () => head.closest('.product-card').classList.toggle('open'));
+    });
+    list.querySelectorAll('.remove-product').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const idx = Number(btn.dataset.idx);
+        const productId = products[idx].product_id;
+        if (!productId) { products.splice(idx, 1); renderProducts(); markDirty('products'); return; }
+        if (!confirm('Delete this product?')) return;
+        apiFetch('/products/' + productId, { method: 'DELETE' })
+          .then(() => { products.splice(idx, 1); renderProducts(); markDirty('products'); })
+          .catch(e => showToast('Delete failed: ' + e.message, 'error'));
+      });
+    });
+  }
+
+  function updateProductNavBadge() {
+    document.getElementById('productNavBadge').textContent = products.length;
+  }
+
+  // ── Domains ──
+  function renderDomains() {
+    const container = document.getElementById('domainList');
+    if (!domains.length) {
+      container.innerHTML = '<div class="empty-state">No domains added yet.</div>';
+      return;
+    }
+    container.innerHTML = domains.map(d => `
+      <div style="display:flex; justify-content:space-between; padding:8px 12px; border-bottom:1px solid var(--line);">
+        <span>${escapeHTML(d.domain_name)}</span>
+        <span style="color:${d.status === 'active' ? 'var(--success)' : 'var(--muted)'}">${d.status}</span>
+      </div>`).join('');
+  }
+
+  // ── Billing ──
+  function renderBilling() {
+    const planNames = { launch: 'Launch', grow: 'Grow', business: 'Business', pro: 'Pro' };
+    const planFeatures = {
+      launch: '5 products · 12% fee · Basic storefront',
+      grow: '100 products · 6% fee · Media gallery',
+      business: 'Unlimited products · 3% fee · Custom domain',
+      pro: 'Unlimited · 1% fee · White‑label'
+    };
+    document.getElementById('currentPlanName').textContent = planNames[subscription.plan] || 'Launch';
+    document.getElementById('currentPlanFeatures').textContent = planFeatures[subscription.plan] || planFeatures.launch;
+  }
+
+  // ── Checklist ──
+  function renderChecklist() {
+    const items = [
+      { done: !!brandData.brand_name, label: 'Set your brand name', page: 'brand' },
+      { done: !!brandData.logo_url, label: 'Add a logo', page: 'brand' },
+      { done: products.length > 0, label: 'Add at least one product', page: 'products' },
+      { done: brandData.store_status === 'active', label: 'Publish your store', page: null }
+    ];
+    document.getElementById('checklistBody').innerHTML = items.map(it => `
+      <div style="display:flex; align-items:center; gap:10px; padding:8px 0; ${it.page ? 'cursor:pointer;' : ''}" ${it.page ? `data-goto="${it.page}"` : ''}>
+        <span style="width:18px;height:18px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;
+          background:${it.done ? 'var(--success-bg)' : 'rgba(255,255,255,.06)'}; color:${it.done ? 'var(--success)' : 'var(--muted-2)'};">${it.done ? '✓' : ''}</span>
+        <span style="font-size:13.5px; color:${it.done ? 'var(--muted)' : 'var(--text)'}; ${it.done ? 'text-decoration:line-through;' : ''}">${it.label}</span>
+      </div>`).join('');
+    document.querySelectorAll('[data-goto]').forEach(el => {
+      el.addEventListener('click', () => document.querySelector(`.nav-item[data-page="${el.dataset.goto}"]`).click());
+    });
+  }
+
+  function updateLockStates() {
+    const galleryLocked = !mediaData.gallery_enabled;
+    const videoLocked = !mediaData.video_enabled;
+    const domainsLocked = !['business','pro'].includes(subscription.plan);
+
+    document.getElementById('galleryLockOverlay').style.display = galleryLocked ? 'flex' : 'none';
+    document.getElementById('galleryLockedContent').classList.toggle('locked-content', galleryLocked);
+    document.getElementById('galleryNavBadge').style.display = galleryLocked ? 'inline-block' : 'none';
+
+    document.getElementById('videoLockOverlay').style.display = videoLocked ? 'flex' : 'none';
+    document.getElementById('videoLockedContent').classList.toggle('locked-content', videoLocked);
+    document.getElementById('videoNavBadge').style.display = videoLocked ? 'inline-block' : 'none';
+
+    document.getElementById('domainsLockOverlay').style.display = domainsLocked ? 'flex' : 'none';
+    document.getElementById('domainsLockedContent').classList.toggle('locked-content', domainsLocked);
+    document.getElementById('domainsNavBadge').style.display = domainsLocked ? 'inline-block' : 'none';
+  }
+
+  // ── Dirty state ──
+  function markDirty(section) {
+    dirty[section] = true;
+    document.getElementById('saveBar').classList.add('show');
+    updatePreviewWarning();
+  }
+  function updatePreviewWarning() {
+    const anyDirty = Object.values(dirty).some(v => v === true);
+    document.getElementById('previewWarning').classList.toggle('show', anyDirty);
+    document.querySelector('.layout').classList.toggle('warning-active', anyDirty);
+  }
+
+  // ── Input listeners ──
+  ['brandNameInput','brandTagline','brandLogo'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => markDirty('brand'));
+  });
+  ['galleryLayout','galleryVisible','videoUrl','videoTitleInput','videoVisible','mediaPosition'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => markDirty('media'));
+    document.getElementById(id).addEventListener('change', () => markDirty('media'));
+  });
+
+  // ── Save ──
+  document.getElementById('saveChanges').addEventListener('click', async () => {
+    const saveBtn = document.getElementById('saveChanges');
+    saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+    try {
+      if (dirty.brand) {
+        const name = document.getElementById('brandNameInput').value.trim();
+        const tagline = document.getElementById('brandTagline').value.trim();
+        const logo = document.getElementById('brandLogo').value.trim();
+        await apiFetch('/brands/' + brandData.brand_id, { method: 'PUT', body: JSON.stringify({ brand_name: name, tagline, logo_url: logo }) });
+      }
+      if (dirty.media) {
+        const payload = {
+          layout: document.getElementById('galleryLayout').value,
+          visible: document.getElementById('galleryVisible').value === '1',
+          video_url: document.getElementById('videoUrl').value.trim(),
+          video_title: document.getElementById('videoTitleInput').value.trim(),
+          video_visible: document.getElementById('videoVisible').value === '1',
+          position: document.getElementById('mediaPosition').value
+        };
+        await apiFetch('/brands/media', { method: 'POST', body: JSON.stringify(payload) });
+      }
+      if (dirty.payout) {
+        const payload = {
+          payout_method: document.getElementById('payoutMethod').value,
+          payout_ecocash_number: document.getElementById('payoutEcocashNumber').value.trim(),
+          payout_account_name: document.getElementById('payoutAccountName').value.trim(),
+          payout_bank_name: document.getElementById('payoutBankName').value.trim(),
+          payout_bank_branch: document.getElementById('payoutBankBranch').value.trim(),
+          payout_account_number: document.getElementById('payoutAccountNumber').value.trim(),
+          payout_threshold: parseInt(document.getElementById('payoutThreshold').value) || 50
+        };
+        await apiFetch('/brands/' + brandData.brand_id, { method: 'PUT', body: JSON.stringify(payload) });
+      }
+      showToast('All changes saved.', 'success');
+      dirty = { brand: false, media: false, products: false, payout: false, domains: false };
+      document.getElementById('saveBar').classList.remove('show');
+      updatePreviewWarning();
+      loadDashboard();
+    } catch (e) {
+      showToast('Error saving: ' + e.message, 'error');
+    } finally {
+      saveBtn.disabled = false; saveBtn.textContent = 'Save changes';
+    }
+  });
+  document.getElementById('discardChanges').addEventListener('click', () => {
+    dirty = { brand: false, media: false, products: false, payout: false, domains: false };
+    document.getElementById('saveBar').classList.remove('show');
+    updatePreviewWarning();
+    loadDashboard();
+  });
+
+  // ── Form submits ──
+  document.getElementById('brandForm').addEventListener('submit', e => { e.preventDefault(); document.getElementById('saveChanges').click(); });
+  document.getElementById('savePayoutBtn').addEventListener('click', () => { markDirty('payout'); document.getElementById('saveChanges').click(); });
+
+  // ── Gallery upload ──
+  const dropZone = document.getElementById('galleryDropZone');
+  const fileInput = document.getElementById('galleryFileInput');
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) uploadGalleryFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', () => uploadGalleryFiles(fileInput.files));
+
+  function uploadGalleryFiles(files) {
+    if (!mediaData.gallery_enabled) { showToast('Upgrade to Grow to upload photos.', 'error'); return; }
+    const queue = document.getElementById('uploadQueue');
+    [...files].forEach(file => {
+      const row = document.createElement('div');
+      row.className = 'upload-row';
+      const localUrl = URL.createObjectURL(file);
+      row.innerHTML = `
+        <img class="thumb" src="${localUrl}" alt="">
+        <div class="info">
+          <div class="fname">${escapeHTML(file.name)}</div>
+          <div class="bar-track"><div class="bar-fill"></div></div>
+        </div>
+        <span class="pct">0%</span>`;
+      queue.appendChild(row);
+      const formData = new FormData();
+      formData.append('images', file);
+      formData.append('layout', document.getElementById('galleryLayout').value);
+      formData.append('visible', document.getElementById('galleryVisible').value);
+      formData.append('position', document.getElementById('mediaPosition').value);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', apiBase + '/brands/media');
+      xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+      xhr.upload.onprogress = e => {
+        if (!e.lengthComputable) return;
+        const pct = Math.round((e.loaded / e.total) * 100);
+        row.querySelector('.bar-fill').style.width = pct + '%';
+        row.querySelector('.pct').textContent = pct + '%';
+      };
+      xhr.onload = () => {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (data.success) { row.classList.add('done'); row.querySelector('.pct').textContent = '✓'; mediaData.gallery_images = data.gallery_images; renderGallery(); setTimeout(() => row.remove(), 1600); }
+          else { row.classList.add('error'); row.querySelector('.pct').textContent = '✕'; showToast(data.error || 'Upload failed.', 'error'); }
+        } catch { row.classList.add('error'); row.querySelector('.pct').textContent = '✕'; }
+      };
+      xhr.onerror = () => { row.classList.add('error'); row.querySelector('.pct').textContent = '✕'; showToast('Upload failed.', 'error'); };
+      xhr.send(formData);
+    });
+    fileInput.value = '';
+  }
+
+  window.deleteGalleryImage = async function(url) {
+    if (!confirm('Remove this photo?')) return;
+    try {
+      const data = await apiFetch('/brands/media', { method: 'DELETE', body: JSON.stringify({ image_url: url }) });
+      if (data.success) { showToast('Photo removed.', 'success'); mediaData.gallery_images = data.gallery_images; renderGallery(); }
+      else showToast(data.error || 'Delete failed.', 'error');
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+  };
+
+  // ── Add product ──
+  document.getElementById('addProductBtn').addEventListener('click', () => {
+    const name = prompt('Product name:');
+    if (!name) return;
+    const price = parseFloat(prompt('Price (USD):', '0.00')) || 0;
+    apiFetch('/products', {
+      method: 'POST',
+      body: JSON.stringify({ product_name: name, price, description: '', status: 'draft', product_type: 'apparel' })
+    }).then(data => {
+      if (data.success) { showToast('Product added.', 'success'); loadDashboard(); }
+      else showToast(data.error || 'Failed to add product.', 'error');
+    }).catch(e => showToast('Error: ' + e.message, 'error'));
+  });
+
+  // ── Domains ──
+  document.getElementById('addDomainBtn').addEventListener('click', async () => {
+    if (!['business','pro'].includes(subscription.plan)) {
+      showToast('Custom domains require the Business plan or higher.', 'error');
+      return;
+    }
+    const domain = document.getElementById('domainInput').value.trim();
+    if (!domain) { showToast('Please enter a domain.', 'error'); return; }
+    try {
+      const data = await apiFetch('/brands/domains', { method: 'POST', body: JSON.stringify({ domain_name: domain }) });
+      if (data.success) { showToast('Domain added. We\'ll provide verification records.', 'success'); document.getElementById('domainInput').value = ''; loadDashboard(); }
+      else showToast(data.error || 'Failed to add domain.', 'error');
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+  });
+
+  // ── Preview ──
+  document.getElementById('previewBtn').addEventListener('click', () => {
+    const url = document.getElementById('previewBtn').dataset.url;
+    if (url) window.open(url, '_blank', 'noopener');
+  });
+  document.getElementById('previewWarningSave').addEventListener('click', () => document.getElementById('saveChanges').click());
+
+  // ── Copy store link ──
+  document.getElementById('copyStoreLink').addEventListener('click', () => {
+    navigator.clipboard.writeText(document.getElementById('viewStoreLink').href).then(() => showToast('Link copied.', 'success'));
+  });
+
+  // ── Publish ──
+  document.getElementById('publishBtn').addEventListener('click', async () => {
+    if (brandData.store_status === 'active') return;
+    try {
+      const data = await apiFetch('/brands/' + brandData.brand_id, { method: 'PUT', body: JSON.stringify({ store_status: 'active' }) });
+      if (data.success) { showToast('Your store is live!', 'success'); brandData.store_status = 'active'; renderAll(); }
+      else showToast(data.error || 'Publish failed.', 'error');
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+  });
+
+  // ── Upgrade Modal ──
+  let selectedPlan = 'grow';
+  document.getElementById('openUpgradeBtn').addEventListener('click', () => {
+    document.getElementById('upgradeModal').style.display = 'flex';
+    document.querySelectorAll('#modalPlanCards .plan-card').forEach(card => {
+      card.classList.remove('selected');
+      card.style.borderColor = '';
+      card.style.background = '';
+      card.onclick = function() {
+        document.querySelectorAll('#modalPlanCards .plan-card').forEach(c => { c.classList.remove('selected'); c.style.borderColor = ''; c.style.background = ''; });
+        this.classList.add('selected');
+        this.style.borderColor = 'var(--accent)';
+        this.style.background = 'rgba(212,165,116,.08)';
+        selectedPlan = this.dataset.plan;
+      };
+    });
+    selectedPlan = 'grow';
+    document.getElementById('checkoutError').style.display = 'none';
+  });
+  window.closeUpgradeModal = function() { document.getElementById('upgradeModal').style.display = 'none'; };
+  document.getElementById('checkoutBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('checkoutBtn');
+    btn.disabled = true; btn.textContent = 'Processing...';
+    document.getElementById('checkoutError').style.display = 'none';
+    try {
+      const data = await apiFetch('/brands/upgrade', { method: 'POST', body: JSON.stringify({ plan: selectedPlan }) });
+      if (data.payment_url) { window.location.href = data.payment_url; }
+      else { throw new Error(data.error || 'No payment URL received.'); }
+    } catch (err) {
+      document.getElementById('checkoutError').textContent = err.message || 'Upgrade failed. Please try again.';
+      document.getElementById('checkoutError').style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Continue to checkout';
+    }
+  });
+  document.getElementById('upgradeFromGallery').addEventListener('click', () => { document.getElementById('openUpgradeBtn').click(); });
+  document.getElementById('upgradeFromVideo').addEventListener('click', () => { document.getElementById('openUpgradeBtn').click(); });
+  document.getElementById('upgradeFromDomains').addEventListener('click', () => { document.getElementById('openUpgradeBtn').click(); });
+
+  // ── Logout ──
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('zvakho_token');
+    window.location.href = '/login.html';
+  });
+
+  // ── Init ──
+  loadDashboard();
+})();
+</script>
+</body>
+</html>
