@@ -1,2 +1,48 @@
-# Local secrets for Wrangler dev
+# Secrets – never commit!
 .dev.vars
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+out/
+*.log
+
+# Wrangler / Cloudflare
+.wrangler/
+.wrangler.tmp/
+.vercel/
+.cloudflare/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Misc
+*.sqlite
+*.sqlite-journal
+*.db
+*.db-journal
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Environment files (if any)
+.env.production
+.env.staging
