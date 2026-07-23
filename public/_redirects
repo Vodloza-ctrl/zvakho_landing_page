@@ -1,0 +1,10 @@
+# /_redirects
+/login.html    /login.html    200
+/signup.html   /signup.html   200
+/dashboard.html /dashboard.html 200
+/admin.html    /admin.html    200
+/terms.html    /terms.html    200
+/privacy.html  /privacy.html  200
+/verified.html /verified.html 200
+# Catch-all for SPA (if you have one)
+/* /index.html 200
