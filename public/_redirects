@@ -1,6 +1,3 @@
-# /_redirects
-
-# Explicit page mappings
 /login     /login.html     200
 /signup    /signup.html    200
 /dashboard /dashboard.html 200
@@ -9,9 +6,3 @@
 /privacy   /privacy.html   200
 /verified  /verified.html  200
 /home      /home.html      200
-
-# Catch-all for SPA (subdomain routing)
-# Note: on the main domain, this will also serve index.html for unmatched paths,
-# but the JavaScript in index.html redirects the root to home.html.
-# For other paths (e.g., /something), they'll get the store page – acceptable.
-/* /index.html 200
