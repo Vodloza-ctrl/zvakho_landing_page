@@ -1,44 +1,38 @@
-// ── Pages Function for host‑based routing ──
-// Uses Module Worker syntax (required for _worker.js advanced mode)
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const host = url.hostname;
 
-    // ── Main domain: redirect root to home.html ──
+    // ── 1. Redirect main domain root to home.html ──
     if ((host === 'zvakho.co.zw' || host === 'www.zvakho.co.zw') && url.pathname === '/') {
       return Response.redirect('/home.html', 302);
     }
 
-    // ── For all other requests: try to serve static assets ──
-    // env.ASSETS is the default binding that serves your Pages static files.
-    // If the asset exists, it will be served. If not, Pages will handle the 404.
-    // This also handles subdomain SPA routing: if a file isn't found,
-    // we can optionally serve index.html for subdomains.
-
+    // ── 2. Try to serve the requested static asset ──
+    // env.ASSETS is the built-in binding for static files.
     try {
-      // Attempt to serve the requested static asset
-      const assetResponse = await env.ASSETS.fetch(request.clone());
+      const asset = await env.ASSETS.fetch(request.clone());
 
-      // If the asset exists and is not a 404, return it.
-      if (assetResponse.status !== 404) {
-        return assetResponse;
+      // If the asset exists, return it
+      if (asset.status !== 404) {
+        return asset;
       }
 
-      // ── If asset is not found (404) and it's a subdomain ──
-      // Serve index.html for SPA routing (subdomains only)
+      // ── 3. Asset not found: SPA fallback for subdomains ──
+      // If it's a subdomain, serve index.html (store page)
       if (!(host === 'zvakho.co.zw' || host === 'www.zvakho.co.zw')) {
-        const indexResponse = await env.ASSETS.fetch(new Request(new URL('/', request.url), request));
-        return indexResponse;
+        const index = await env.ASSETS.fetch(new Request(new URL('/', request.url), request));
+        return index;
       }
 
-      // ── Main domain: return the 404 response ──
-      return assetResponse;
+      // Otherwise, return the 404
+      return asset;
 
     } catch (error) {
-      // Fallback: if ASSETS fails, return a simple error
-      return new Response('Server error', { status: 500 });
+      // ── 4. Fallback if anything goes wrong ──
+      // This prevents crashing and gives a clear error message.
+      console.error('Worker error:', error);
+      return new Response('Internal server error', { status: 500 });
     }
   }
 };
