@@ -1,0 +1,7 @@
+/login     /login.html     200
+/signup    /signup.html    200
+/admin     /admin.html     200
+/terms     /terms.html     200
+/privacy   /privacy.html   200
+/verified  /verified.html  200
+/home      /home.html      200
