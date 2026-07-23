@@ -1,6 +1,7 @@
 // ================================================================
-// ZVAKHO Universal Worker — v16 (SSL for SaaS + Zero Trust + Google OAuth)
+// ZVAKHO Universal Worker — v19 (Custom Sender Addresses)
 // Uses brands.subscription_plan for subscription data – no subscription_plans table.
+// Sends from any @zvakho.co.zw address via Resend.
 // ================================================================
 
 export default {
@@ -199,7 +200,8 @@ export default {
           u.name,
           u.role,
           u.artist_id,
-          u.is_active
+          u.is_active,
+          u.email_verified
         FROM sessions s
         INNER JOIN users u ON u.user_id = s.user_id
         WHERE s.token_hash = ?
@@ -212,6 +214,7 @@ export default {
       if (!session) return { ok: false, status: 401, message: "Invalid session" };
       if (session.revoked_at) return { ok: false, status: 401, message: "Session revoked" };
       if (Number(session.is_active) !== 1) return { ok: false, status: 403, message: "User is inactive" };
+      if (Number(session.email_verified) !== 1) return { ok: false, status: 403, message: "Email not verified" };
       if (new Date(session.expires_at).getTime() <= Date.now())
         return { ok: false, status: 401, message: "Session expired" };
 
@@ -230,6 +233,362 @@ export default {
         },
         session_id: session.session_id
       };
+    }
+
+    // ───── RESEND EMAIL HELPERS ──────────────────────────────
+    // Updated: accept optional fromAddress (must end with @zvakho.co.zw)
+    async function sendResendEmail(env, to, subject, html, text = "", fromAddress = "noreply@zvakho.co.zw") {
+      if (!env.RESEND_API_KEY) {
+        console.warn("RESEND_API_KEY not set – email not sent.");
+        return { success: false, error: "Missing API key" };
+      }
+      // Ensure the fromAddress is valid (must end with @zvakho.co.zw)
+      if (!fromAddress.endsWith("@zvakho.co.zw")) {
+        console.warn(`Invalid from address: ${fromAddress} – defaulting to noreply@zvakho.co.zw`);
+        fromAddress = "noreply@zvakho.co.zw";
+      }
+      const from = `ZVAKHO <${fromAddress}>`;
+      const payload = {
+        from,
+        to: [to],
+        subject,
+        html,
+        text: text || html.replace(/<[^>]*>/g, "")
+      };
+      try {
+        const resp = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${env.RESEND_API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          console.error("Resend error:", data);
+          return { success: false, error: data.message || "Email sending failed" };
+        }
+        return { success: true, data };
+      } catch (error) {
+        console.error("Resend fetch error:", error);
+        return { success: false, error: error.message };
+      }
+    }
+
+    function generateOTP() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    function generateEmailToken() {
+      return randomToken(32);
+    }
+
+    // ───── NEW: SIGNUP ──────────────────────────────────────────
+    async function handleSignup(request, env) {
+      let body;
+      try { body = await request.json(); } catch { return jsonResponse({ status: "error", message: "Invalid JSON" }, 400); }
+
+      const email = normalizeEmail(body.email);
+      const password = String(body.password || "");
+      const name = String(body.name || "").trim();
+      const tosAccepted = body.tos_accepted ? 1 : 0;
+      const marketingConsent = body.marketing_consent ? 1 : 0;
+
+      if (!email) return jsonResponse({ status: "error", message: "Missing email" }, 400);
+      if (password.length < 8)
+        return jsonResponse({ status: "error", message: "Password must be at least 8 characters" }, 400);
+      if (!tosAccepted)
+        return jsonResponse({ status: "error", message: "You must accept the Terms & Conditions" }, 400);
+
+      // Check if user already exists
+      const existing = await env.DB.prepare(
+        `SELECT user_id FROM users WHERE LOWER(email) = LOWER(?)`
+      ).bind(email).first();
+      if (existing) return jsonResponse({ status: "error", message: "Email already registered" }, 400);
+
+      // Create user
+      const userId = uid("USER");
+      const salt = randomToken(24);
+      const passwordHash = await hashPassword(password, salt);
+      const verificationToken = generateEmailToken();
+      const unsubscribeToken = randomToken(16);
+      const tosVersion = "3.0";
+
+      await env.DB.prepare(
+        `INSERT INTO users (
+          user_id, email, name, password_hash, password_salt,
+          email_verified, verification_token, unsubscribe_token,
+          is_active, role, marketing_consent,
+          tos_accepted_at, tos_version,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 1, 'user', ?, datetime('now'), ?, datetime('now'), datetime('now'))`
+      ).bind(
+        userId, email, name, passwordHash, salt,
+        verificationToken, unsubscribeToken,
+        marketingConsent,
+        tosVersion
+      ).run();
+
+      // Send verification email (from noreply)
+      const verifyLink = `${env.APP_DOMAIN}/api/auth/verify-email?token=${verificationToken}&email=${encodeURIComponent(email)}`;
+      const html = `
+        <h2>Welcome to ZVAKHO!</h2>
+        <p>Please verify your email address by clicking the link below:</p>
+        <p><a href="${verifyLink}">Verify Email</a></p>
+        <p>This link expires in 24 hours.</p>
+        <p>If you didn't sign up, please ignore this email.</p>
+      `;
+      await sendResendEmail(env, email, "Verify your ZVAKHO account", html, "", "noreply@zvakho.co.zw");
+
+      return jsonResponse({
+        status: "success",
+        message: "Account created. Please check your email to verify."
+      });
+    }
+
+    // ───── SEND OTP ─────────────────────────────────────────────
+    async function handleSendOTP(request, env) {
+      let body;
+      try { body = await request.json(); } catch { return jsonResponse({ status: "error", message: "Invalid JSON" }, 400); }
+
+      const email = normalizeEmail(body.email);
+      if (!email) return jsonResponse({ status: "error", message: "Missing email" }, 400);
+
+      // Check user exists
+      const user = await env.DB.prepare(
+        `SELECT user_id FROM users WHERE LOWER(email) = LOWER(?)`
+      ).bind(email).first();
+      if (!user) return jsonResponse({ status: "error", message: "User not found" }, 404);
+
+      const otp = generateOTP();
+      const expiresAt = new Date(Date.now() + 1000 * 60 * 30).toISOString(); // 30 min
+      const otpId = uid("OTP");
+
+      // Store OTP
+      await env.DB.prepare(
+        `INSERT INTO otps (otp_id, email, otp_code, expires_at) VALUES (?, ?, ?, ?)`
+      ).bind(otpId, email, otp, expiresAt).run();
+
+      // Send email (from noreply)
+      const html = `
+        <h2>Your ZVAKHO verification code</h2>
+        <p>Enter the code below to verify your email:</p>
+        <div style="font-size:32px;font-weight:bold;letter-spacing:6px;background:#f0f0f0;padding:16px;border-radius:8px;">${otp}</div>
+        <p>This code expires in 30 minutes.</p>
+      `;
+      await sendResendEmail(env, email, "Your ZVAKHO OTP code", html, "", "noreply@zvakho.co.zw");
+
+      return jsonResponse({ status: "success", message: "OTP sent", otp_id: otpId });
+    }
+
+    // ───── VERIFY OTP ───────────────────────────────────────────
+    async function handleVerifyOTP(request, env) {
+      let body;
+      try { body = await request.json(); } catch { return jsonResponse({ status: "error", message: "Invalid JSON" }, 400); }
+
+      const email = normalizeEmail(body.email);
+      const otp = String(body.otp_code || "").trim();
+      if (!email || !otp) return jsonResponse({ status: "error", message: "Missing email or OTP" }, 400);
+
+      // Find valid, unused OTP
+      const record = await env.DB.prepare(
+        `SELECT otp_id, expires_at FROM otps 
+         WHERE email = ? AND otp_code = ? AND verified = 0
+         ORDER BY created_at DESC LIMIT 1`
+      ).bind(email, otp).first();
+
+      if (!record) return jsonResponse({ status: "error", message: "Invalid or expired OTP" }, 400);
+      if (new Date(record.expires_at).getTime() <= Date.now()) {
+        return jsonResponse({ status: "error", message: "OTP expired" }, 400);
+      }
+
+      // Mark OTP used
+      await env.DB.prepare(`UPDATE otps SET verified = 1 WHERE otp_id = ?`).bind(record.otp_id).run();
+      // Mark user verified
+      await env.DB.prepare(`UPDATE users SET email_verified = 1 WHERE LOWER(email) = LOWER(?)`).bind(email).run();
+
+      return jsonResponse({ status: "success", message: "Email verified successfully" });
+    }
+
+    // ───── VERIFY EMAIL (via link token) ──────────────────────
+    async function handleVerifyEmailLink(request, env) {
+      const url = new URL(request.url);
+      const token = url.searchParams.get("token");
+      const email = url.searchParams.get("email");
+
+      if (!token || !email) {
+        return jsonResponse({ status: "error", message: "Missing token or email" }, 400);
+      }
+
+      const user = await env.DB.prepare(
+        `SELECT user_id, verification_token FROM users WHERE LOWER(email) = LOWER(?) AND email_verified = 0`
+      ).bind(email).first();
+
+      if (!user) return jsonResponse({ status: "error", message: "User not found or already verified" }, 404);
+      if (user.verification_token !== token) {
+        return jsonResponse({ status: "error", message: "Invalid verification token" }, 400);
+      }
+
+      // Mark verified, clear token
+      await env.DB.prepare(
+        `UPDATE users SET email_verified = 1, verification_token = NULL WHERE user_id = ?`
+      ).bind(user.user_id).run();
+
+      // Redirect to frontend with success message
+      return new Response(null, {
+        status: 302,
+        headers: {
+          "Location": `${env.FRONTEND_URL || "https://zvakho.co.zw"}/verified.html`,
+          ...cors
+        }
+      });
+    }
+
+    // ───── RESEND VERIFICATION EMAIL ──────────────────────────
+    async function handleResendVerification(request, env) {
+      let body;
+      try { body = await request.json(); } catch { return jsonResponse({ status: "error", message: "Invalid JSON" }, 400); }
+
+      const email = normalizeEmail(body.email);
+      if (!email) return jsonResponse({ status: "error", message: "Missing email" }, 400);
+
+      const user = await env.DB.prepare(
+        `SELECT user_id, verification_token FROM users WHERE LOWER(email) = LOWER(?) AND email_verified = 0`
+      ).bind(email).first();
+
+      if (!user) return jsonResponse({ status: "error", message: "User not found or already verified" }, 404);
+
+      // Generate new token if missing
+      let token = user.verification_token;
+      if (!token) {
+        token = generateEmailToken();
+        await env.DB.prepare(
+          `UPDATE users SET verification_token = ? WHERE user_id = ?`
+        ).bind(token, user.user_id).run();
+      }
+
+      const verifyLink = `${env.APP_DOMAIN}/api/auth/verify-email?token=${token}&email=${encodeURIComponent(email)}`;
+      const html = `
+        <h2>Verify your ZVAKHO account</h2>
+        <p>Click the link below to verify your email:</p>
+        <p><a href="${verifyLink}">Verify Email</a></p>
+        <p>This link expires in 24 hours.</p>
+      `;
+      await sendResendEmail(env, email, "Verify your ZVAKHO account", html, "", "noreply@zvakho.co.zw");
+
+      return jsonResponse({ status: "success", message: "Verification email sent" });
+    }
+
+    // ───── ORDER CONFIRMATION EMAIL ──────────────────────────
+    async function sendOrderConfirmation(env, email, orderDetails) {
+      const { orderId, amount, items, artistName } = orderDetails;
+      const html = `
+        <h2>✅ Order Confirmed</h2>
+        <p>Your order #${orderId} has been confirmed.</p>
+        <p><strong>Total:</strong> $${amount}</p>
+        <p><strong>Artist:</strong> ${artistName}</p>
+        <p>We'll notify you when it's ready.</p>
+      `;
+      // Use support@ for order confirmations (or you can use noreply)
+      await sendResendEmail(env, email, `Your ZVAKHO order #${orderId} is confirmed`, html, "", "support@zvakho.co.zw");
+    }
+
+    // ───── RE-ENGAGEMENT EMAIL (MARKETING) ──────────────────
+    async function sendReengagementEmail(env, email, artistName) {
+      // Check consent first
+      const user = await env.DB.prepare(
+        `SELECT marketing_consent, unsubscribe_token FROM users WHERE LOWER(email) = LOWER(?)`
+      ).bind(email).first();
+      if (!user || user.marketing_consent !== 1) return; // skip if no consent
+
+      const unsubscribeLink = `https://${env.APP_DOMAIN.replace(/^https?:\/\//, '')}/unsubscribe?email=${encodeURIComponent(email)}&token=${user.unsubscribe_token}`;
+
+      const html = `
+        <h2>👋 It's been a while</h2>
+        <p>Hi ${artistName || 'Artist'},</p>
+        <p>We noticed you haven't had any sales lately. Let's get you back on track.</p>
+        <p><a href="https://zvakho.co.zw/dashboard">View your store</a></p>
+        <hr style="margin:24px 0; border-color:#444;">
+        <p style="font-size:12px; color:#888;">
+          You're receiving this because you opted in at ZVAKHO.<br>
+          <a href="${unsubscribeLink}">Unsubscribe</a> from marketing emails.
+        </p>
+      `;
+      // Use marketing@ for re-engagement
+      await sendResendEmail(env, email, 'How to boost your ZVAKHO sales', html, "", "marketing@zvakho.co.zw");
+    }
+
+    // ───── WELCOME EMAIL (MARKETING) ─────────────────────────
+    async function sendWelcomeEmail(env, email, name) {
+      // Check consent – welcome is marketing, so we check
+      const user = await env.DB.prepare(
+        `SELECT marketing_consent FROM users WHERE LOWER(email) = LOWER(?)`
+      ).bind(email).first();
+      if (!user || user.marketing_consent !== 1) return;
+
+      const html = `
+        <h2>🎉 Welcome to ZVAKHO!</h2>
+        <p>Hi ${name || 'there'},</p>
+        <p>You're now part of the ZVAKHO community. Start selling your music and merchandise.</p>
+        <p><a href="https://zvakho.co.zw/dashboard">Go to your dashboard</a></p>
+      `;
+      // Use marketing@ for welcome emails
+      await sendResendEmail(env, email, 'Welcome to ZVAKHO!', html, "", "marketing@zvakho.co.zw");
+    }
+
+    // ───── UNSUBSCRIBE ENDPOINT ──────────────────────────────
+    async function handleUnsubscribe(request, env) {
+      const url = new URL(request.url);
+      const email = normalizeEmail(url.searchParams.get('email'));
+      const token = url.searchParams.get('token');
+
+      if (!email || !token) {
+        return new Response('Missing email or token.', { status: 400 });
+      }
+
+      const user = await env.DB.prepare(
+        `SELECT user_id, unsubscribe_token FROM users WHERE LOWER(email) = LOWER(?)`
+      ).bind(email).first();
+
+      if (!user) {
+        return new Response('User not found.', { status: 404 });
+      }
+
+      if (user.unsubscribe_token !== token) {
+        return new Response('Invalid unsubscribe token.', { status: 400 });
+      }
+
+      // Update consent to 0
+      await env.DB.prepare(
+        `UPDATE users SET marketing_consent = 0 WHERE user_id = ?`
+      ).bind(user.user_id).run();
+
+      // Log consent change (optional)
+      try {
+        await env.DB.prepare(
+          `INSERT INTO consent_audit (audit_id, user_id, action, source, created_at)
+           VALUES (?, ?, 'revoked', 'unsubscribe', datetime('now'))`
+        ).bind(uid('AUD'), user.user_id).run();
+      } catch (e) { /* ignore if table doesn't exist */ }
+
+      return new Response(`
+        <!DOCTYPE html>
+        <html>
+          <head><title>Unsubscribed — ZVAKHO</title></head>
+          <body style="font-family: sans-serif; background: #0b0b0b; color: #f5f1ea; display:grid; place-items:center; min-height:100vh; margin:0; padding:24px;">
+            <div style="background:#1c1814; padding:40px; border-radius:16px; max-width:480px; text-align:center; border:1px solid #333;">
+              <h1 style="color:#d4a574;">✅ Unsubscribed</h1>
+              <p style="color:#a89e91;">You have been unsubscribed from ZVAKHO marketing emails.</p>
+              <p style="color:#766c62; font-size:13px;">You can re-subscribe in your account settings at any time.</p>
+              <a href="/" style="color:#d4a574; display:inline-block; margin-top:16px;">← Back to ZVAKHO</a>
+            </div>
+          </body>
+        </html>
+      `, {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' }
+      });
     }
 
     // ───── GOOGLE OAUTH HELPERS ───────────────────────────────
@@ -344,22 +703,24 @@ export default {
       const name = userInfo.name || userInfo.given_name || "Google User";
 
       let user = await env.DB.prepare(
-        `SELECT user_id, email, name, role, artist_id, is_active FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1`
+        `SELECT user_id, email, name, role, artist_id, is_active, email_verified FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1`
       )
         .bind(email)
         .first();
 
       if (!user) {
+        // Create new user – Google verified email, so set email_verified=1
         const userId = uid("USER");
+        const unsubscribeToken = randomToken(16);
         await env.DB.prepare(
-          `INSERT INTO users (user_id, email, name, role, is_active, created_at, updated_at)
-           VALUES (?, ?, ?, 'user', 1, datetime('now'), datetime('now'))`
+          `INSERT INTO users (user_id, email, name, role, is_active, email_verified, unsubscribe_token, created_at, updated_at)
+           VALUES (?, ?, ?, 'user', 1, 1, ?, datetime('now'), datetime('now'))`
         )
-          .bind(userId, email, name)
+          .bind(userId, email, name, unsubscribeToken)
           .run();
 
         user = await env.DB.prepare(
-          `SELECT user_id, email, name, role, artist_id, is_active FROM users WHERE user_id = ?`
+          `SELECT user_id, email, name, role, artist_id, is_active, email_verified FROM users WHERE user_id = ?`
         )
           .bind(userId)
           .first();
@@ -367,6 +728,11 @@ export default {
 
       if (Number(user.is_active) !== 1) {
         return json({ error: "User is inactive" }, 403);
+      }
+
+      // If for some reason email_verified is 0 (shouldn't happen for Google), set it to 1
+      if (Number(user.email_verified) !== 1) {
+        await env.DB.prepare(`UPDATE users SET email_verified = 1 WHERE user_id = ?`).bind(user.user_id).run();
       }
 
       const token = randomToken(32);
@@ -402,7 +768,7 @@ export default {
       });
     }
 
-    // ───── AUTH HANDLERS ───────────────────────────────────────
+    // ───── AUTH HANDLERS ─────────────────────────────────────
     async function handleSetPassword(request, env) {
       let body;
       try { body = await request.json(); } catch { return jsonResponse({ status: "error", message: "Invalid JSON body" }, 400); }
@@ -447,7 +813,7 @@ export default {
 
       const user = await env.DB.prepare(
         `
-        SELECT user_id, email, name, role, artist_id, password_hash, password_salt, is_active
+        SELECT user_id, email, name, role, artist_id, password_hash, password_salt, is_active, email_verified
         FROM users
         WHERE LOWER(email) = LOWER(?)
         LIMIT 1
@@ -458,6 +824,8 @@ export default {
 
       if (!user || Number(user.is_active) !== 1)
         return jsonResponse({ status: "error", message: "Invalid login" }, 401);
+      if (Number(user.email_verified) !== 1)
+        return jsonResponse({ status: "error", message: "Please verify your email before logging in." }, 403);
       if (!user.password_hash || !user.password_salt || user.password_hash === "TEMP_HASH")
         return jsonResponse({ status: "error", message: "Password has not been set for this account" }, 403);
 
@@ -1001,7 +1369,7 @@ export default {
       const order = await env.DB.prepare(
         `
         SELECT payment_status, poll_url, paynow_reference, product_name, amount, artist_name,
-               COALESCE(phone, '') as phone, product_id
+               COALESCE(phone, '') as phone, product_id, email
         FROM orders
         WHERE payment_reference = ?
         LIMIT 1
@@ -1070,6 +1438,16 @@ export default {
           reference,
           amount: order.amount || 0
         });
+
+        // Send order confirmation email if email exists
+        if (order.email) {
+          await sendOrderConfirmation(env, order.email, {
+            orderId: reference,
+            amount: order.amount || 0,
+            items: [],
+            artistName: order.artist_name || ""
+          });
+        }
 
         const download_url = await getDownloadUrl();
 
@@ -1971,11 +2349,12 @@ export default {
         return json({
           status: "ok",
           service: "zvakho-universal-worker",
-          version: "v16-ssl-zerotrust-oauth",
+          version: "v19-custom-sender-addresses",
           binding: "DB",
           ssl_for_saas: env.ZVAKHO_ZONE_ID ? "enabled" : "disabled (set ZVAKHO_ZONE_ID)",
           zero_trust: env.ADMIN_EMAILS ? "enabled" : "disabled (set ADMIN_EMAILS)",
           google_oauth: env.GOOGLE_CLIENT_ID ? "enabled" : "disabled (set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET)",
+          resend_email: env.RESEND_API_KEY ? "enabled" : "disabled (set RESEND_API_KEY)",
           endpoints: [
             "GET  /",
             "GET  /homepage",
@@ -1994,31 +2373,50 @@ export default {
             "GET  /products",
             "GET  /variants",
             "POST /events",
+            // ─── AUTH ───
             "POST /set-password",
             "POST /login",
             "GET  /me",
             "POST /logout",
+            "POST /api/auth/signup",
+            "POST /api/auth/send-otp",
+            "POST /api/auth/verify-otp",
+            "GET  /api/auth/verify-email",
+            "POST /api/auth/resend-verification",
+            "GET  /api/auth/google",
+            "GET  /api/auth/google/callback",
+            // ─── UNSUBSCRIBE ───
+            "GET  /unsubscribe",
+            // ─── PAYMENTS ───
             "POST /create-payment",
             "GET  /poll-status",
             "GET  /check-payment",
+            // ─── DASHBOARDS ───
             "GET  /artist-dashboard",
             "GET  /owner-dashboard (Zero Trust + Bearer)",
+            // ─── FULFILMENT ───
             "POST /update-fulfilment",
             "POST /web-checkout",
+            "POST /generate-shipping-label",
+            // ─── STORE CONFIG ───
             "POST /update-artist-skin",
             "GET  /artist-store-config",
-            "POST /generate-shipping-label",
+            // ─── DOMAINS ───
             "GET  /domains/search?q=",
             "GET  /domains/check?domain=",
             "POST /domains/register",
             "GET  /domains/list",
             "POST /domains/remove",
+            // ─── SUBSCRIPTIONS ───
             "GET  /subscription/plans",
-            "GET  /subscription/current",
-            "GET  /api/auth/google",
-            "GET  /api/auth/google/callback"
+            "GET  /subscription/current"
           ]
         });
+      }
+
+      // ─── UNSUBSCRIBE ROUTE ────────────────────────────────────
+      if (path === "/unsubscribe" && request.method === "GET") {
+        return await handleUnsubscribe(request, env);
       }
 
       // ─── STORE ROUTES ──────────────────────────────────────────
@@ -2752,7 +3150,24 @@ export default {
         return json({ status: "success", event_id });
       }
 
-      // ─── AUTH ROUTES ──────────────────────────────────────────
+      // ─── NEW AUTH / EMAIL ROUTES ─────────────────────────────
+      if (path === "/api/auth/signup" && request.method === "POST") {
+        return await handleSignup(request, env);
+      }
+      if (path === "/api/auth/send-otp" && request.method === "POST") {
+        return await handleSendOTP(request, env);
+      }
+      if (path === "/api/auth/verify-otp" && request.method === "POST") {
+        return await handleVerifyOTP(request, env);
+      }
+      if (path === "/api/auth/verify-email" && request.method === "GET") {
+        return await handleVerifyEmailLink(request, env);
+      }
+      if (path === "/api/auth/resend-verification" && request.method === "POST") {
+        return await handleResendVerification(request, env);
+      }
+
+      // ─── EXISTING AUTH ROUTES ────────────────────────────────
       if (path === "/set-password" && request.method === "POST") return await handleSetPassword(request, env);
       if (path === "/login" && request.method === "POST") return await handleLogin(request, env);
       if (path === "/me" && request.method === "GET") return await handleMe(request, env);
