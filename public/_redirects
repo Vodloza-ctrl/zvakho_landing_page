@@ -1,0 +1,14 @@
+# ── Main domain root → marketing page ──
+/ /home.html 302
+
+# ── Explicit page mappings ──
+/login     /login.html     200
+/signup    /signup.html    200
+/dashboard /dashboard.html 200
+/admin     /admin.html     200
+/terms     /terms.html     200
+/privacy   /privacy.html   200
+/verified  /verified.html  200
+
+# ── All other paths → store (SPA) ──
+/* /index.html 200
