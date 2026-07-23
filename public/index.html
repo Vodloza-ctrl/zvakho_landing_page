@@ -298,11 +298,22 @@
 <script>
 (function() {
   const host = window.location.hostname;
-  // If it's the main domain (zvakho.co.zw or www.zvakho.co.zw), redirect to home.html
+  const path = window.location.pathname;
+  
+  // Only redirect on the main domain
   if (host === 'zvakho.co.zw' || host === 'www.zvakho.co.zw') {
-    // Preserve query string and hash
-    window.location.href = '/home.html' + window.location.search + window.location.hash;
-    return;
+    // Don't redirect if we're already on home.html or login/signup/etc.
+    const exemptPaths = ['/home.html', '/login', '/signup', '/dashboard', '/admin', '/terms', '/privacy', '/verified'];
+    if (exemptPaths.some(p => path === p || path.startsWith(p + '?'))) {
+      return; // Don't redirect
+    }
+    
+    // Use sessionStorage to prevent infinite loops
+    if (!sessionStorage.getItem('zvakho_redirected')) {
+      sessionStorage.setItem('zvakho_redirected', 'true');
+      // Preserve query string and hash
+      window.location.replace('/home.html' + window.location.search + window.location.hash);
+    }
   }
 })();
 </script>
