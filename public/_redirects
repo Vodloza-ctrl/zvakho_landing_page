@@ -8,9 +8,9 @@
 /verified  /verified.html  200
 /home      /home.html      200
 
-# ── Legacy app path (old dashboard) ──
+# ── Legacy app (old dashboard) ──
 /app/      /app/index.html 200
 /app/*     /app/index.html 200
 
-# ── Catch-all: everything else serves index.html (store) ──
+# ── Catch-all: everything else → index.html (store) ──
 /* /index.html 200
