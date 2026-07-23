@@ -45,4 +45,6 @@ coverage/
 
 # Environment files (if any)
 .env.production
-.env.staging
+.env.stagingwrangler.toml
+node_modules/
+.env
