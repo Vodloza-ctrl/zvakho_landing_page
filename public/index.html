@@ -294,6 +294,19 @@
 
 <body class="store-page is-loading" data-skin="streetwear" data-layout="universal">
 
+<!-- ─── HOST-BASED REDIRECT (Main domain → home.html) ─── -->
+<script>
+(function() {
+  const host = window.location.hostname;
+  // If it's the main domain (zvakho.co.zw or www.zvakho.co.zw), redirect to home.html
+  if (host === 'zvakho.co.zw' || host === 'www.zvakho.co.zw') {
+    // Preserve query string and hash
+    window.location.href = '/home.html' + window.location.search + window.location.hash;
+    return;
+  }
+})();
+</script>
+
 <!-- SVG SPRITE - Social Media Icons Only -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none;" id="iconSprite">
   <defs>
