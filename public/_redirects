@@ -1,3 +1,7 @@
+# ── Main domain root redirect ──
+/ /home.html 302
+
+# ── Explicit page mappings ──
 /login     /login.html     200
 /signup    /signup.html    200
 /dashboard /dashboard.html 200
@@ -6,3 +10,10 @@
 /privacy   /privacy.html   200
 /verified  /verified.html  200
 /home      /home.html      200
+/store     /index.html     200
+
+# ── SPA catch-all for subdomains ──
+# This will serve index.html for any path on subdomains
+# For the main domain, the / redirect overrides this for root,
+# but other paths will go to index.html (which is fine)
+/* /index.html 200
