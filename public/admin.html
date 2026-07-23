@@ -673,6 +673,41 @@
 (function(){
   'use strict';
 
+  // ─── VERIFICATION SAFETY CHECK ───────────────────────────────
+  (async function checkVerification() {
+    const token = localStorage.getItem('zvakho_token');
+    if (!token) {
+      window.location.href = '/login.html';
+      return;
+    }
+    try {
+      const resp = await fetch('/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await resp.json();
+      if (!resp.ok || data.status !== 'success') {
+        localStorage.removeItem('zvakho_token');
+        localStorage.removeItem('zvakho_user');
+        window.location.href = '/login.html?reason=unverified';
+        return;
+      }
+      if (data.user && data.user.email_verified === 0) {
+        localStorage.removeItem('zvakho_token');
+        window.location.href = '/login.html?reason=unverified';
+        return;
+      }
+      // Store user info and update sidebar
+      if (data.user) {
+        localStorage.setItem('zvakho_user', JSON.stringify(data.user));
+        document.getElementById('adminUser').textContent = data.user.name || data.user.email || 'Admin';
+      }
+    } catch (e) {
+      // Network error – redirect to login
+      window.location.href = '/login.html';
+    }
+  })();
+
+  // ─── DASHBOARD LOGIC ──────────────────────────────────────────
   const API_BASE = window.location.origin + '/api';
   const ADMIN_API = API_BASE + '/admin';
   const TOKEN_KEY = 'zvakho_token';
@@ -1198,14 +1233,9 @@
     }
   });
 
-  // ── Auto‑load default page ──
-  // Check token presence; if none, redirect to login.
-  if (!getToken()) {
-    window.location.href = '/login.html';
-  } else {
-    // Initially load overview
-    loadOverview();
-  }
+  // ── Initial load (overview) ──
+  // The verification check already ran above, so we can safely load overview.
+  loadOverview();
 
 })();
 </script>

@@ -83,18 +83,47 @@
       border: none;
       cursor: pointer;
       transition: .15s;
-      background: #d4a574;
-      color: #0a0a0a;
       width: 100%;
     }
-    .btn:hover {
+    .btn-primary {
+      background: #d4a574;
+      color: #0a0a0a;
+    }
+    .btn-primary:hover {
       filter: brightness(1.08);
       transform: translateY(-1px);
     }
-    .btn:disabled {
+    .btn-primary:disabled {
       opacity: .5;
       cursor: default;
       transform: none;
+    }
+    .btn-google {
+      background: #fff;
+      color: #1f1f1f;
+      border: 1px solid rgba(255,255,255,.2);
+    }
+    .btn-google:hover {
+      background: #f0f0f0;
+      transform: translateY(-1px);
+    }
+    .btn-google img {
+      height: 20px;
+      width: 20px;
+    }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 8px 0 12px;
+      color: #5a4f45;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .divider hr {
+      flex: 1;
+      border: none;
+      border-top: 1px solid rgba(255,255,255,.06);
     }
     .auth-error {
       display: none;
@@ -129,16 +158,30 @@
     </div>
     <h1>Sign in</h1>
     <p>Access your brand dashboard or platform admin panel.</p>
+
+    <!-- Error message container -->
+    <div id="authError" class="auth-error"></div>
+
+    <!-- Email/Password form -->
     <form id="loginForm" class="auth-form">
-      <div id="authError" class="auth-error"></div>
       <label>Email address
-        <input type="email" id="loginEmail" placeholder="you@example.com" required>
+        <input type="email" id="loginEmail" placeholder="you@example.com" required autofocus>
       </label>
       <label>Password
         <input type="password" id="loginPassword" placeholder="••••••••" required>
       </label>
-      <button class="btn" id="loginBtn" type="submit">Sign in</button>
+      <button class="btn btn-primary" id="loginBtn" type="submit">Sign in</button>
     </form>
+
+    <!-- Divider -->
+    <div class="divider"><hr>or<hr></div>
+
+    <!-- Google Sign-In button -->
+    <a href="/api/auth/google?redirect=/dashboard.html" class="btn btn-google" id="googleBtn">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
+      Sign in with Google
+    </a>
+
     <div class="footer-note">
       New to ZVAKHO? <a href="https://wa.me/263719362231?text=ZVAKHO">Request access</a>
     </div>
@@ -173,15 +216,31 @@
         errorEl.classList.remove('show');
       }
 
-      // If already logged in, redirect to appropriate dashboard
-      const existingToken = getToken();
-      if (existingToken) {
-        // Optionally, we could fetch /me to check role and redirect, but we'll just redirect to dashboard
-        // The dashboard will handle unauthorized redirects.
-        window.location.href = '/dashboard.html';
-        return;
+      // ---- Check for existing session (cookie-based) ----
+      async function checkSession() {
+        try {
+          const resp = await fetch(API_BASE + '/me', {
+            credentials: 'include'  // sends the zvakho_session cookie
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.status === 'success' && data.user) {
+              // Session is valid – redirect to dashboard
+              const role = (data.user.role || '').toLowerCase();
+              window.location.href = (role === 'admin' || role === 'owner') ? '/admin.html' : '/dashboard.html';
+              return true;
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+        return false;
       }
 
+      // ---- On load, check session ----
+      checkSession();
+
+      // ---- Form submit (password login) ----
       form.addEventListener('submit', async function(e) {
         e.preventDefault();
         clearError();
@@ -198,15 +257,17 @@
           const response = await fetch(API_BASE + '/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password }),
+            credentials: 'include'  // ensure cookie is set if any
           });
           const data = await response.json();
           if (!response.ok || data.status !== 'success' || !data.token) {
             throw new Error(data.message || 'Invalid credentials.');
           }
+          // Store token and user in localStorage
           setToken(data.token);
           setUser(data.user || { email });
-          // Redirect based on role – if admin/owner, go to admin, else brand dashboard
+          // Redirect based on role
           const role = (data.user && data.user.role) || '';
           if (['admin', 'owner'].includes(role.toLowerCase())) {
             window.location.href = '/admin.html';
