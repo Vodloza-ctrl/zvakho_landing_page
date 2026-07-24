@@ -13,5 +13,4 @@
 /app/      /app/index.html 200
 /app/*     /app/index.html 200
 
-# ── Catch-all: everything else → index.html (store) ──
-/* /index.html 200
+
