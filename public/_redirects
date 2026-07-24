@@ -7,6 +7,7 @@
 /privacy   /privacy.html   200
 /verified  /verified.html  200
 /home      /home.html      200
+/links /links.html 200
 
 # ── Legacy app (old dashboard) ──
 /app/      /app/index.html 200
