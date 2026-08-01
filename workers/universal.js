@@ -1,49 +1,45 @@
 // ================================================================
-// ZVAKHO Universal Worker — v29 (fixes a real bug found via live testing:
-// double-slash in generated URLs)
+// ZVAKHO Universal Worker — v30 (fixes real mockup-compositing bug found
+// via live testing: aggressive crop was destroying garment photos)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem;
 // this patch only adds the /identity/*, /assets/* routes and does not
-// touch anything else). Brand Identity generate/select/get/mockup logic
-// ported from the standalone backend build into this file's own
-// conventions: raw env.DB.prepare(), authenticateRequest()/
-// jsonResponse(), no imports.
+// touch anything else).
 //
-// v29 fix: a REAL /identity/generate call against the live worker
-// (first actual end-to-end test of this whole system) returned
-// preview_url/mockup_preview_url values with a double slash right after
-// the domain -- ".dev//identity/preview/...". Cause: env.BASE_URL is
-// configured with a trailing slash in the dashboard, and identityBaseUrl()
-// was concatenating it directly. A path starting with "//identity/preview/"
-// fails the route's startsWith("/identity/preview/") check, so those
-// exact URLs would have 404'd. Fixed by stripping any trailing slash in
-// identityBaseUrl() itself -- every caller gets a clean base now
-// regardless of how the env var is configured.
+// v30 fix: a real mockup composite came back looking like "mush" instead
+// of a tshirt -- confirmed the source photo itself was clean, so the bug
+// was in compositeMockup(). Root cause: every garment photo was forced
+// into a hardcoded 800x800 square canvas via
+// preserveAspectRatio="xMidYMid slice" (crop-to-cover). Real product
+// photos are almost never square, so "slice" was aggressively cropping
+// them -- potentially discarding most of the actual shirt. This also
+// meant the live render didn't match what the print-area-calibrator tool
+// showed you (it displays the full, uncropped photo when you mark a
+// zone) -- two different reference frames.
 //
-// All 11 archetypes seeded in the DB now have a matching render function:
-// wordmark, arc_label_stack, split_connector, circle_badge, bootleg_stack,
-// monogram_mark, ornate_tagline, script_serif_script, arc_label_shadow_word,
-// boxed_tagline, weight_contrast_word.
+// Fix: compositeMockup() now reads template.image_width/image_height
+// (new optional columns, populated by the calibrator tool from
+// img.naturalWidth/naturalHeight -- same values you saw when marking the
+// zone) and sizes the canvas to match the real photo exactly. Switched
+// preserveAspectRatio to "meet" (contain, never crops) as the safe
+// default too, so even un-calibrated templates degrade to letterboxing
+// at worst, never a destructive crop. See
+// 008_print_template_image_dimensions.sql and the updated calibrator.
 //
-// ONE R2 binding, env.R2 -- fonts, identity concepts/mockups, AND garment
-// reference photography (mock-up/... prefix) all live in the same
-// bucket. The account's other R2 bucket holds unrelated live production
-// data (artist product photos and legacy music files from the
-// still-running old storefronts) and is deliberately NOT touched by this
-// worker.
+// All 11 archetypes have a render function. ONE R2 binding, env.R2 --
+// fonts, identity concepts/mockups, and garment photography
+// (mock-up/... prefix) all live in the same bucket. The account's other
+// R2 bucket (artist product photos, legacy music, live storefronts) is
+// deliberately not touched by this worker.
 //
-// Access model: the bucket is NEVER made public at the Cloudflare level
-// (no r2.dev subdomain, no custom domain). Draft concepts are only
-// reachable via GET /identity/preview/:key (owner-auth-gated); once
-// selected, files are copied to a brands/{id}/public/ prefix and served
-// via the open GET /assets/:key, which also allowlists the mock-up/
-// prefix for garment photos (hard-checked -- everything else 404s
-// regardless of whether the object exists). Requires only the R2
-// binding (var name "R2") -- see DEPLOY NOTES at the bottom.
+// Access model: bucket never made public at the Cloudflare level. Draft
+// concepts only reachable via GET /identity/preview/:key (owner-auth-
+// gated); selected identities copied to brands/{id}/public/, served via
+// the open GET /assets/:key (also allowlists mock-up/ for garment
+// photos). Requires only the R2 binding (var name "R2").
 //
 // Print placement: generate()/mockup() accept an optional `placement`
-// field ("front_chest" | "pocket" | "back", defaults to front_chest)
-// threaded through to print_templates lookup.
+// field ("front_chest" | "pocket" | "back", defaults to front_chest).
 // ================================================================
 
 export default {
@@ -3450,7 +3446,18 @@ export default {
       const viewBoxMatch = conceptSvg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
       const conceptW = viewBoxMatch ? parseFloat(viewBoxMatch[1]) : 600;
       const conceptH = viewBoxMatch ? parseFloat(viewBoxMatch[2]) : 300;
-      const canvasW = 800, canvasH = 800;
+      // Canvas now matches the REAL photo's dimensions (image_width/height,
+      // set by the print-area-calibrator tool, same values it read via
+      // img.naturalWidth/naturalHeight when you marked the print zone) --
+      // not a hardcoded 800x800 square. Forcing a real, likely-non-square
+      // photo into a square canvas with preserveAspectRatio="slice"
+      // (crop-to-cover) was the actual bug: it aggressively cropped the
+      // photo, which is what looked like "mush" rather than a shirt. Using
+      // "meet" (contain, never crops) as the fallback too, so even
+      // untouched/uncalibrated templates degrade to letterboxing at worst,
+      // never a destructive crop.
+      const canvasW = template.image_width || 800;
+      const canvasH = template.image_height || 800;
       const zoneX = (template.area_x / 100) * canvasW;
       const zoneY = (template.area_y / 100) * canvasH;
       const zoneW = (template.area_w / 100) * canvasW;
@@ -3461,7 +3468,7 @@ export default {
       const drawY = zoneY + (zoneH - drawH) / 2;
       const garmentImageUrl = identityGarmentImageUrl(env, template.base_image_url);
       return `<svg viewBox="0 0 ${canvasW} ${canvasH}" xmlns="http://www.w3.org/2000/svg">
-  <image href="${garmentImageUrl}" x="0" y="0" width="${canvasW}" height="${canvasH}" preserveAspectRatio="xMidYMid slice"/>
+  <image href="${garmentImageUrl}" x="0" y="0" width="${canvasW}" height="${canvasH}" preserveAspectRatio="xMidYMid meet"/>
   <g transform="translate(${drawX.toFixed(1)}, ${drawY.toFixed(1)}) scale(${scale.toFixed(4)})">
     ${conceptInner}
   </g>
