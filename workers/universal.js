@@ -1,7 +1,20 @@
 // ================================================================
-// ZVAKHO Universal Worker — v32 (calibrator can actually save now)
+// ZVAKHO Universal Worker — v33 (fixes a real compositing bug: logo's own
+// background plate was covering part of the shirt in mockups)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
+//
+// v33 fix: a real mockup came back with a stark white rectangle sitting
+// on top of the shirt photo, with the logo inside it -- looked like a
+// sticker slapped on, not a print. Root cause: identitySvgDoc() bakes an
+// opaque `<rect width="100%" height="100%" fill="${bg}"/>` background
+// into every standalone logo SVG -- correct when that logo is shown on
+// its own (preview_url), but compositeMockup() was extracting that
+// entire inner content (background rect included) and layering it
+// straight onto the garment photo. Fixed by stripping just that one rect
+// out of the extracted content before compositing -- the <style> block
+// (embedded @font-face, still needed to render the logo's own text) is
+// left untouched, only the opaque background plate is removed.
 //
 // v32: the calibrator tool (added in v31) only ever generated SQL text
 // to copy-paste -- no real persistence, which was confusing ("no way of
@@ -3672,7 +3685,16 @@ export default {
       if (!conceptObj) throw new Error(`Concept SVG not found in R2: ${conceptSvgR2Key}`);
       const conceptSvg = await conceptObj.text();
       const innerMatch = conceptSvg.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
-      const conceptInner = innerMatch ? innerMatch[1] : conceptSvg;
+      let conceptInner = innerMatch ? innerMatch[1] : conceptSvg;
+      // Every standalone logo SVG (identitySvgDoc) bakes in its own
+      // opaque background rect -- correct when the logo is shown on its
+      // own (preview_url), but wrong here: compositing it onto a garment
+      // photo means only the logo's actual shapes/text should be visible,
+      // not its full opaque background plate sitting on top of the shirt
+      // like a sticker. Strip just that one rect, keep everything else
+      // (the <style> block with the embedded @font-face is still needed
+      // to render the logo's own text correctly).
+      conceptInner = conceptInner.replace(/<rect width="100%" height="100%" fill="[^"]*"\/>/, "");
       const viewBoxMatch = conceptSvg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
       const conceptW = viewBoxMatch ? parseFloat(viewBoxMatch[1]) : 600;
       const conceptH = viewBoxMatch ? parseFloat(viewBoxMatch[2]) : 300;
