@@ -1,6 +1,5 @@
 // ================================================================
-// ZVAKHO Universal Worker — v27 (front/back print placement, garment
-// photos corrected to the same R2 bucket as fonts)
+// ZVAKHO Universal Worker — v28 (all 11 archetype renderers now built)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem;
 // this patch only adds the /identity/*, /assets/* routes and does not
@@ -9,13 +8,20 @@
 // conventions: raw env.DB.prepare(), authenticateRequest()/
 // jsonResponse(), no imports.
 //
+// All 11 archetypes seeded in the DB now have a matching render function:
+// wordmark, arc_label_stack, split_connector, circle_badge, bootleg_stack,
+// monogram_mark (existing) + ornate_tagline, script_serif_script,
+// arc_label_shadow_word, boxed_tagline, weight_contrast_word (new in
+// v28). weight_contrast_word does genuine font-weight contrast (not a
+// faux tint) when the picked font is variable, via a font-weight RANGE
+// on its @font-face -- see identityFontFaceStyleBlock.
+//
 // ONE R2 binding, env.R2 -- fonts, identity concepts/mockups, AND garment
 // reference photography (mock-up/... prefix) all live in the same
-// bucket. (An earlier version of this file assumed garments were in a
-// separate bucket -- corrected. The account's other R2 bucket holds
-// unrelated live production data -- artist product photos and legacy
-// music files from the still-running old storefronts -- and is
-// deliberately NOT touched by this worker or this patch.)
+// bucket. The account's other R2 bucket holds unrelated live production
+// data (artist product photos and legacy music files from the
+// still-running old storefronts) and is deliberately NOT touched by this
+// worker.
 //
 // Access model: the bucket is NEVER made public at the Cloudflare level
 // (no r2.dev subdomain, no custom domain). Draft concepts are only
@@ -29,9 +35,7 @@
 //
 // Print placement: generate()/mockup() accept an optional `placement`
 // field ("front_chest" | "pocket" | "back", defaults to front_chest)
-// threaded through to print_templates lookup -- lets you request a
-// back-print mockup for an already-generated concept without
-// regenerating the concept itself.
+// threaded through to print_templates lookup.
 // ================================================================
 
 export default {
@@ -2827,7 +2831,16 @@ export default {
       const rules = [];
       for (const f of fontEntries) {
         const base64 = await identityFetchFontBase64(env, f.r2_key, fontCache);
-        rules.push(`@font-face{font-family:'${f.family_name}';src:url(data:font/woff2;base64,${base64}) format('woff2');font-weight:${f.weight || 400};font-style:${f.style || "normal"};}`);
+        // weightRange (e.g. [100, 900]) declares a variable range on the
+        // @font-face itself, so separate <tspan>s can each request a
+        // different explicit weight from the SAME embedded file -- a
+        // fixed single weight (the normal case below) would lock every
+        // element using this face to one weight regardless of what any
+        // individual text element asks for. Only meaningful when the
+        // underlying font file actually is variable -- callers check
+        // font.variable before using this.
+        const weightDecl = f.weightRange ? `${f.weightRange[0]} ${f.weightRange[1]}` : (f.weight || 400);
+        rules.push(`@font-face{font-family:'${f.family_name}';src:url(data:font/woff2;base64,${base64}) format('woff2');font-weight:${weightDecl};font-style:${f.style || "normal"};}`);
       }
       return `<style>${rules.join("")}</style>`;
     }
@@ -2836,9 +2849,8 @@ export default {
       return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${styleBlock}<rect width="100%" height="100%" fill="${bg}"/>${inner}</svg>`;
     }
 
-    // ── archetype renderers (6 of 11 registered archetypes have a render
-    // function; the other 5 are seeded but not yet ported -- see deploy
-    // notes) ──
+    // ── archetype renderers (all 11 registered archetypes now have a
+    // render function) ──
     async function renderWordmark(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
       const text = String(brandName).toUpperCase();
@@ -3013,13 +3025,162 @@ export default {
       return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
     }
 
+    // 7. ORNATE_TAGLINE -- centered wordmark with a small flourish rule
+    // above and a hairline-divided tagline below. Never invents copy: if
+    // no real tagline was supplied, falls back to the personality tag
+    // itself (real structural data, same principle as bootleg_stack's
+    // EST. year fallback) rather than making up brand voice.
+    async function renderOrnateTagline(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName);
+      const w = 600, h = 240;
+      const weight = primaryFont.weight_class || 500;
+      const fontSize = autoFitFontSize(text, w - 120);
+      const subLabel = meta.tagline ? String(meta.tagline).toUpperCase() : (tag || "").toUpperCase();
+      const supFont = supportFont || primaryFont;
+      const supWeight = supportFont ? (supportFont.weight_class || 400) : 400;
+      const inner = `
+    <line x1="${w / 2 - 70}" y1="70" x2="${w / 2 - 18}" y2="70" stroke="${ink}" stroke-width="1"/>
+    <circle cx="${w / 2}" cy="70" r="3.5" fill="${ink}"/>
+    <line x1="${w / 2 + 18}" y1="70" x2="${w / 2 + 70}" y2="70" stroke="${ink}" stroke-width="1"/>
+    <text x="${w / 2}" y="120" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${fontSize}">${escapeXML(text)}</text>
+    <line x1="${w / 2 - 90}" y1="155" x2="${w / 2 + 90}" y2="155" stroke="${ink}" stroke-width="0.75"/>
+    ${subLabel ? `<text x="${w / 2}" y="185" text-anchor="middle"
+          style="font-family:'${supFont.family_name}';font-weight:${supWeight};font-style:italic;" fill="${ink}"
+          font-size="14" letter-spacing="0.15em">${escapeXML(subLabel)}</text>` : ""}`;
+      const fontEntries = [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }];
+      if (supportFont) fontEntries.push({ family_name: supportFont.family_name, r2_key: supportFont.r2_key, weight: supWeight, style: "italic" });
+      return identitySvgDoc(env, w, h, bg, fontEntries, inner, fontCache);
+    }
+
+    // 8. SCRIPT_SERIF_SCRIPT -- primary font set large and italicized to
+    // read as script, a plain serif/sans support-font label underneath.
+    // Same no-invented-copy fallback as above for the sub-label.
+    async function renderScriptSerifScript(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName);
+      const w = 600, h = 220;
+      const weight = primaryFont.weight_class || 500;
+      const fontSize = autoFitFontSize(text, w - 100);
+      const subFont = supportFont || primaryFont;
+      const subWeight = supportFont ? (supportFont.weight_class || 400) : 400;
+      const subLabel = meta.tagline ? String(meta.tagline).toUpperCase() : (tag || "").toUpperCase();
+      const inner = `
+    <text x="${w / 2}" y="105" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};font-style:italic;" fill="${ink}"
+          font-size="${fontSize}">${escapeXML(text)}</text>
+    ${subLabel ? `<text x="${w / 2}" y="150" text-anchor="middle"
+          style="font-family:'${subFont.family_name}';font-weight:${subWeight};" fill="${ink}"
+          font-size="13" letter-spacing="0.3em">${escapeXML(subLabel)}</text>` : ""}`;
+      const fontEntries = [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight, style: "italic" }];
+      if (supportFont) fontEntries.push({ family_name: supportFont.family_name, r2_key: supportFont.r2_key, weight: subWeight });
+      return identitySvgDoc(env, w, h, bg, fontEntries, inner, fontCache);
+    }
+
+    // 9. ARC_LABEL_SHADOW_WORD -- curved category label above a bold word
+    // with an offset duplicate behind it for a drop-shadow effect.
+    // Seeded with vinyl_geometry_caution=1 -- buildComboPool() already
+    // filters this out automatically for print_method="vinyl" (the
+    // overlapping shapes are hard to weed on vinyl), no extra code needed
+    // here for that safety check.
+    async function renderArcLabelShadowWord(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName).toUpperCase();
+      const w = 600, h = 260;
+      const weight = primaryFont.weight_class || 700;
+      const fontSize = autoFitFontSize(text, w - 140);
+      const r = w * 0.32, cx = w / 2, cy = 100;
+      const pathId = `arcsw_${Math.random().toString(36).slice(2, 8)}`;
+      const shadowOffset = Math.max(4, Math.round(fontSize * 0.08));
+      const shadowColor = ink === "#ffffff" ? "#8a8578" : "#c9c4b6";
+      const inner = `
+    <path id="${pathId}" d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none"/>
+    <text style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="14" letter-spacing="0.2em">
+      <textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${escapeXML((tag || "ORIGINAL").toUpperCase())}</textPath>
+    </text>
+    <text x="${cx + shadowOffset}" y="${190 + shadowOffset}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${shadowColor}"
+          font-size="${fontSize}">${escapeXML(text)}</text>
+    <text x="${cx}" y="190" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${fontSize}">${escapeXML(text)}</text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    // 10. BOXED_TAGLINE -- wordmark with a bordered banner beneath it.
+    // Same no-invented-copy rule: falls back to "EST. <year>" (real
+    // structural data) when no real tagline is supplied, matching
+    // bootleg_stack's existing fallback pattern exactly.
+    async function renderBoxedTagline(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName).toUpperCase();
+      const w = 600, h = 220;
+      const weight = primaryFont.weight_class || 700;
+      const fontSize = autoFitFontSize(text, w - 80);
+      const boxLabel = meta.tagline ? String(meta.tagline).toUpperCase() : `EST. ${meta.foundedYear || new Date().getFullYear()}`;
+      const boxW = Math.max(120, boxLabel.length * 8 + 40);
+      const boxX = (w - boxW) / 2;
+      const inner = `
+    <text x="${w / 2}" y="95" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${fontSize}">${escapeXML(text)}</text>
+    <rect x="${boxX}" y="130" width="${boxW}" height="34" fill="none" stroke="${ink}" stroke-width="1.5"/>
+    <text x="${w / 2}" y="152" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="12" letter-spacing="0.12em">${escapeXML(boxLabel)}</text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    // 11. WEIGHT_CONTRAST_WORD -- the brand name split in two, each half
+    // in a different weight of the SAME font. Genuine weight contrast
+    // only works when the font is actually variable (one embedded file,
+    // a font-weight RANGE on its @font-face, each <tspan> requesting a
+    // different explicit weight -- see identityFontFaceStyleBlock above).
+    // For a non-variable font there is no second weight to reach for, so
+    // this falls back to a tint-based faux-contrast instead of silently
+    // rendering both halves identically.
+    function splitWordForWeightContrast(text) {
+      const s = String(text);
+      const spaceIdx = s.indexOf(" ");
+      if (spaceIdx > 0) return [s.slice(0, spaceIdx), s.slice(spaceIdx + 1)];
+      const mid = Math.ceil(s.length / 2);
+      return [s.slice(0, mid), s.slice(mid)];
+    }
+    async function renderWeightContrastWord(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const [partA, partB] = splitWordForWeightContrast(String(brandName).toUpperCase());
+      const w = 600, h = 200;
+      const fontSize = autoFitFontSize(partA + partB, w - 80);
+      const isVariable = !!primaryFont.variable;
+      const heavyWeight = isVariable ? 800 : (primaryFont.weight_class || 700);
+      const lightWeight = isVariable ? 300 : (primaryFont.weight_class || 700);
+      const lightFill = isVariable ? ink : (ink === "#ffffff" ? "#a8a396" : "#8a8578");
+      const inner = `
+    <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle"
+          font-size="${fontSize}"><tspan
+          style="font-family:'${primaryFont.family_name}';font-weight:${heavyWeight};" fill="${ink}">${escapeXML(partA)}</tspan><tspan
+          style="font-family:'${primaryFont.family_name}';font-weight:${lightWeight};" fill="${lightFill}">${escapeXML(partB)}</tspan></text>`;
+      const fontEntry = isVariable
+        ? { family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weightRange: [100, 900] }
+        : { family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight: primaryFont.weight_class || 700 };
+      return identitySvgDoc(env, w, h, bg, [fontEntry], inner, fontCache);
+    }
+
     const IDENTITY_ARCHETYPE_RENDERERS = {
       wordmark: renderWordmark,
       arc_label_stack: renderArcLabelStack,
       split_connector: renderSplitConnector,
       circle_badge: renderCircleBadge,
       bootleg_stack: renderBootlegStack,
-      monogram_mark: renderMonogramMark
+      monogram_mark: renderMonogramMark,
+      ornate_tagline: renderOrnateTagline,
+      script_serif_script: renderScriptSerifScript,
+      arc_label_shadow_word: renderArcLabelShadowWord,
+      boxed_tagline: renderBoxedTagline,
+      weight_contrast_word: renderWeightContrastWord
     };
     const IDENTITY_ARCHETYPES_NEEDING_SUPPORT_FONT = new Set(["split_connector", "ornate_tagline", "script_serif_script"]);
 
@@ -3132,7 +3293,7 @@ export default {
       const filtered = printMethod === "vinyl" ? eligibleArchetypes.filter((a) => !a.vinyl_geometry_caution) : eligibleArchetypes;
       const pool = [];
       for (const archetype of (filtered.length ? filtered : eligibleArchetypes)) {
-        if (!IDENTITY_ARCHETYPE_RENDERERS[archetype.archetype_id]) continue; // skip not-yet-ported archetypes
+        if (!IDENTITY_ARCHETYPE_RENDERERS[archetype.archetype_id]) continue; // defensive: skip any archetype seeded without a matching render function
         const fonts = await getFontPoolForCategory(env, personalityTag, printMethod);
         for (const font of fonts) {
           pool.push({ combo_id: `${archetype.archetype_id}::${font.font_id}`, archetype_id: archetype.archetype_id, font, curved_friendly: !!archetype.curved_friendly });
