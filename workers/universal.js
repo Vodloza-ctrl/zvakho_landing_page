@@ -1,42 +1,46 @@
 // ================================================================
-// ZVAKHO Universal Worker — v30 (fixes real mockup-compositing bug found
-// via live testing: aggressive crop was destroying garment photos)
+// ZVAKHO Universal Worker — v31 (adds the print-area-calibrator as a
+// hosted internal tool at /admin/calibrator)
 // Built directly on the real live v23 worker (version string below still
-// reads v23-real-merch-commission for the merch/commission subsystem;
-// this patch only adds the /identity/*, /assets/* routes and does not
-// touch anything else).
+// reads v23-real-merch-commission for the merch/commission subsystem).
 //
-// v30 fix: a real mockup composite came back looking like "mush" instead
-// of a tshirt -- confirmed the source photo itself was clean, so the bug
-// was in compositeMockup(). Root cause: every garment photo was forced
-// into a hardcoded 800x800 square canvas via
-// preserveAspectRatio="xMidYMid slice" (crop-to-cover). Real product
-// photos are almost never square, so "slice" was aggressively cropping
-// them -- potentially discarding most of the actual shirt. This also
-// meant the live render didn't match what the print-area-calibrator tool
-// showed you (it displays the full, uncropped photo when you mark a
-// zone) -- two different reference frames.
+// v31: the print-area-calibrator.html tool (previously a local-only file)
+// is now served directly by this worker at GET /admin/calibrator, so it
+// can be opened as a plain bookmarked URL from any browser rather than
+// needing the local file re-shared. Gated by HTTP Basic Auth
+// (env.CALIBRATOR_PASSWORD -- new required secret, set it in the
+// dashboard) rather than the normal Bearer session auth used everywhere
+// else in this file: a bare browser navigation can't attach a custom
+// Authorization header, but the browser's native Basic Auth popup works
+// from a simple GET with zero JS/header wrangling. The HTML itself is
+// embedded base64-encoded in IDENTITY_CALIBRATOR_HTML_B64 (avoids any
+// escaping conflict between the tool's own template literals and this
+// file's) and decoded UTF-8-safe at request time -- verified byte-for-
+// byte round-trip against the original file before deploying.
 //
-// Fix: compositeMockup() now reads template.image_width/image_height
-// (new optional columns, populated by the calibrator tool from
-// img.naturalWidth/naturalHeight -- same values you saw when marking the
-// zone) and sizes the canvas to match the real photo exactly. Switched
-// preserveAspectRatio to "meet" (contain, never crops) as the safe
-// default too, so even un-calibrated templates degrade to letterboxing
-// at worst, never a destructive crop. See
-// 008_print_template_image_dimensions.sql and the updated calibrator.
+// v30 fix (still in effect): compositeMockup() sizes the canvas to the
+// real photo's dimensions (template.image_width/image_height, populated
+// by the calibrator) instead of a hardcoded 800x800 square, and uses
+// preserveAspectRatio="meet" (never crops) -- fixes the "mush" bug where
+// non-square garment photos were being aggressively cropped.
+//
+// v29 fix (still in effect): identityBaseUrl() strips any trailing slash
+// from env.BASE_URL, fixing a double-slash in generated preview/asset
+// URLs that would have 404'd.
 //
 // All 11 archetypes have a render function. ONE R2 binding, env.R2 --
-// fonts, identity concepts/mockups, and garment photography
-// (mock-up/... prefix) all live in the same bucket. The account's other
-// R2 bucket (artist product photos, legacy music, live storefronts) is
+// fonts, identity concepts/mockups, and garment photography (mock-up/...
+// prefix) all live in the same bucket. The account's other R2 bucket
+// (artist product photos, legacy music, live storefronts) is
 // deliberately not touched by this worker.
 //
 // Access model: bucket never made public at the Cloudflare level. Draft
 // concepts only reachable via GET /identity/preview/:key (owner-auth-
 // gated); selected identities copied to brands/{id}/public/, served via
 // the open GET /assets/:key (also allowlists mock-up/ for garment
-// photos). Requires only the R2 binding (var name "R2").
+// photos). Requires the R2 binding (var name "R2") and now also
+// CALIBRATOR_PASSWORD (plain env var or secret, your choice) for the
+// new admin tool route.
 //
 // Print placement: generate()/mockup() accept an optional `placement`
 // field ("front_chest" | "pocket" | "back", defaults to front_chest).
@@ -2744,6 +2748,171 @@ export default {
       return jsonResponse({ hasSubscription: true, subscription: sub });
     }
 
+    // ── Print Area Calibrator (internal tool, not part of the identity
+    // API) -- served as a static page at /admin/calibrator, gated by HTTP
+    // Basic Auth (env.CALIBRATOR_PASSWORD) rather than the normal Bearer
+    // session auth, specifically so it can be opened as a plain bookmarked
+    // URL in a browser -- a bare navigation can't attach a custom
+    // Authorization: Bearer header, but the browser's native Basic Auth
+    // login popup works from a simple GET with no JS/header wrangling.
+    // HTML is embedded base64-encoded (avoids any escaping issues with the
+    // tool's own template literals / backticks) and decoded UTF-8-safe at
+    // request time.
+    const IDENTITY_CALIBRATOR_HTML_B64 =
+      "PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9ImVuIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9IlVURi04Ij4KPHRpdGxlPlpWQUtITyDigJQgUHJpbnQgQXJl" +
+      "YSBDYWxpYnJhdG9yPC90aXRsZT4KPHN0eWxlPgogIDpyb290IHsKICAgIC0tYmc6ICMxMjEyMTI7CiAgICAtLXBhbmVsOiAjMWExYTFhOwogICAgLS1wYW5l" +
+      "bC1ib3JkZXI6ICMyYzJjMmM7CiAgICAtLWluazogI2YwZWRlNjsKICAgIC0taW5rLWRpbTogIzlhOTU4YTsKICAgIC0tYWNjZW50OiAjZThjNTQ3OwogICAg" +
+      "LS1hY2NlbnQtZGltOiAjNGE0MzI2OwogICAgLS16b25lLWxpbmU6ICNlOGM1NDc7CiAgICAtLW1vbm86ICdTRiBNb25vJywgJ0pldEJyYWlucyBNb25vJywg" +
+      "dWktbW9ub3NwYWNlLCBNZW5sbywgQ29uc29sYXMsIG1vbm9zcGFjZTsKICAgIC0tc2FuczogLWFwcGxlLXN5c3RlbSwgJ0ludGVyJywgJ0hlbHZldGljYSBO" +
+      "ZXVlJywgQXJpYWwsIHNhbnMtc2VyaWY7CiAgfQogICogeyBib3gtc2l6aW5nOiBib3JkZXItYm94OyB9CiAgYm9keSB7CiAgICBtYXJnaW46IDA7IGJhY2tn" +
+      "cm91bmQ6IHZhcigtLWJnKTsgY29sb3I6IHZhcigtLWluayk7CiAgICBmb250LWZhbWlseTogdmFyKC0tc2Fucyk7IG1pbi1oZWlnaHQ6IDEwMHZoOyBwYWRk" +
+      "aW5nOiAyOHB4OwogIH0KICBoMSB7CiAgICBmb250LXNpemU6IDE1cHg7IGZvbnQtd2VpZ2h0OiA2MDA7IGxldHRlci1zcGFjaW5nOiAwLjA2ZW07IHRleHQt" +
+      "dHJhbnNmb3JtOiB1cHBlcmNhc2U7CiAgICBjb2xvcjogdmFyKC0tYWNjZW50KTsgbWFyZ2luOiAwIDAgNHB4OwogIH0KICAuc3ViIHsgY29sb3I6IHZhcigt" +
+      "LWluay1kaW0pOyBmb250LXNpemU6IDEzcHg7IG1hcmdpbjogMCAwIDI0cHg7IG1heC13aWR0aDogNjQwcHg7IGxpbmUtaGVpZ2h0OiAxLjU7IH0KICAubGF5" +
+      "b3V0IHsgZGlzcGxheTogZ3JpZDsgZ3JpZC10ZW1wbGF0ZS1jb2x1bW5zOiAxZnIgMzQwcHg7IGdhcDogMjBweDsgYWxpZ24taXRlbXM6IHN0YXJ0OyB9CiAg" +
+      "QG1lZGlhIChtYXgtd2lkdGg6IDg2MHB4KSB7IC5sYXlvdXQgeyBncmlkLXRlbXBsYXRlLWNvbHVtbnM6IDFmcjsgfSB9CgogIC5wYW5lbCB7IGJhY2tncm91" +
+      "bmQ6IHZhcigtLXBhbmVsKTsgYm9yZGVyOiAxcHggc29saWQgdmFyKC0tcGFuZWwtYm9yZGVyKTsgYm9yZGVyLXJhZGl1czogMTBweDsgcGFkZGluZzogMThw" +
+      "eDsgfQogIC5jYW52YXMtd3JhcCB7CiAgICBwb3NpdGlvbjogcmVsYXRpdmU7IGRpc3BsYXk6IGZsZXg7IGFsaWduLWl0ZW1zOiBjZW50ZXI7IGp1c3RpZnkt" +
+      "Y29udGVudDogY2VudGVyOwogICAgbWluLWhlaWdodDogNDIwcHg7IGJhY2tncm91bmQ6CiAgICAgIHJlcGVhdGluZy1jb25pYy1ncmFkaWVudCgjMWUxZTFl" +
+      "IDAlIDI1JSwgIzE3MTcxNyAwJSA1MCUpIDUwJSAvIDIwcHggMjBweDsKICAgIGJvcmRlci1yYWRpdXM6IDhweDsgb3ZlcmZsb3c6IGhpZGRlbjsKICB9CiAg" +
+      "Y2FudmFzIHsgZGlzcGxheTogYmxvY2s7IGN1cnNvcjogY3Jvc3NoYWlyOyBtYXgtd2lkdGg6IDEwMCU7IH0KICAuZW1wdHktc3RhdGUgeyBjb2xvcjogdmFy" +
+      "KC0taW5rLWRpbSk7IGZvbnQtc2l6ZTogMTNweDsgdGV4dC1hbGlnbjogY2VudGVyOyBwYWRkaW5nOiA0MHB4OyB9CgogIC5maWVsZCB7IG1hcmdpbi1ib3R0" +
+      "b206IDE0cHg7IH0KICBsYWJlbCB7IGRpc3BsYXk6IGJsb2NrOyBmb250LXNpemU6IDExcHg7IHRleHQtdHJhbnNmb3JtOiB1cHBlcmNhc2U7IGxldHRlci1z" +
+      "cGFjaW5nOiAwLjA1ZW07IGNvbG9yOiB2YXIoLS1pbmstZGltKTsgbWFyZ2luLWJvdHRvbTogNnB4OyB9CiAgc2VsZWN0LCBpbnB1dFt0eXBlPXRleHRdIHsK" +
+      "ICAgIHdpZHRoOiAxMDAlOyBiYWNrZ3JvdW5kOiAjMGUwZTBlOyBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1wYW5lbC1ib3JkZXIpOyBjb2xvcjogdmFyKC0t" +
+      "aW5rKTsKICAgIHBhZGRpbmc6IDlweCAxMHB4OyBib3JkZXItcmFkaXVzOiA2cHg7IGZvbnQtc2l6ZTogMTNweDsgZm9udC1mYW1pbHk6IHZhcigtLXNhbnMp" +
+      "OwogIH0KICBzZWxlY3Q6Zm9jdXMsIGlucHV0OmZvY3VzIHsgb3V0bGluZTogbm9uZTsgYm9yZGVyLWNvbG9yOiB2YXIoLS1hY2NlbnQpOyB9CgogIGlucHV0" +
+      "W3R5cGU9ZmlsZV0geyBkaXNwbGF5OiBub25lOyB9CiAgLmZpbGUtYnRuIHsKICAgIGRpc3BsYXk6IGJsb2NrOyB0ZXh0LWFsaWduOiBjZW50ZXI7IHBhZGRp" +
+      "bmc6IDEwcHg7IGJvcmRlci1yYWRpdXM6IDZweDsKICAgIGJvcmRlcjogMXB4IGRhc2hlZCB2YXIoLS1wYW5lbC1ib3JkZXIpOyBjb2xvcjogdmFyKC0taW5r" +
+      "LWRpbSk7IGZvbnQtc2l6ZTogMTNweDsgY3Vyc29yOiBwb2ludGVyOwogICAgbWFyZ2luLWJvdHRvbTogMThweDsgdHJhbnNpdGlvbjogYm9yZGVyLWNvbG9y" +
+      "IC4xNXMsIGNvbG9yIC4xNXM7CiAgfQogIC5maWxlLWJ0bjpob3ZlciB7IGJvcmRlci1jb2xvcjogdmFyKC0tYWNjZW50KTsgY29sb3I6IHZhcigtLWFjY2Vu" +
+      "dCk7IH0KCiAgLnJlYWRvdXQgewogICAgZm9udC1mYW1pbHk6IHZhcigtLW1vbm8pOyBmb250LXNpemU6IDEycHg7IGJhY2tncm91bmQ6ICMwZTBlMGU7IGJv" +
+      "cmRlcjogMXB4IHNvbGlkIHZhcigtLXBhbmVsLWJvcmRlcik7CiAgICBib3JkZXItcmFkaXVzOiA2cHg7IHBhZGRpbmc6IDEycHg7IG1hcmdpbi1ib3R0b206" +
+      "IDE2cHg7IGxpbmUtaGVpZ2h0OiAxLjk7CiAgfQogIC5yZWFkb3V0IHNwYW4geyBjb2xvcjogdmFyKC0tYWNjZW50KTsgfQoKICBidXR0b24ucHJpbWFyeSB7" +
+      "CiAgICB3aWR0aDogMTAwJTsgYmFja2dyb3VuZDogdmFyKC0tYWNjZW50KTsgY29sb3I6ICMxNDEyMGE7IGJvcmRlcjogbm9uZTsgYm9yZGVyLXJhZGl1czog" +
+      "NnB4OwogICAgcGFkZGluZzogMTFweDsgZm9udC1zaXplOiAxM3B4OyBmb250LXdlaWdodDogNjAwOyBjdXJzb3I6IHBvaW50ZXI7IGxldHRlci1zcGFjaW5n" +
+      "OiAwLjAyZW07CiAgfQogIGJ1dHRvbi5wcmltYXJ5OmRpc2FibGVkIHsgYmFja2dyb3VuZDogIzMzMzAxZjsgY29sb3I6ICM2YjY1NTI7IGN1cnNvcjogbm90" +
+      "LWFsbG93ZWQ7IH0KICBidXR0b24ucHJpbWFyeTpob3Zlcjpub3QoOmRpc2FibGVkKSB7IGZpbHRlcjogYnJpZ2h0bmVzcygxLjA4KTsgfQoKICAubGlzdC1w" +
+      "YW5lbCB7IGdyaWQtY29sdW1uOiAxIC8gLTE7IG1hcmdpbi10b3A6IDIwcHg7IH0KICAubGlzdC1oZWFkZXIgeyBkaXNwbGF5OiBmbGV4OyBqdXN0aWZ5LWNv" +
+      "bnRlbnQ6IHNwYWNlLWJldHdlZW47IGFsaWduLWl0ZW1zOiBjZW50ZXI7IG1hcmdpbi1ib3R0b206IDEwcHg7IH0KICAubGlzdC1oZWFkZXIgaDIgeyBmb250" +
+      "LXNpemU6IDEzcHg7IGZvbnQtd2VpZ2h0OiA2MDA7IGNvbG9yOiB2YXIoLS1pbmspOyBtYXJnaW46IDA7IH0KICAubGlzdC1oZWFkZXIgYnV0dG9uIHsKICAg" +
+      "IGJhY2tncm91bmQ6IHRyYW5zcGFyZW50OyBib3JkZXI6IDFweCBzb2xpZCB2YXIoLS1wYW5lbC1ib3JkZXIpOyBjb2xvcjogdmFyKC0taW5rLWRpbSk7CiAg" +
+      "ICBmb250LXNpemU6IDEycHg7IHBhZGRpbmc6IDZweCAxMnB4OyBib3JkZXItcmFkaXVzOiA2cHg7IGN1cnNvcjogcG9pbnRlcjsKICB9CiAgLmxpc3QtaGVh" +
+      "ZGVyIGJ1dHRvbjpob3ZlciB7IGNvbG9yOiB2YXIoLS1hY2NlbnQpOyBib3JkZXItY29sb3I6IHZhcigtLWFjY2VudCk7IH0KICBwcmUjc3FsT3V0IHsKICAg" +
+      "IGZvbnQtZmFtaWx5OiB2YXIoLS1tb25vKTsgZm9udC1zaXplOiAxMi41cHg7IGJhY2tncm91bmQ6ICMwZTBlMGU7IGJvcmRlcjogMXB4IHNvbGlkIHZhcigt" +
+      "LXBhbmVsLWJvcmRlcik7CiAgICBib3JkZXItcmFkaXVzOiA4cHg7IHBhZGRpbmc6IDE2cHg7IHdoaXRlLXNwYWNlOiBwcmUtd3JhcDsgd29yZC1icmVhazog" +
+      "YnJlYWstd29yZDsgbGluZS1oZWlnaHQ6IDEuNzsKICAgIGNvbG9yOiAjYzllNWMwOyBtaW4taGVpZ2h0OiA2MHB4OyBtYXJnaW46IDA7CiAgfQogIC5yb3ct" +
+      "aXRlbSB7IGNvbG9yOiB2YXIoLS1pbmstZGltKTsgZm9udC1zaXplOiAxMnB4OyBtYXJnaW4tdG9wOiA4cHg7IH0KICAucm93LWl0ZW0gLmRlbCB7IGNvbG9y" +
+      "OiAjYzA2MDVhOyBjdXJzb3I6IHBvaW50ZXI7IG1hcmdpbi1sZWZ0OiA4cHg7IH0KPC9zdHlsZT4KPC9oZWFkPgo8Ym9keT4KCiAgPGgxPlByaW50IEFyZWEg" +
+      "Q2FsaWJyYXRvcjwvaDE+CiAgPHAgY2xhc3M9InN1YiI+TG9hZCBhIGdhcm1lbnQgcGhvdG8sIGRyYWcgYSByZWN0YW5nbGUgb3ZlciB0aGUgcHJpbnQgem9u" +
+      "ZSwgZmlsbCBpbiB3aGljaCB0ZW1wbGF0ZSByb3cgdGhpcyBpcywgdGhlbiBhZGQgaXQgdG8gdGhlIGxpc3QuIFdoZW4geW91J3JlIGRvbmUgd2l0aCBhbGwg" +
+      "eW91ciBwbGFjZW1lbnRzLCBjb3B5IHRoZSBTUUwgYmxvY2sgYXQgdGhlIGJvdHRvbSBhbmQgcnVuIGl0IGluIEQxLjwvcD4KCiAgPGRpdiBjbGFzcz0ibGF5" +
+      "b3V0Ij4KICAgIDxkaXYgY2xhc3M9InBhbmVsIj4KICAgICAgPGRpdiBjbGFzcz0iY2FudmFzLXdyYXAiIGlkPSJjYW52YXNXcmFwIj4KICAgICAgICA8ZGl2" +
+      "IGNsYXNzPSJlbXB0eS1zdGF0ZSIgaWQ9ImVtcHR5U3RhdGUiPk5vIGltYWdlIGxvYWRlZCB5ZXQg4oCUIGNob29zZSBhIGZpbGUgb24gdGhlIHJpZ2h0Ljwv" +
+      "ZGl2PgogICAgICAgIDxjYW52YXMgaWQ9ImNhbnZhcyIgc3R5bGU9ImRpc3BsYXk6bm9uZTsiPjwvY2FudmFzPgogICAgICA8L2Rpdj4KICAgIDwvZGl2PgoK" +
+      "ICAgIDxkaXYgY2xhc3M9InBhbmVsIj4KICAgICAgPGxhYmVsIGNsYXNzPSJmaWxlLWJ0biIgZm9yPSJmaWxlSW5wdXQiIGlkPSJmaWxlQnRuTGFiZWwiPkNo" +
+      "b29zZSBnYXJtZW50IHBob3Rv4oCmPC9sYWJlbD4KICAgICAgPGlucHV0IHR5cGU9ImZpbGUiIGlkPSJmaWxlSW5wdXQiIGFjY2VwdD0iaW1hZ2UvKiI+Cgog" +
+      "ICAgICA8ZGl2IGNsYXNzPSJmaWVsZCI+CiAgICAgICAgPGxhYmVsIGZvcj0idGVtcGxhdGVJZCI+dGVtcGxhdGVfaWQ8L2xhYmVsPgogICAgICAgIDxpbnB1" +
+      "dCB0eXBlPSJ0ZXh0IiBpZD0idGVtcGxhdGVJZCIgcGxhY2Vob2xkZXI9IlBUX3RzaGlydF9ibGFja19mcm9udCI+CiAgICAgIDwvZGl2PgogICAgICA8ZGl2" +
+      "IGNsYXNzPSJmaWVsZCI+CiAgICAgICAgPGxhYmVsIGZvcj0icHJvZHVjdFR5cGUiPnByb2R1Y3RfdHlwZTwvbGFiZWw+CiAgICAgICAgPGlucHV0IHR5cGU9" +
+      "InRleHQiIGlkPSJwcm9kdWN0VHlwZSIgdmFsdWU9InRzaGlydCI+CiAgICAgIDwvZGl2PgogICAgICA8ZGl2IGNsYXNzPSJmaWVsZCI+CiAgICAgICAgPGxh" +
+      "YmVsIGZvcj0iZ2FybWVudENvbG9yIj5nYXJtZW50X2NvbG9yPC9sYWJlbD4KICAgICAgICA8c2VsZWN0IGlkPSJnYXJtZW50Q29sb3IiPgogICAgICAgICAg" +
+      "PG9wdGlvbiB2YWx1ZT0iYmxhY2siPmJsYWNrPC9vcHRpb24+CiAgICAgICAgICA8b3B0aW9uIHZhbHVlPSJ3aGl0ZSI+d2hpdGU8L29wdGlvbj4KICAgICAg" +
+      "ICA8L3NlbGVjdD4KICAgICAgPC9kaXY+CiAgICAgIDxkaXYgY2xhc3M9ImZpZWxkIj4KICAgICAgICA8bGFiZWwgZm9yPSJwbGFjZW1lbnQiPnBsYWNlbWVu" +
+      "dF9uYW1lPC9sYWJlbD4KICAgICAgICA8c2VsZWN0IGlkPSJwbGFjZW1lbnQiPgogICAgICAgICAgPG9wdGlvbiB2YWx1ZT0iZnJvbnRfY2hlc3QiPmZyb250" +
+      "X2NoZXN0PC9vcHRpb24+CiAgICAgICAgICA8b3B0aW9uIHZhbHVlPSJiYWNrIj5iYWNrPC9vcHRpb24+CiAgICAgICAgICA8b3B0aW9uIHZhbHVlPSJwb2Nr" +
+      "ZXQiPnBvY2tldDwvb3B0aW9uPgogICAgICAgIDwvc2VsZWN0PgogICAgICA8L2Rpdj4KCiAgICAgIDxkaXYgY2xhc3M9InJlYWRvdXQiIGlkPSJyZWFkb3V0" +
+      "Ij4KICAgICAgICBhcmVhX3g6IDxzcGFuIGlkPSJyeCI+4oCUPC9zcGFuPiU8YnI+CiAgICAgICAgYXJlYV95OiA8c3BhbiBpZD0icnkiPuKAlDwvc3Bhbj4l" +
+      "PGJyPgogICAgICAgIGFyZWFfdzogPHNwYW4gaWQ9InJ3Ij7igJQ8L3NwYW4+JTxicj4KICAgICAgICBhcmVhX2g6IDxzcGFuIGlkPSJyaCI+4oCUPC9zcGFu" +
+      "PiUKICAgICAgPC9kaXY+CgogICAgICA8YnV0dG9uIGNsYXNzPSJwcmltYXJ5IiBpZD0iYWRkQnRuIiBkaXNhYmxlZD5BZGQgem9uZSB0byBTUUwgbGlzdDwv" +
+      "YnV0dG9uPgogICAgPC9kaXY+CgogICAgPGRpdiBjbGFzcz0icGFuZWwgbGlzdC1wYW5lbCI+CiAgICAgIDxkaXYgY2xhc3M9Imxpc3QtaGVhZGVyIj4KICAg" +
+      "ICAgICA8aDI+R2VuZXJhdGVkIFNRTCAoPHNwYW4gaWQ9ImNvdW50Ij4wPC9zcGFuPiByb3dzKTwvaDI+CiAgICAgICAgPGJ1dHRvbiBpZD0iY29weUJ0biI+" +
+      "Q29weSBhbGw8L2J1dHRvbj4KICAgICAgPC9kaXY+CiAgICAgIDxwcmUgaWQ9InNxbE91dCI+LS0gTm90aGluZyBhZGRlZCB5ZXQuPC9wcmU+CiAgICAgIDxk" +
+      "aXYgaWQ9InJvd0xpc3QiPjwvZGl2PgogICAgPC9kaXY+CiAgPC9kaXY+Cgo8c2NyaXB0PgogIGNvbnN0IGNhbnZhcyA9IGRvY3VtZW50LmdldEVsZW1lbnRC" +
+      "eUlkKCdjYW52YXMnKTsKICBjb25zdCBjdHggPSBjYW52YXMuZ2V0Q29udGV4dCgnMmQnKTsKICBjb25zdCBlbXB0eVN0YXRlID0gZG9jdW1lbnQuZ2V0RWxl" +
+      "bWVudEJ5SWQoJ2VtcHR5U3RhdGUnKTsKICBjb25zdCBmaWxlSW5wdXQgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZmlsZUlucHV0Jyk7CiAgY29uc3Qg" +
+      "ZmlsZUJ0bkxhYmVsID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2ZpbGVCdG5MYWJlbCcpOwogIGNvbnN0IGFkZEJ0biA9IGRvY3VtZW50LmdldEVsZW1l" +
+      "bnRCeUlkKCdhZGRCdG4nKTsKCiAgbGV0IGltZyA9IG51bGw7CiAgbGV0IHNjYWxlID0gMTsKICBsZXQgem9uZSA9IG51bGw7IC8vIHt4LHksdyxofSBpbiBO" +
+      "QVRVUkFMIGltYWdlIHBpeGVscwogIGxldCBkcmFnZ2luZyA9IGZhbHNlOwogIGxldCBkcmFnU3RhcnQgPSBudWxsOwoKICBmaWxlSW5wdXQuYWRkRXZlbnRM" +
+      "aXN0ZW5lcignY2hhbmdlJywgKGUpID0+IHsKICAgIGNvbnN0IGZpbGUgPSBlLnRhcmdldC5maWxlc1swXTsKICAgIGlmICghZmlsZSkgcmV0dXJuOwogICAg" +
+      "ZmlsZUJ0bkxhYmVsLnRleHRDb250ZW50ID0gZmlsZS5uYW1lOwogICAgY29uc3QgcmVhZGVyID0gbmV3IEZpbGVSZWFkZXIoKTsKICAgIHJlYWRlci5vbmxv" +
+      "YWQgPSAoZXYpID0+IHsKICAgICAgaW1nID0gbmV3IEltYWdlKCk7CiAgICAgIGltZy5vbmxvYWQgPSAoKSA9PiB7CiAgICAgICAgZW1wdHlTdGF0ZS5zdHls" +
+      "ZS5kaXNwbGF5ID0gJ25vbmUnOwogICAgICAgIGNhbnZhcy5zdHlsZS5kaXNwbGF5ID0gJ2Jsb2NrJzsKICAgICAgICBjb25zdCBtYXhXID0gNjQwLCBtYXhI" +
+      "ID0gNjQwOwogICAgICAgIHNjYWxlID0gTWF0aC5taW4obWF4VyAvIGltZy5uYXR1cmFsV2lkdGgsIG1heEggLyBpbWcubmF0dXJhbEhlaWdodCwgMSk7CiAg" +
+      "ICAgICAgY2FudmFzLndpZHRoID0gaW1nLm5hdHVyYWxXaWR0aCAqIHNjYWxlOwogICAgICAgIGNhbnZhcy5oZWlnaHQgPSBpbWcubmF0dXJhbEhlaWdodCAq" +
+      "IHNjYWxlOwogICAgICAgIHpvbmUgPSBudWxsOwogICAgICAgIGRyYXcoKTsKICAgICAgfTsKICAgICAgaW1nLnNyYyA9IGV2LnRhcmdldC5yZXN1bHQ7CiAg" +
+      "ICB9OwogICAgcmVhZGVyLnJlYWRBc0RhdGFVUkwoZmlsZSk7CiAgfSk7CgogIGZ1bmN0aW9uIGRyYXcoKSB7CiAgICBpZiAoIWltZykgcmV0dXJuOwogICAg" +
+      "Y3R4LmNsZWFyUmVjdCgwLCAwLCBjYW52YXMud2lkdGgsIGNhbnZhcy5oZWlnaHQpOwogICAgY3R4LmRyYXdJbWFnZShpbWcsIDAsIDAsIGNhbnZhcy53aWR0" +
+      "aCwgY2FudmFzLmhlaWdodCk7CiAgICBpZiAoem9uZSkgewogICAgICBjb25zdCBkeCA9IHpvbmUueCAqIHNjYWxlLCBkeSA9IHpvbmUueSAqIHNjYWxlLCBk" +
+      "dyA9IHpvbmUudyAqIHNjYWxlLCBkaCA9IHpvbmUuaCAqIHNjYWxlOwogICAgICBjdHguZmlsbFN0eWxlID0gJ3JnYmEoMjMyLCAxOTcsIDcxLCAwLjE2KSc7" +
+      "CiAgICAgIGN0eC5maWxsUmVjdChkeCwgZHksIGR3LCBkaCk7CiAgICAgIGN0eC5zdHJva2VTdHlsZSA9ICcjZThjNTQ3JzsKICAgICAgY3R4LmxpbmVXaWR0" +
+      "aCA9IDI7CiAgICAgIGN0eC5zZXRMaW5lRGFzaChbNiwgNV0pOwogICAgICBjdHguc3Ryb2tlUmVjdChkeCwgZHksIGR3LCBkaCk7CiAgICAgIGN0eC5zZXRM" +
+      "aW5lRGFzaChbXSk7CiAgICB9CiAgfQoKICBmdW5jdGlvbiBjYW52YXNQb3MoZSkgewogICAgY29uc3QgcmVjdCA9IGNhbnZhcy5nZXRCb3VuZGluZ0NsaWVu" +
+      "dFJlY3QoKTsKICAgIGNvbnN0IGN4ID0gKGUuY2xpZW50WCAtIHJlY3QubGVmdCkgKiAoY2FudmFzLndpZHRoIC8gcmVjdC53aWR0aCk7CiAgICBjb25zdCBj" +
+      "eSA9IChlLmNsaWVudFkgLSByZWN0LnRvcCkgKiAoY2FudmFzLmhlaWdodCAvIHJlY3QuaGVpZ2h0KTsKICAgIHJldHVybiB7IHg6IE1hdGgubWF4KDAsIE1h" +
+      "dGgubWluKGN4LCBjYW52YXMud2lkdGgpKSwgeTogTWF0aC5tYXgoMCwgTWF0aC5taW4oY3ksIGNhbnZhcy5oZWlnaHQpKSB9OwogIH0KCiAgY2FudmFzLmFk" +
+      "ZEV2ZW50TGlzdGVuZXIoJ21vdXNlZG93bicsIChlKSA9PiB7CiAgICBpZiAoIWltZykgcmV0dXJuOwogICAgZHJhZ2dpbmcgPSB0cnVlOwogICAgZHJhZ1N0" +
+      "YXJ0ID0gY2FudmFzUG9zKGUpOwogIH0pOwogIHdpbmRvdy5hZGRFdmVudExpc3RlbmVyKCdtb3VzZW1vdmUnLCAoZSkgPT4gewogICAgaWYgKCFkcmFnZ2lu" +
+      "ZyB8fCAhaW1nKSByZXR1cm47CiAgICBjb25zdCBwID0gY2FudmFzUG9zKGUpOwogICAgY29uc3QgeDAgPSBNYXRoLm1pbihkcmFnU3RhcnQueCwgcC54KSwg" +
+      "eTAgPSBNYXRoLm1pbihkcmFnU3RhcnQueSwgcC55KTsKICAgIGNvbnN0IHcgPSBNYXRoLmFicyhwLnggLSBkcmFnU3RhcnQueCksIGggPSBNYXRoLmFicyhw" +
+      "LnkgLSBkcmFnU3RhcnQueSk7CiAgICB6b25lID0geyB4OiB4MCAvIHNjYWxlLCB5OiB5MCAvIHNjYWxlLCB3OiB3IC8gc2NhbGUsIGg6IGggLyBzY2FsZSB9" +
+      "OwogICAgZHJhdygpOwogICAgdXBkYXRlUmVhZG91dCgpOwogIH0pOwogIHdpbmRvdy5hZGRFdmVudExpc3RlbmVyKCdtb3VzZXVwJywgKCkgPT4geyBkcmFn" +
+      "Z2luZyA9IGZhbHNlOyB9KTsKCiAgZnVuY3Rpb24gdXBkYXRlUmVhZG91dCgpIHsKICAgIGlmICghaW1nIHx8ICF6b25lIHx8IHpvbmUudyA8IDIgfHwgem9u" +
+      "ZS5oIDwgMikgewogICAgICBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncngnKS50ZXh0Q29udGVudCA9ICfigJQnOwogICAgICBkb2N1bWVudC5nZXRFbGVt" +
+      "ZW50QnlJZCgncnknKS50ZXh0Q29udGVudCA9ICfigJQnOwogICAgICBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncncnKS50ZXh0Q29udGVudCA9ICfigJQn" +
+      "OwogICAgICBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncmgnKS50ZXh0Q29udGVudCA9ICfigJQnOwogICAgICBhZGRCdG4uZGlzYWJsZWQgPSB0cnVlOwog" +
+      "ICAgICByZXR1cm47CiAgICB9CiAgICBjb25zdCBwY3QgPSAodiwgdG90YWwpID0+ICgodiAvIHRvdGFsKSAqIDEwMCkudG9GaXhlZCgxKTsKICAgIGRvY3Vt" +
+      "ZW50LmdldEVsZW1lbnRCeUlkKCdyeCcpLnRleHRDb250ZW50ID0gcGN0KHpvbmUueCwgaW1nLm5hdHVyYWxXaWR0aCk7CiAgICBkb2N1bWVudC5nZXRFbGVt" +
+      "ZW50QnlJZCgncnknKS50ZXh0Q29udGVudCA9IHBjdCh6b25lLnksIGltZy5uYXR1cmFsSGVpZ2h0KTsKICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdy" +
+      "dycpLnRleHRDb250ZW50ID0gcGN0KHpvbmUudywgaW1nLm5hdHVyYWxXaWR0aCk7CiAgICBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncmgnKS50ZXh0Q29u" +
+      "dGVudCA9IHBjdCh6b25lLmgsIGltZy5uYXR1cmFsSGVpZ2h0KTsKICAgIGFkZEJ0bi5kaXNhYmxlZCA9IGZhbHNlOwogIH0KCiAgY29uc3Qgcm93cyA9IFtd" +
+      "OwogIGFkZEJ0bi5hZGRFdmVudExpc3RlbmVyKCdjbGljaycsICgpID0+IHsKICAgIGlmICghaW1nIHx8ICF6b25lKSByZXR1cm47CiAgICBjb25zdCB0ZW1w" +
+      "bGF0ZUlkID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3RlbXBsYXRlSWQnKS52YWx1ZS50cmltKCkgfHwgJ1BUX3VudGl0bGVkJzsKICAgIGNvbnN0IHBy" +
+      "b2R1Y3RUeXBlID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3Byb2R1Y3RUeXBlJykudmFsdWUudHJpbSgpIHx8ICd0c2hpcnQnOwogICAgY29uc3QgZ2Fy" +
+      "bWVudENvbG9yID0gZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2dhcm1lbnRDb2xvcicpLnZhbHVlOwogICAgY29uc3QgcGxhY2VtZW50ID0gZG9jdW1lbnQu" +
+      "Z2V0RWxlbWVudEJ5SWQoJ3BsYWNlbWVudCcpLnZhbHVlOwogICAgY29uc3QgYXggPSAoKHpvbmUueCAvIGltZy5uYXR1cmFsV2lkdGgpICogMTAwKS50b0Zp" +
+      "eGVkKDEpOwogICAgY29uc3QgYXkgPSAoKHpvbmUueSAvIGltZy5uYXR1cmFsSGVpZ2h0KSAqIDEwMCkudG9GaXhlZCgxKTsKICAgIGNvbnN0IGF3ID0gKCh6" +
+      "b25lLncgLyBpbWcubmF0dXJhbFdpZHRoKSAqIDEwMCkudG9GaXhlZCgxKTsKICAgIGNvbnN0IGFoID0gKCh6b25lLmggLyBpbWcubmF0dXJhbEhlaWdodCkg" +
+      "KiAxMDApLnRvRml4ZWQoMSk7CgogICAgcm93cy5wdXNoKHsgdGVtcGxhdGVJZCwgcHJvZHVjdFR5cGUsIGdhcm1lbnRDb2xvciwgcGxhY2VtZW50LCBheCwg" +
+      "YXksIGF3LCBhaCwgaW1nVzogaW1nLm5hdHVyYWxXaWR0aCwgaW1nSDogaW1nLm5hdHVyYWxIZWlnaHQgfSk7CiAgICByZW5kZXJMaXN0KCk7CiAgfSk7Cgog" +
+      "IGZ1bmN0aW9uIHJlbmRlckxpc3QoKSB7CiAgICBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnY291bnQnKS50ZXh0Q29udGVudCA9IHJvd3MubGVuZ3RoOwog" +
+      "ICAgY29uc3Qgc3FsID0gcm93cy5tYXAociA9PgogICAgICBgVVBEQVRFIHByaW50X3RlbXBsYXRlcyBTRVQgYXJlYV94ID0gJHtyLmF4fSwgYXJlYV95ID0g" +
+      "JHtyLmF5fSwgYXJlYV93ID0gJHtyLmF3fSwgYXJlYV9oID0gJHtyLmFofSwgaW1hZ2Vfd2lkdGggPSAke3IuaW1nV30sIGltYWdlX2hlaWdodCA9ICR7ci5p" +
+      "bWdIfVxuICBXSEVSRSB0ZW1wbGF0ZV9pZCA9ICcke3IudGVtcGxhdGVJZH0nO2AKICAgICkuam9pbignXG5cbicpOwogICAgZG9jdW1lbnQuZ2V0RWxlbWVu" +
+      "dEJ5SWQoJ3NxbE91dCcpLnRleHRDb250ZW50ID0gc3FsIHx8ICctLSBOb3RoaW5nIGFkZGVkIHlldC4nOwoKICAgIGNvbnN0IGxpc3RFbCA9IGRvY3VtZW50" +
+      "LmdldEVsZW1lbnRCeUlkKCdyb3dMaXN0Jyk7CiAgICBsaXN0RWwuaW5uZXJIVE1MID0gJyc7CiAgICByb3dzLmZvckVhY2goKHIsIGkpID0+IHsKICAgICAg" +
+      "Y29uc3QgZGl2ID0gZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnZGl2Jyk7CiAgICAgIGRpdi5jbGFzc05hbWUgPSAncm93LWl0ZW0nOwogICAgICBkaXYuaW5u" +
+      "ZXJIVE1MID0gYCR7aSArIDF9LiAke3IudGVtcGxhdGVJZH0g4oCUICR7ci5wcm9kdWN0VHlwZX0vJHtyLmdhcm1lbnRDb2xvcn0vJHtyLnBsYWNlbWVudH0g" +
+      "4oCUIHg6JHtyLmF4fSUgeToke3IuYXl9JSB3OiR7ci5hd30lIGg6JHtyLmFofSUg4oCUIHBob3RvICR7ci5pbWdXfcOXJHtyLmltZ0h9PHNwYW4gY2xhc3M9" +
+      "ImRlbCIgZGF0YS1pPSIke2l9Ij5yZW1vdmU8L3NwYW4+YDsKICAgICAgbGlzdEVsLmFwcGVuZENoaWxkKGRpdik7CiAgICB9KTsKICAgIGxpc3RFbC5xdWVy" +
+      "eVNlbGVjdG9yQWxsKCcuZGVsJykuZm9yRWFjaChlbCA9PiB7CiAgICAgIGVsLmFkZEV2ZW50TGlzdGVuZXIoJ2NsaWNrJywgKCkgPT4gewogICAgICAgIHJv" +
+      "d3Muc3BsaWNlKHBhcnNlSW50KGVsLmRhdGFzZXQuaSksIDEpOwogICAgICAgIHJlbmRlckxpc3QoKTsKICAgICAgfSk7CiAgICB9KTsKICB9CgogIGRvY3Vt" +
+      "ZW50LmdldEVsZW1lbnRCeUlkKCdjb3B5QnRuJykuYWRkRXZlbnRMaXN0ZW5lcignY2xpY2snLCAoKSA9PiB7CiAgICBjb25zdCB0ZXh0ID0gZG9jdW1lbnQu" +
+      "Z2V0RWxlbWVudEJ5SWQoJ3NxbE91dCcpLnRleHRDb250ZW50OwogICAgbmF2aWdhdG9yLmNsaXBib2FyZC53cml0ZVRleHQodGV4dCkudGhlbigoKSA9PiB7" +
+      "CiAgICAgIGNvbnN0IGJ0biA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdjb3B5QnRuJyk7CiAgICAgIGNvbnN0IG9yaWdpbmFsID0gYnRuLnRleHRDb250" +
+      "ZW50OwogICAgICBidG4udGV4dENvbnRlbnQgPSAnQ29waWVkJzsKICAgICAgc2V0VGltZW91dCgoKSA9PiB7IGJ0bi50ZXh0Q29udGVudCA9IG9yaWdpbmFs" +
+      "OyB9LCAxMjAwKTsKICAgIH0pOwogIH0pOwo8L3NjcmlwdD4KPC9ib2R5Pgo8L2h0bWw+Cg==";
+    function identityCheckBasicAuth(request, env) {
+      const header = request.headers.get("Authorization") || "";
+      if (!header.startsWith("Basic ")) return false;
+      let decoded;
+      try { decoded = atob(header.slice(6)); } catch { return false; }
+      const sepIdx = decoded.indexOf(":");
+      const pass = sepIdx >= 0 ? decoded.slice(sepIdx + 1) : decoded;
+      return !!env.CALIBRATOR_PASSWORD && pass === env.CALIBRATOR_PASSWORD;
+    }
+    async function handleAdminCalibrator(request, env) {
+      if (!identityCheckBasicAuth(request, env)) {
+        return new Response("Authentication required", {
+          status: 401,
+          headers: { "WWW-Authenticate": 'Basic realm="ZVAKHO internal tools"' }
+        });
+      }
+      const bytes = Uint8Array.from(atob(IDENTITY_CALIBRATOR_HTML_B64), (c) => c.charCodeAt(0));
+      const html = new TextDecoder().decode(bytes);
+      return new Response(html, { headers: { "Content-Type": "text/html;charset=utf-8" } });
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // BRAND IDENTITY / ARTWORK GENERATOR  (v2 — private/public split)
     // Ported from the standalone Brand Identity backend build into this
@@ -4773,6 +4942,11 @@ export default {
       // draft key here; handleIdentityPreviewServe checks brand_id itself.
       if (path.startsWith("/identity/preview/") && request.method === "GET") {
         return await handleIdentityPreviewServe(request, env, decodeURIComponent(path.slice("/identity/preview/".length)));
+      }
+      // Internal tool, Basic-Auth gated (not the normal Bearer session
+      // auth) so it opens from a plain bookmarked browser URL.
+      if (path === "/admin/calibrator" && request.method === "GET") {
+        return await handleAdminCalibrator(request, env);
       }
 
       // ─── WHOLESALE MANUFACTURING ROUTES ───────────────────────
