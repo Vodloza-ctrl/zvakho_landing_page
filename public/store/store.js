@@ -170,7 +170,7 @@
     if (nameEl) nameEl.textContent = theme.hero_title || artist.artist_name;
 
     const subEl = $('#storeSub');
-    if (subEl) subEl.textContent = artist.bio || artist.tagline || artist.genre || 'Official music and merch store powered by ZVAKHO.';
+    if (subEl) subEl.textContent = artist.bio || artist.tagline || artist.genre || (artist.white_label ? 'Official store.' : 'Official music and merch store powered by ZVAKHO.');
 
     const genreEl = $('#artistGenre');
     if (genreEl) genreEl.textContent = artist.genre || 'Artist';
@@ -191,16 +191,22 @@
     if (storyTitle) storyTitle.textContent = `${artist.artist_name} world`;
 
     const bio = $('#artistBio');
-    if (bio) bio.textContent = artist.bio || artist.tagline || 'Official music, merch and direct-to-fan releases powered by ZVAKHO.';
+    if (bio) bio.textContent = artist.bio || artist.tagline || (artist.white_label ? 'Official store.' : 'Official music, merch and direct-to-fan releases powered by ZVAKHO.');
 
     const footerQuote = $('#footerQuote');
-    if (footerQuote) footerQuote.textContent = artist.footer_quote || artist.tagline || 'Official store powered by ZVAKHO.';
+    if (footerQuote) footerQuote.textContent = artist.footer_quote || artist.tagline || (artist.white_label ? '' : 'Official store powered by ZVAKHO.');
 
     const footerName = $('#footerArtistName');
     if (footerName) footerName.textContent = `${artist.artist_name} Official Store`;
 
     const footerMeta = $('#footerMeta');
     if (footerMeta) footerMeta.textContent = [artist.genre, 'Music', 'Merch'].filter(Boolean).join(' • ');
+
+    // White-label (Grow/Pro plans): hide the ZVAKHO credit block in the
+    // footer/nav. Free tier keeps it — that's the trade for the free plan.
+    document.querySelectorAll('[data-zvakho-branding]').forEach(el => {
+      el.style.display = artist.white_label ? 'none' : '';
+    });
 
     const tickerText = theme.ticker_text || `${artist.artist_name} • OFFICIAL STORE • MUSIC • MERCH • LIMITED RELEASES •`;
     const tickerTrack = $('#tickerTrack');
@@ -773,6 +779,20 @@
     try {
       const url = api(`/store-config?artist=${encodeURIComponent(slug)}`);
       STORE = await fetchJSON(url);
+
+      // FIX: the worker's /store-config returns `brand`, not `artist` (from
+      // the brand_id migration). Every render function below still reads
+      // `STORE.artist.*`, so alias it here rather than touching every call
+      // site — also maps the couple of renamed/missing fields.
+      if (STORE.brand) {
+        STORE.artist = {
+          ...STORE.brand,
+          artist_id: STORE.brand.brand_id,
+          artist_name: STORE.brand.brand_name,
+          industry_preference: STORE.brand.visual_style || STORE.brand.brand_feeling || '',
+          profile_image_url: STORE.brand.profile_image_url || STORE.brand.hero_image_url || STORE.brand.logo_url || ''
+        };
+      }
 
       if (STORE.artist && !STORE.artist.industry_preference) {
         STORE.artist.industry_preference = 'streetwear';
