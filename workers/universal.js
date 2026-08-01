@@ -1,5 +1,6 @@
 // ================================================================
-// ZVAKHO Universal Worker — v28 (all 11 archetype renderers now built)
+// ZVAKHO Universal Worker — v29 (fixes a real bug found via live testing:
+// double-slash in generated URLs)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem;
 // this patch only adds the /identity/*, /assets/* routes and does not
@@ -8,13 +9,21 @@
 // conventions: raw env.DB.prepare(), authenticateRequest()/
 // jsonResponse(), no imports.
 //
+// v29 fix: a REAL /identity/generate call against the live worker
+// (first actual end-to-end test of this whole system) returned
+// preview_url/mockup_preview_url values with a double slash right after
+// the domain -- ".dev//identity/preview/...". Cause: env.BASE_URL is
+// configured with a trailing slash in the dashboard, and identityBaseUrl()
+// was concatenating it directly. A path starting with "//identity/preview/"
+// fails the route's startsWith("/identity/preview/") check, so those
+// exact URLs would have 404'd. Fixed by stripping any trailing slash in
+// identityBaseUrl() itself -- every caller gets a clean base now
+// regardless of how the env var is configured.
+//
 // All 11 archetypes seeded in the DB now have a matching render function:
 // wordmark, arc_label_stack, split_connector, circle_badge, bootleg_stack,
-// monogram_mark (existing) + ornate_tagline, script_serif_script,
-// arc_label_shadow_word, boxed_tagline, weight_contrast_word (new in
-// v28). weight_contrast_word does genuine font-weight contrast (not a
-// faux tint) when the picked font is variable, via a font-weight RANGE
-// on its @font-face -- see identityFontFaceStyleBlock.
+// monogram_mark, ornate_tagline, script_serif_script, arc_label_shadow_word,
+// boxed_tagline, weight_contrast_word.
 //
 // ONE R2 binding, env.R2 -- fonts, identity concepts/mockups, AND garment
 // reference photography (mock-up/... prefix) all live in the same
@@ -29,8 +38,7 @@
 // selected, files are copied to a brands/{id}/public/ prefix and served
 // via the open GET /assets/:key, which also allowlists the mock-up/
 // prefix for garment photos (hard-checked -- everything else 404s
-// regardless of whether the object exists). No R2_PUBLIC_URL env var
-// needed -- asset URLs are built from env.BASE_URL. Requires only the R2
+// regardless of whether the object exists). Requires only the R2
 // binding (var name "R2") -- see DEPLOY NOTES at the bottom.
 //
 // Print placement: generate()/mockup() accept an optional `placement`
@@ -2775,7 +2783,14 @@ export default {
     const IDENTITY_MAX_GENERATIONS = 3;
 
     function identityBaseUrl(env) {
-      return env.BASE_URL || "https://zvakho-workers-universal.yasibomedia.workers.dev";
+      // env.BASE_URL is configured with a trailing slash in the dashboard
+      // (confirmed via a real /identity/generate call returning
+      // "...dev//identity/preview/..." -- a double slash that fails the
+      // route's startsWith() prefix check). Strip any trailing slash here
+      // so every caller gets a clean base regardless of how the env var
+      // is configured.
+      const raw = env.BASE_URL || "https://zvakho-workers-universal.yasibomedia.workers.dev";
+      return raw.replace(/\/+$/, "");
     }
     function identityAssetContentType(key) {
       if (key.endsWith(".svg")) return "image/svg+xml";
