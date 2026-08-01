@@ -1,35 +1,36 @@
 // ================================================================
-// ZVAKHO Universal Worker — v26 (front/back print placement + second
-// R2 bucket for garment/merch photography)
+// ZVAKHO Universal Worker — v27 (front/back print placement, garment
+// photos corrected to the same R2 bucket as fonts)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem;
-// this patch only adds the /identity/*, /assets/*, /merch/* routes and
-// does not touch anything else). Brand Identity generate/select/get/
-// mockup logic ported from the standalone backend build into this file's
-// own conventions: raw env.DB.prepare(), authenticateRequest()/
+// this patch only adds the /identity/*, /assets/* routes and does not
+// touch anything else). Brand Identity generate/select/get/mockup logic
+// ported from the standalone backend build into this file's own
+// conventions: raw env.DB.prepare(), authenticateRequest()/
 // jsonResponse(), no imports.
 //
-// TWO R2 buckets, two separate bindings:
-//   - env.R2       -- fonts + identity concepts/mockups (private/public
-//                      split, see below)
-//   - env.MERCH_R2 -- garment reference photography + product imagery,
-//                      served fully open via /merch/:key (this bucket has
-//                      no private tier -- it's reference/product photos by
-//                      definition)
+// ONE R2 binding, env.R2 -- fonts, identity concepts/mockups, AND garment
+// reference photography (mock-up/... prefix) all live in the same
+// bucket. (An earlier version of this file assumed garments were in a
+// separate bucket -- corrected. The account's other R2 bucket holds
+// unrelated live production data -- artist product photos and legacy
+// music files from the still-running old storefronts -- and is
+// deliberately NOT touched by this worker or this patch.)
 //
-// Access model on env.R2: the bucket is NEVER made public at the
-// Cloudflare level (no r2.dev subdomain, no custom domain). Draft
-// concepts are only reachable via GET /identity/preview/:key (owner-auth-
-// gated); once selected, files are copied to a brands/{id}/public/
-// prefix and served via the open GET /assets/:key (hard prefix-checked).
-// No R2_PUBLIC_URL env var needed -- asset URLs are built from
-// env.BASE_URL. Requires both R2 bindings (var names "R2" and
-// "MERCH_R2") -- see DEPLOY NOTES at the bottom.
+// Access model: the bucket is NEVER made public at the Cloudflare level
+// (no r2.dev subdomain, no custom domain). Draft concepts are only
+// reachable via GET /identity/preview/:key (owner-auth-gated); once
+// selected, files are copied to a brands/{id}/public/ prefix and served
+// via the open GET /assets/:key, which also allowlists the mock-up/
+// prefix for garment photos (hard-checked -- everything else 404s
+// regardless of whether the object exists). No R2_PUBLIC_URL env var
+// needed -- asset URLs are built from env.BASE_URL. Requires only the R2
+// binding (var name "R2") -- see DEPLOY NOTES at the bottom.
 //
-// Print placement: generate()/mockup() now accept an optional
-// `placement` field ("front_chest" | "pocket" | "back", defaults to
-// front_chest) threaded through to print_templates lookup -- lets you
-// request a back-print mockup for an already-generated concept without
+// Print placement: generate()/mockup() accept an optional `placement`
+// field ("front_chest" | "pocket" | "back", defaults to front_chest)
+// threaded through to print_templates lookup -- lets you request a
+// back-print mockup for an already-generated concept without
 // regenerating the concept itself.
 // ================================================================
 
@@ -2779,18 +2780,15 @@ export default {
       if (key.endsWith(".webp")) return "image/webp";
       return "application/octet-stream";
     }
-    // Garment reference photos live in a SEPARATE bucket (env.MERCH_R2),
-    // not the fonts/identity one (env.R2) -- see deploy notes for the
-    // second binding this requires. Builds an absolute URL through this
-    // worker's own /merch/ route (that bucket is private too -- nothing
-    // reads it directly). Filenames may contain spaces (e.g.
-    // "tshirt black front.webp"), so each path segment is percent-encoded
-    // individually -- encoding the whole key at once would also encode the
-    // "/" separators, which breaks the route's prefix parsing.
-    function identityMerchImageUrl(env, r2Key) {
+    // Garment reference photos live in the SAME bucket as fonts (env.R2)
+    // -- corrected after an earlier wrong assumption that they were in
+    // the second bucket. Served via the same open /assets/ route as
+    // selected brand identities, under a dedicated mock-up/ prefix (see
+    // handleAssetServe's allowlist below).
+    function identityGarmentImageUrl(env, r2Key) {
       if (/^https?:\/\//.test(r2Key)) return r2Key; // already-absolute override, used as-is
       const encoded = r2Key.split("/").map(encodeURIComponent).join("/");
-      return `${identityBaseUrl(env)}/merch/${encoded}`;
+      return `${identityBaseUrl(env)}/assets/${encoded}`;
     }
 
     // ── small SVG helpers ──
@@ -3285,7 +3283,7 @@ export default {
       const drawW = conceptW * scale, drawH = conceptH * scale;
       const drawX = zoneX + (zoneW - drawW) / 2;
       const drawY = zoneY + (zoneH - drawH) / 2;
-      const garmentImageUrl = identityMerchImageUrl(env, template.base_image_url);
+      const garmentImageUrl = identityGarmentImageUrl(env, template.base_image_url);
       return `<svg viewBox="0 0 ${canvasW} ${canvasH}" xmlns="http://www.w3.org/2000/svg">
   <image href="${garmentImageUrl}" x="0" y="0" width="${canvasW}" height="${canvasH}" preserveAspectRatio="xMidYMid slice"/>
   <g transform="translate(${drawX.toFixed(1)}, ${drawY.toFixed(1)}) scale(${scale.toFixed(4)})">
@@ -3305,35 +3303,24 @@ export default {
     }
 
     // ── asset-serving routes ──
-    // Open, unauthenticated -- but only ever serves keys under
-    // brands/{id}/public/, checked with a hard prefix match. Even a
-    // correctly-guessed draft key under .../identity/drafts/... gets a 403
-    // here; that path only exists in /identity/preview/, which requires
-    // owner auth.
+    // Open, unauthenticated -- but only ever serves keys under two
+    // deliberate prefixes, checked with a hard match:
+    //   brands/{id}/public/  -- a brand's selected identity, once picked
+    //   mock-up/              -- shared garment reference photography
+    //                            (blank tshirts etc.), same bucket as
+    //                            fonts, not brand-specific, nothing
+    //                            sensitive about it
+    // Even a correctly-guessed draft key under .../identity/drafts/...
+    // gets a 404 here; that path only exists in /identity/preview/, which
+    // requires owner auth.
     async function handleAssetServe(env, key) {
-      if (!/^brands\/[^/]+\/public\//.test(key)) {
+      if (!/^brands\/[^/]+\/public\//.test(key) && !/^mock-up\//.test(key)) {
         return jsonResponse({ error: "Not found" }, 404);
       }
       const obj = await env.R2.get(key);
       if (!obj) return jsonResponse({ error: "Not found" }, 404);
       return new Response(obj.body, {
         headers: { "Content-Type": identityAssetContentType(key), "Cache-Control": "public, max-age=3600" }
-      });
-    }
-    // Second bucket (env.MERCH_R2), separate binding -- garment reference
-    // photography and general product/merch imagery. Served fully open: no
-    // prefix restriction, unlike handleAssetServe above. This bucket is
-    // reference/product photography by definition (nothing a customer
-    // shouldn't eventually see), not a mix of private drafts + public
-    // finals like the identity bucket is -- so there's no "private" tier
-    // to protect here. Flag if that assumption is wrong and this needs the
-    // same prefix-restricted treatment.
-    async function handleMerchAssetServe(env, key) {
-      if (!env.MERCH_R2) return jsonResponse({ error: "MERCH_R2 binding not configured" }, 500);
-      const obj = await env.MERCH_R2.get(key);
-      if (!obj) return jsonResponse({ error: "Not found" }, 404);
-      return new Response(obj.body, {
-        headers: { "Content-Type": identityAssetContentType(key), "Cache-Control": "public, max-age=86400" }
       });
     }
     async function handleIdentityPreviewServe(request, env, key) {
@@ -4603,13 +4590,6 @@ export default {
       // draft key here; handleIdentityPreviewServe checks brand_id itself.
       if (path.startsWith("/identity/preview/") && request.method === "GET") {
         return await handleIdentityPreviewServe(request, env, decodeURIComponent(path.slice("/identity/preview/".length)));
-      }
-      // Second bucket (env.MERCH_R2) — garment reference photography and
-      // general product/merch imagery. Open, no auth, whole bucket —
-      // see handleMerchAssetServe for why this one isn't prefix-restricted
-      // the way /assets/ is.
-      if (path.startsWith("/merch/") && request.method === "GET") {
-        return await handleMerchAssetServe(env, decodeURIComponent(path.slice("/merch/".length)));
       }
 
       // ─── WHOLESALE MANUFACTURING ROUTES ───────────────────────
