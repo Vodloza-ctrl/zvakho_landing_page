@@ -1,20 +1,21 @@
 // ================================================================
-// ZVAKHO Universal Worker — v33 (fixes a real compositing bug: logo's own
-// background plate was covering part of the shirt in mockups)
+// ZVAKHO Universal Worker — v34 (real fix: artwork is never generated
+// with a baked-in background at all, not just stripped before compositing)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
 //
-// v33 fix: a real mockup came back with a stark white rectangle sitting
-// on top of the shirt photo, with the logo inside it -- looked like a
-// sticker slapped on, not a print. Root cause: identitySvgDoc() bakes an
-// opaque `<rect width="100%" height="100%" fill="${bg}"/>` background
-// into every standalone logo SVG -- correct when that logo is shown on
-// its own (preview_url), but compositeMockup() was extracting that
-// entire inner content (background rect included) and layering it
-// straight onto the garment photo. Fixed by stripping just that one rect
-// out of the extracted content before compositing -- the <style> block
-// (embedded @font-face, still needed to render the logo's own text) is
-// left untouched, only the opaque background plate is removed.
+// v34: the v33 fix (regex-strip the background rect before compositing)
+// treated the symptom, not the cause -- confirmed live and correct, but
+// the underlying design was still wrong: identitySvgDoc() baked an
+// opaque background into every stored artwork SVG in the first place.
+// Real print production never bakes a background into artwork; ink sits
+// directly on the garment. Fixed at the source: identitySvgDoc() no
+// longer draws any background rect at all -- all generated artwork
+// (logos, mockup composites) is genuinely transparent now. The v33
+// regex-strip in compositeMockup() is gone too -- nothing left to strip.
+// (`preview_url` has always pointed at the black-ink variant specifically,
+// so this doesn't create a white-on-white visibility problem for
+// anything currently reachable through the API.)
 //
 // v32: the calibrator tool (added in v31) only ever generated SQL text
 // to copy-paste -- no real persistence, which was confusing ("no way of
@@ -3099,8 +3100,17 @@ export default {
       return `<style>${rules.join("")}</style>`;
     }
     async function identitySvgDoc(env, w, h, bg, fontEntries, inner, fontCache) {
+      // Artwork is ALWAYS transparent -- no background rect, ever. Real
+      // print production never bakes a background into the artwork file;
+      // ink sits directly on whatever the garment color is. The earlier
+      // version drew a `bg`-colored rect here purely so a white-ink logo
+      // wasn't invisible when eyeballed on its own -- but baking that into
+      // the STORED artwork was the actual mistake (v33's regex-strip in
+      // compositeMockup was a patch on top of that mistake, not a real
+      // fix). `bg` is intentionally unused now -- kept as a parameter so
+      // none of the 11 archetype call sites needed changing.
       const styleBlock = await identityFontFaceStyleBlock(env, fontEntries, fontCache);
-      return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${styleBlock}<rect width="100%" height="100%" fill="${bg}"/>${inner}</svg>`;
+      return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${styleBlock}${inner}</svg>`;
     }
 
     // ── archetype renderers (all 11 registered archetypes now have a
@@ -3685,16 +3695,12 @@ export default {
       if (!conceptObj) throw new Error(`Concept SVG not found in R2: ${conceptSvgR2Key}`);
       const conceptSvg = await conceptObj.text();
       const innerMatch = conceptSvg.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
-      let conceptInner = innerMatch ? innerMatch[1] : conceptSvg;
-      // Every standalone logo SVG (identitySvgDoc) bakes in its own
-      // opaque background rect -- correct when the logo is shown on its
-      // own (preview_url), but wrong here: compositing it onto a garment
-      // photo means only the logo's actual shapes/text should be visible,
-      // not its full opaque background plate sitting on top of the shirt
-      // like a sticker. Strip just that one rect, keep everything else
-      // (the <style> block with the embedded @font-face is still needed
-      // to render the logo's own text correctly).
-      conceptInner = conceptInner.replace(/<rect width="100%" height="100%" fill="[^"]*"\/>/, "");
+      // No stripping needed as of v34 -- identitySvgDoc() no longer bakes
+      // a background rect into the artwork at all, so this inner content
+      // is already just the transparent logo shapes/text + the @font-face
+      // style block. (v33 patched around the old baked-in background with
+      // a regex strip here; that's gone now that the root cause is fixed.)
+      const conceptInner = innerMatch ? innerMatch[1] : conceptSvg;
       const viewBoxMatch = conceptSvg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
       const conceptW = viewBoxMatch ? parseFloat(viewBoxMatch[1]) : 600;
       const conceptH = viewBoxMatch ? parseFloat(viewBoxMatch[2]) : 300;
