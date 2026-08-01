@@ -1,9 +1,13 @@
 // ================================================================
-// ZVAKHO Universal Worker — v21 (Brand-unified, full feature parity)
-// Complete rewrite from the real live v19 worker: every route preserved at its
-// original path for frontend compatibility, internal identity model fully
-// migrated from the hardcoded ARTISTS object + artist_id to a real brands
-// table + resolveBrand(). See MIGRATION_NOTES at the bottom of this file.
+// ZVAKHO Universal Worker — v24 (adds Brand Identity / artwork generator)
+// Built directly on the real live v23 worker (version string below still
+// reads v23-real-merch-commission for the merch/commission subsystem;
+// this patch only adds the /identity/* routes and does not touch anything
+// else). Brand Identity generate/select/get/mockup logic ported from the
+// standalone backend build into this file's own conventions: raw
+// env.DB.prepare(), authenticateRequest()/jsonResponse(), no imports.
+// Requires an R2 binding (var name "R2") and R2_PUBLIC_URL env var, both
+// newly required by this patch -- see DEPLOY NOTES at the bottom.
 // ================================================================
 
 export default {
@@ -2708,6 +2712,637 @@ export default {
       return jsonResponse({ hasSubscription: true, subscription: sub });
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // BRAND IDENTITY / ARTWORK GENERATOR
+    // Ported from the standalone Brand Identity backend build into this
+    // worker's own conventions: raw env.DB.prepare() (no query/queryOne
+    // helper module), authenticateRequest()/jsonResponse() for consistency
+    // with every other route in this file. No new imports, no new files --
+    // this worker stays single-file.
+    //
+    // Requires (see deploy notes): an R2 bucket binding named `R2` on THIS
+    // worker (Settings -> Bindings -> R2 -- not present before this patch),
+    // an `R2_PUBLIC_URL` environment variable, and migrations
+    // 005_brand_identity_schema.sql + 006_seed_fonts.sql run against D1.
+    // ═══════════════════════════════════════════════════════════════
+
+    const IDENTITY_MAX_GENERATIONS = 3;
+
+    // ── small SVG helpers ──
+    function escapeXML(s) {
+      return String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+    }
+    function autoFitFontSize(text, maxWidth) {
+      const avgCharWidthRatio = 0.62;
+      const len = Math.max(String(text).length, 1);
+      let size = maxWidth / (len * avgCharWidthRatio);
+      return Math.round(Math.max(Math.min(size, 110), 22));
+    }
+    function splitForStack(text, maxParts = 2) {
+      const words = String(text).trim().split(/\s+/);
+      if (words.length >= maxParts) return words;
+      const mid = Math.ceil(text.length / 2);
+      return [text.slice(0, mid), text.slice(mid)];
+    }
+    function inkAndBg(ink) {
+      return ink === "#ffffff" ? "#141210" : "#ffffff";
+    }
+
+    // ── font fetch from R2, cached per-request via a plain Map ──
+    async function identityFetchFontBase64(env, r2Key, fontCache) {
+      if (fontCache.has(r2Key)) return fontCache.get(r2Key);
+      const obj = await env.R2.get(r2Key);
+      if (!obj) throw new Error(`Font not found in R2: ${r2Key}`);
+      const bytes = await obj.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(bytes)));
+      fontCache.set(r2Key, base64);
+      return base64;
+    }
+    async function identityFontFaceStyleBlock(env, fontEntries, fontCache) {
+      const rules = [];
+      for (const f of fontEntries) {
+        const base64 = await identityFetchFontBase64(env, f.r2_key, fontCache);
+        rules.push(`@font-face{font-family:'${f.family_name}';src:url(data:font/woff2;base64,${base64}) format('woff2');font-weight:${f.weight || 400};font-style:${f.style || "normal"};}`);
+      }
+      return `<style>${rules.join("")}</style>`;
+    }
+    async function identitySvgDoc(env, w, h, bg, fontEntries, inner, fontCache) {
+      const styleBlock = await identityFontFaceStyleBlock(env, fontEntries, fontCache);
+      return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${styleBlock}<rect width="100%" height="100%" fill="${bg}"/>${inner}</svg>`;
+    }
+
+    // ── archetype renderers (6 of 11 registered archetypes have a render
+    // function; see IDENTITY_ARCHETYPE_RENDERERS below for the remaining 5
+    // that still need porting -- see deploy notes) ──
+    async function renderWordmark(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName).toUpperCase();
+      const w = 600, h = 300;
+      const fontSize = autoFitFontSize(text, w - 60);
+      const weight = primaryFont.weight_class || 700;
+      const inner = `
+    <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${fontSize}">${escapeXML(text)}</text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    async function renderArcLabelStack(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName).toUpperCase();
+      const w = 600;
+      const r = w * 0.34, cx = w / 2;
+      const pathId = `arc_${Math.random().toString(36).slice(2, 8)}`;
+      const year = meta.foundedYear || new Date().getFullYear();
+      const fontSize = autoFitFontSize(text, r * 3.05);
+      const weight = primaryFont.weight_class || 600;
+      const ascenderMargin = fontSize * 0.85 + 14;
+      const cy = r + ascenderMargin;
+      const h = Math.round(cy + 110);
+      const inner = `
+    <path id="${pathId}" d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none"/>
+    <text style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${fontSize}" letter-spacing="0.05em">
+      <textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${escapeXML(text)}</textPath>
+    </text>
+    <text x="${cx}" y="${cy + 55}" text-anchor="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="15" letter-spacing="0.2em">EST.</text>
+    <text x="${cx}" y="${cy + 92}" text-anchor="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="none" stroke="${ink}"
+          stroke-width="1.4" font-size="26">${year}</text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    async function renderSplitConnector(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const words = splitForStack(String(brandName).toUpperCase(), 2);
+      const w = 600, h = 300;
+      const weight = primaryFont.weight_class || 700;
+      const connFont = supportFont || primaryFont;
+      const connWeight = supportFont ? (supportFont.weight_class || 400) : 400;
+      const fontSize = Math.round(autoFitFontSize(words[0] + (words[1] || ""), w - 80) * 0.78);
+      const inner = `
+    <text x="${w / 2}" y="${h * 0.32}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${fontSize}">${escapeXML(words[0])}</text>
+    <text x="${w / 2}" y="${h * 0.54}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${connFont.family_name}';font-style:italic;font-weight:${connWeight};"
+          fill="${ink}" font-size="${Math.round(fontSize * 0.42)}">&amp;</text>
+    <text x="${w / 2}" y="${h * 0.78}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${fontSize}">${escapeXML(words[1] || "")}</text>`;
+      const fontEntries = [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }];
+      if (supportFont) fontEntries.push({ family_name: supportFont.family_name, r2_key: supportFont.r2_key, weight: connWeight, style: "italic" });
+      return identitySvgDoc(env, w, h, bg, fontEntries, inner, fontCache);
+    }
+
+    async function renderCircleBadge(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName).toUpperCase();
+      const w = 600;
+      const cx = w / 2;
+      const weight = primaryFont.weight_class || 700;
+      const R = 175;
+      const marginTop = 40;
+      const cyCenter = R + marginTop;
+      const textArcR = R - 30;
+      const topPathId = `bt_${Math.random().toString(36).slice(2, 8)}`;
+      const bottomPathId = `bb_${Math.random().toString(36).slice(2, 8)}`;
+      const topLabel = (tag || "ORIGINAL").toUpperCase();
+      const bottomLabel = "SINCE " + (meta.foundedYear || new Date().getFullYear());
+      const fontSize = autoFitFontSize(text, textArcR * 1.5);
+      const h = Math.round(cyCenter + R + 40);
+      const inner = `
+    <circle cx="${cx}" cy="${cyCenter}" r="${R}" fill="none" stroke="${ink}" stroke-width="2.5"/>
+    <circle cx="${cx}" cy="${cyCenter}" r="${R - 10}" fill="none" stroke="${ink}" stroke-width="1"/>
+    <path id="${topPathId}" d="M ${cx - textArcR} ${cyCenter} A ${textArcR} ${textArcR} 0 0 1 ${cx + textArcR} ${cyCenter}" fill="none"/>
+    <text style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}" font-size="13" letter-spacing="0.15em">
+      <textPath href="#${topPathId}" startOffset="50%" text-anchor="middle">${escapeXML(topLabel)}</textPath>
+    </text>
+    <text x="${cx}" y="${cyCenter}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${fontSize}">${escapeXML(text)}</text>
+    <path id="${bottomPathId}" d="M ${cx - textArcR} ${cyCenter} A ${textArcR} ${textArcR} 0 0 0 ${cx + textArcR} ${cyCenter}" fill="none"/>
+    <text style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}" font-size="13" letter-spacing="0.15em">
+      <textPath href="#${bottomPathId}" startOffset="50%" text-anchor="middle">${escapeXML(bottomLabel)}</textPath>
+    </text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    function buildBootlegLines(brandName, tag, meta = {}) {
+      const year = meta.foundedYear || new Date().getFullYear();
+      const lines = [`EST. ${year}`];
+      if (meta.city) lines.push(String(meta.city).toUpperCase());
+      lines.push(`${(tag || "ORIGINAL").toUpperCase()} DIVISION`);
+      if (meta.tagline) lines.push(String(meta.tagline).toUpperCase());
+      lines.push(`#${String(brandName).replace(/\s+/g, "").toUpperCase()}`);
+      return lines.slice(0, 4);
+    }
+    async function renderBootlegStack(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName).toUpperCase();
+      const w = 640;
+      const weight = primaryFont.weight_class || 800;
+      const heroFontSize = autoFitFontSize(text, w - 60);
+      const lines = buildBootlegLines(brandName, tag, meta);
+      const lineFontSize = 20, lineGap = 34;
+      const heroY = 95, ruleY = 150;
+      const stackStartY = ruleY + 50;
+      const framePadding = 36;
+      const h = Math.round(stackStartY + lines.length * lineGap + framePadding);
+      const stackedText = lines.map((line, i) => `
+    <text x="${w / 2}" y="${stackStartY + i * lineGap}" text-anchor="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${lineFontSize}" letter-spacing="0.12em">${escapeXML(line)}</text>`).join("");
+      const inner = `
+    <text x="${w / 2}" y="${heroY}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${heroFontSize}">${escapeXML(text)}</text>
+    <line x1="${framePadding}" y1="${ruleY}" x2="${w - framePadding}" y2="${ruleY}" stroke="${ink}" stroke-width="3"/>
+    ${stackedText}
+    <rect x="14" y="14" width="${w - 28}" height="${h - 28}" fill="none" stroke="${ink}" stroke-width="2"/>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    function extractInitials(brandName) {
+      const words = String(brandName).trim().split(/\s+/).filter(Boolean);
+      if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+      return (words[0] || "?").slice(0, 1).toUpperCase();
+    }
+    const MONOGRAM_SHAPE_BY_CATEGORY = {
+      premium: "circle", elegant: "circle", vintage: "circle", handwritten: "circle",
+      streetwear: "hexagon", athletic: "hexagon", experimental: "hexagon",
+      modern: "square", creative: "square"
+    };
+    function shapePathForVariant(variant, w, h, ink) {
+      const cx = w / 2, cy = h / 2;
+      if (variant === "hexagon") {
+        const r = Math.min(w, h) * 0.46;
+        const pts = [];
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i - Math.PI / 2;
+          pts.push(`${(cx + r * Math.cos(angle)).toFixed(1)},${(cy + r * Math.sin(angle)).toFixed(1)}`);
+        }
+        return `<polygon points="${pts.join(" ")}" fill="none" stroke="${ink}" stroke-width="5"/>`;
+      }
+      if (variant === "square") {
+        const s = Math.min(w, h) * 0.8;
+        return `<rect x="${cx - s / 2}" y="${cy - s / 2}" width="${s}" height="${s}" rx="18" fill="none" stroke="${ink}" stroke-width="5"/>`;
+      }
+      const r = Math.min(w, h) * 0.46;
+      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${ink}" stroke-width="5"/>`;
+    }
+    async function renderMonogramMark(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const initials = extractInitials(brandName);
+      const w = 400, h = 400;
+      const weight = primaryFont.weight_class || 700;
+      const shapeVariant = MONOGRAM_SHAPE_BY_CATEGORY[tag] || "circle";
+      const fontSize = initials.length > 1 ? 130 : 170;
+      const inner = `
+    ${shapePathForVariant(shapeVariant, w, h, ink)}
+    <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${fontSize}">${escapeXML(initials)}</text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    const IDENTITY_ARCHETYPE_RENDERERS = {
+      wordmark: renderWordmark,
+      arc_label_stack: renderArcLabelStack,
+      split_connector: renderSplitConnector,
+      circle_badge: renderCircleBadge,
+      bootleg_stack: renderBootlegStack,
+      monogram_mark: renderMonogramMark
+      // NOT YET PORTED: ornate_tagline, script_serif_script,
+      // arc_label_shadow_word, boxed_tagline, weight_contrast_word.
+      // These 5 are seeded in the `archetypes` table (so they show up as
+      // structurally eligible) but have no render function here, so
+      // buildComboPool()/the generate loop will simply skip them if the
+      // random pick lands on one -- see deploy notes for how to add them.
+    };
+    const IDENTITY_ARCHETYPES_NEEDING_SUPPORT_FONT = new Set(["split_connector", "ornate_tagline", "script_serif_script"]);
+
+    // ── color engine (unchanged, pure math, no D1/R2 dependency) ──
+    const IDENTITY_CATEGORY_HUE_RANGES = {
+      premium: [220, 260], elegant: [330, 350], vintage: [20, 45], athletic: [10, 30],
+      streetwear: [0, 0], modern: [190, 210], creative: [40, 60], handwritten: [340, 20],
+      experimental: [270, 300]
+    };
+    function identityHslToHex(h, s, l) {
+      s /= 100; l /= 100;
+      const k = (n) => (n + h / 30) % 12;
+      const a = s * Math.min(l, 1 - l);
+      const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+      const toHex = (x) => Math.round(255 * x).toString(16).padStart(2, "0");
+      return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+    }
+    function identityHexToHsl(hex) {
+      const r = parseInt(hex.slice(1, 3), 16) / 255;
+      const g = parseInt(hex.slice(3, 5), 16) / 255;
+      const b = parseInt(hex.slice(5, 7), 16) / 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h, s, l = (max + min) / 2;
+      if (max === min) { h = s = 0; }
+      else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h *= 60;
+      }
+      return { h, s: s * 100, l: l * 100 };
+    }
+    function identityIsDark(hex) {
+      const { l } = identityHexToHsl(hex);
+      return l < 50;
+    }
+    function derivePalette(categoryTag, baseColorHex = null) {
+      let h, s, l;
+      if (baseColorHex) {
+        ({ h, s, l } = identityHexToHsl(baseColorHex));
+      } else {
+        const range = IDENTITY_CATEGORY_HUE_RANGES[categoryTag] || [200, 220];
+        h = range[0] === range[1] ? range[0] : range[0] + Math.random() * (range[1] - range[0]);
+        s = categoryTag === "streetwear" ? 5 : 55;
+        l = 45;
+      }
+      const base = baseColorHex || identityHslToHex(h, s, l);
+      const shade = identityHslToHex(h, s, Math.max(l - 28, 8));
+      const tint = identityHslToHex(h, Math.max(s - 20, 5), Math.min(l + 42, 95));
+      const ink = identityIsDark(base) ? "#ffffff" : "#000000";
+      return { base, shade, tint, ink, category_tag: categoryTag };
+    }
+
+    // ── font engine, rewritten against raw env.DB.prepare() ──
+    async function getFontPoolForCategory(env, categoryTag, printMethod = "dtf") {
+      let sql = `SELECT font_id, family_name, category_tag, r2_key, variable, weight_class, vinyl_capable
+                 FROM fonts WHERE category_tag = ? AND approved = 1`;
+      const params = [categoryTag];
+      if (printMethod === "vinyl") sql += " AND vinyl_capable = 1";
+      const res = await env.DB.prepare(sql).bind(...params).all();
+      return res.results || [];
+    }
+    async function getPairingPartnerPool(env, primaryCategoryTag, printMethod = "dtf") {
+      const partnersRes = await env.DB.prepare(`SELECT partner_category FROM font_pairing_partners WHERE primary_category = ?`).bind(primaryCategoryTag).all();
+      const partners = partnersRes.results || [];
+      if (!partners.length) return [];
+      const categories = partners.map((p) => p.partner_category);
+      const placeholders = categories.map(() => "?").join(",");
+      let sql = `SELECT font_id, family_name, category_tag, r2_key, variable, weight_class
+                 FROM fonts WHERE category_tag IN (${placeholders}) AND approved = 1`;
+      if (printMethod === "vinyl") sql += " AND vinyl_capable = 1";
+      const res = await env.DB.prepare(sql).bind(...categories).all();
+      return res.results || [];
+    }
+    function canSelfPair(font) {
+      return !!font.variable;
+    }
+    async function pickFontPairing(env, primaryCategoryTag, needsSupport, printMethod = "dtf") {
+      const primaryPool = await getFontPoolForCategory(env, primaryCategoryTag, printMethod);
+      if (!primaryPool.length) {
+        throw new Error(`No approved, print-eligible fonts in category "${primaryCategoryTag}" for print_method="${printMethod}"`);
+      }
+      const primary = primaryPool[Math.floor(Math.random() * primaryPool.length)];
+      if (!needsSupport) return { primary, support: null };
+      if (canSelfPair(primary)) return { primary, support: primary };
+      const partnerPool = await getPairingPartnerPool(env, primaryCategoryTag, printMethod);
+      if (partnerPool.length) {
+        const support = partnerPool[Math.floor(Math.random() * partnerPool.length)];
+        return { primary, support };
+      }
+      const workhorsePool = await getFontPoolForCategory(env, "modern", printMethod);
+      if (workhorsePool.length) {
+        const support = workhorsePool[Math.floor(Math.random() * workhorsePool.length)];
+        return { primary, support };
+      }
+      return { primary, support: primary };
+    }
+    async function buildComboPool(env, archetypeRows, personalityTag, printMethod, productType) {
+      const eligibleArchetypes = archetypeRows.filter((a) => {
+        const tags = JSON.parse(a.tags);
+        return tags.includes(personalityTag) && a.active;
+      });
+      if (productType === "cap") {
+        eligibleArchetypes.sort((a, b) => b.curved_friendly - a.curved_friendly);
+      }
+      const filtered = printMethod === "vinyl" ? eligibleArchetypes.filter((a) => !a.vinyl_geometry_caution) : eligibleArchetypes;
+      const pool = [];
+      for (const archetype of (filtered.length ? filtered : eligibleArchetypes)) {
+        if (!IDENTITY_ARCHETYPE_RENDERERS[archetype.archetype_id]) continue; // skip not-yet-ported archetypes
+        const fonts = await getFontPoolForCategory(env, personalityTag, printMethod);
+        for (const font of fonts) {
+          pool.push({ combo_id: `${archetype.archetype_id}::${font.font_id}`, archetype_id: archetype.archetype_id, font, curved_friendly: !!archetype.curved_friendly });
+        }
+      }
+      return pool;
+    }
+    function pickThreeDistinctCombos(pool, excludeComboIds = []) {
+      const available = pool.filter((c) => !excludeComboIds.includes(c.combo_id));
+      const distinctArchetypeCount = new Set(available.map((c) => c.archetype_id)).size;
+      const shuffled = [...available].sort(() => Math.random() - 0.5);
+      const picks = [];
+      const usedArchetypes = new Set();
+      for (const combo of shuffled) {
+        if (picks.length >= 3) break;
+        if (usedArchetypes.has(combo.archetype_id) && usedArchetypes.size < distinctArchetypeCount) continue;
+        picks.push(combo);
+        usedArchetypes.add(combo.archetype_id);
+      }
+      for (const combo of shuffled) {
+        if (picks.length >= 3) break;
+        if (!picks.includes(combo)) picks.push(combo);
+      }
+      return { picks: picks.slice(0, 3), poolExhausted: picks.length < 3 };
+    }
+
+    // ── brand-identity model helpers (raw D1; resolveBrand() above is
+    // reused directly for brand lookup rather than duplicating it) ──
+    async function getArchetypeRows(env) {
+      const res = await env.DB.prepare(`SELECT * FROM archetypes WHERE active = 1`).all();
+      return res.results || [];
+    }
+    async function getProductPrintMethod(env, productId) {
+      if (!productId) return "dtf";
+      const spec = await env.DB.prepare(`SELECT print_method FROM product_print_specs WHERE product_id = ?`).bind(productId).first();
+      return spec?.print_method || "dtf";
+    }
+    async function incrementGenerationRound(env, brandId, newShownComboIds) {
+      const brand = await resolveBrand(env, brandId);
+      const round = (brand?.identity_generation_count || 0) + 1;
+      await env.DB.prepare(`UPDATE brands SET identity_generation_count = ?, identity_shown_combo_ids = ?, updated_at = datetime('now') WHERE brand_id = ?`)
+        .bind(round, JSON.stringify(newShownComboIds), brandId).run();
+      return round;
+    }
+    async function saveConcept(env, brandId, round, concept) {
+      const conceptId = crypto.randomUUID();
+      await env.DB.prepare(`
+        INSERT INTO brand_identity_concepts (
+          concept_id, brand_id, generation_round, archetype_id, font_family,
+          support_font_family, combo_id, svg_black_r2_key, svg_white_r2_key,
+          mockup_r2_keys, palette_json, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        conceptId, brandId, round, concept.archetype_id, concept.font_family,
+        concept.support_font_family || null, concept.combo_id,
+        concept.svg_black_r2_key, concept.svg_white_r2_key,
+        JSON.stringify(concept.mockup_urls || []), JSON.stringify(concept.palette || {})
+      ).run();
+      return conceptId;
+    }
+    async function selectConcept(env, brandId, conceptId) {
+      const concept = await env.DB.prepare(`SELECT * FROM brand_identity_concepts WHERE concept_id = ? AND brand_id = ?`).bind(conceptId, brandId).first();
+      if (!concept) return null;
+      await env.DB.prepare(`UPDATE brand_identity_concepts SET is_selected = 0 WHERE brand_id = ?`).bind(brandId).run();
+      await env.DB.prepare(`UPDATE brand_identity_concepts SET is_selected = 1 WHERE concept_id = ?`).bind(conceptId).run();
+      const palette = JSON.parse(concept.palette_json || "{}");
+      // FIX vs. the original prototype: store the full public R2 URL on
+      // brands.logo_url, not the raw r2_key -- everywhere else in this
+      // worker (publicBrand, store-config, etc.) treats logo_url as a
+      // ready-to-render URL.
+      const logoUrl = `${env.R2_PUBLIC_URL}/${concept.svg_black_r2_key}`;
+      await env.DB.prepare(`
+        UPDATE brands SET
+          identity_archetype_id = ?, identity_selected_concept_id = ?,
+          font_primary = ?, font_secondary = ?,
+          primary_color = ?, secondary_color = ?, accent_color = ?,
+          logo_url = ?, updated_at = datetime('now')
+        WHERE brand_id = ?
+      `).bind(
+        concept.archetype_id, conceptId, concept.font_family,
+        concept.support_font_family || concept.font_family,
+        palette.base || "#000000", palette.shade || "#333333", palette.tint || "#f5f5f5",
+        logoUrl, brandId
+      ).run();
+      return { ...concept, logo_url: logoUrl };
+    }
+
+    // ── mockup compositor ──
+    async function getDefaultPrintTemplate(env, productType, ink) {
+      const garmentColor = ink === "#ffffff" ? "black" : "white";
+      let template = await env.DB.prepare(`
+        SELECT * FROM print_templates WHERE product_type = ? AND garment_color = ? AND active = 1
+        ORDER BY placement_name = 'front_chest' DESC LIMIT 1
+      `).bind(productType || "tshirt", garmentColor).first();
+      if (template) return template;
+      return await env.DB.prepare(`SELECT * FROM print_templates WHERE product_type = ? AND active = 1 LIMIT 1`).bind(productType || "tshirt").first();
+    }
+    async function compositeMockup(env, conceptSvgR2Key, template) {
+      if (!template) throw new Error("No print_template available for this product type/color -- cannot generate a mockup.");
+      const conceptObj = await env.R2.get(conceptSvgR2Key);
+      if (!conceptObj) throw new Error(`Concept SVG not found in R2: ${conceptSvgR2Key}`);
+      const conceptSvg = await conceptObj.text();
+      const innerMatch = conceptSvg.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+      const conceptInner = innerMatch ? innerMatch[1] : conceptSvg;
+      const viewBoxMatch = conceptSvg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+      const conceptW = viewBoxMatch ? parseFloat(viewBoxMatch[1]) : 600;
+      const conceptH = viewBoxMatch ? parseFloat(viewBoxMatch[2]) : 300;
+      const canvasW = 800, canvasH = 800;
+      const zoneX = (template.area_x / 100) * canvasW;
+      const zoneY = (template.area_y / 100) * canvasH;
+      const zoneW = (template.area_w / 100) * canvasW;
+      const zoneH = (template.area_h / 100) * canvasH;
+      const scale = Math.min(zoneW / conceptW, zoneH / conceptH) * 0.9;
+      const drawW = conceptW * scale, drawH = conceptH * scale;
+      const drawX = zoneX + (zoneW - drawW) / 2;
+      const drawY = zoneY + (zoneH - drawH) / 2;
+      return `<svg viewBox="0 0 ${canvasW} ${canvasH}" xmlns="http://www.w3.org/2000/svg">
+  <image href="${template.base_image_url}" x="0" y="0" width="${canvasW}" height="${canvasH}" preserveAspectRatio="xMidYMid slice"/>
+  <g transform="translate(${drawX.toFixed(1)}, ${drawY.toFixed(1)}) scale(${scale.toFixed(4)})">
+    ${conceptInner}
+  </g>
+</svg>`;
+    }
+    async function generateAndStoreMockup(env, brandId, conceptId, conceptSvgR2Key, productType, ink) {
+      const template = await getDefaultPrintTemplate(env, productType, ink);
+      const compositeSvg = await compositeMockup(env, conceptSvgR2Key, template);
+      const mockupKey = `brands/${brandId}/mockups/${conceptId}.svg`;
+      await env.R2.put(mockupKey, compositeSvg, { httpMetadata: { contentType: "image/svg+xml", cacheControl: "public, max-age=3600" } });
+      return `${env.R2_PUBLIC_URL}/${mockupKey}`;
+    }
+
+    // ── route handlers ──
+    async function handleIdentityGenerate(request, env) {
+      const auth = await authenticateRequest(request, env);
+      if (!auth.ok) return jsonResponse({ error: "Unauthorized" }, auth.status || 401);
+      const brandId = auth.user.brand_id;
+      if (!brandId) return jsonResponse({ error: "Brand required" }, 404);
+
+      const brand = await resolveBrand(env, brandId);
+      if (!brand) return jsonResponse({ error: "Brand not found" }, 404);
+
+      const currentRound = brand.identity_generation_count || 0;
+      if (currentRound >= IDENTITY_MAX_GENERATIONS) {
+        return jsonResponse({ error: `Maximum of ${IDENTITY_MAX_GENERATIONS} generations reached for this brand.`, generations_remaining: 0 }, 400);
+      }
+
+      let body;
+      try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+
+      const personalityTag = body.personality_tag || brand.brand_feeling;
+      if (!personalityTag) return jsonResponse({ error: "personality_tag required (or set brand_feeling on the brand first)" }, 400);
+
+      const productType = body.product_type || "tshirt";
+      const productId = body.product_id || null;
+      const creativeMode = !!(body.creative_mode ?? brand.identity_creative_mode);
+      const printMethod = await getProductPrintMethod(env, productId);
+      const meta = {
+        city: body.city || brand.identity_city || null,
+        foundedYear: body.founded_year || brand.identity_founded_year || null,
+        tagline: body.tagline || brand.identity_tagline || null
+      };
+
+      const archetypeRows = await getArchetypeRows(env);
+      let comboPool = await buildComboPool(env, archetypeRows, personalityTag, printMethod, productType);
+      if (creativeMode) {
+        const experimentalPool = await buildComboPool(env, archetypeRows, "experimental", printMethod, productType);
+        comboPool = comboPool.concat(experimentalPool);
+      }
+      if (!comboPool.length) {
+        return jsonResponse({ error: `No eligible archetype/font combinations for tag="${personalityTag}", print_method="${printMethod}". Check that fonts are approved=1 in this category.` }, 500);
+      }
+
+      const shownComboIds = JSON.parse(brand.identity_shown_combo_ids || "[]");
+      const { picks, poolExhausted } = pickThreeDistinctCombos(comboPool, shownComboIds);
+
+      const fontCache = new Map();
+      const concepts = [];
+      for (const combo of picks) {
+        const archetypeId = combo.archetype_id;
+        const renderFn = IDENTITY_ARCHETYPE_RENDERERS[archetypeId];
+        if (!renderFn) continue;
+
+        const needsSupport = IDENTITY_ARCHETYPES_NEEDING_SUPPORT_FONT.has(archetypeId);
+        const supportFont = needsSupport ? (await pickFontPairing(env, personalityTag, true, printMethod)).support : null;
+        const palette = derivePalette(personalityTag, body.base_color || null);
+
+        const svgBlack = await renderFn(env, combo.font, supportFont, brand.brand_name, "#000000", personalityTag, meta, fontCache);
+        const svgWhite = await renderFn(env, combo.font, supportFont, brand.brand_name, "#ffffff", personalityTag, meta, fontCache);
+
+        const svgBlackKey = `brands/${brandId}/identity/${combo.combo_id}_black_${Date.now()}.svg`;
+        const svgWhiteKey = `brands/${brandId}/identity/${combo.combo_id}_white_${Date.now()}.svg`;
+        await env.R2.put(svgBlackKey, svgBlack, { httpMetadata: { contentType: "image/svg+xml", cacheControl: "public, max-age=3600" } });
+        await env.R2.put(svgWhiteKey, svgWhite, { httpMetadata: { contentType: "image/svg+xml", cacheControl: "public, max-age=3600" } });
+
+        const conceptId = await saveConcept(env, brandId, currentRound + 1, {
+          archetype_id: archetypeId, font_family: combo.font.family_name,
+          support_font_family: supportFont?.family_name || null, combo_id: combo.combo_id,
+          svg_black_r2_key: svgBlackKey, svg_white_r2_key: svgWhiteKey, palette
+        });
+
+        const mockupUrl = await generateAndStoreMockup(env, brandId, conceptId, svgBlackKey, productType, "#000000");
+        await env.DB.prepare(`UPDATE brand_identity_concepts SET mockup_r2_keys = ? WHERE concept_id = ?`).bind(JSON.stringify([mockupUrl]), conceptId).run();
+
+        concepts.push({
+          concept_id: conceptId, archetype_id: archetypeId, font_family: combo.font.family_name,
+          support_font_family: supportFont?.family_name || null, mockup_url: mockupUrl, palette
+        });
+      }
+
+      const newShownIds = [...shownComboIds, ...picks.map((p) => p.combo_id)];
+      const round = await incrementGenerationRound(env, brandId, newShownIds);
+
+      return jsonResponse({
+        success: true, generation_round: round, generations_remaining: IDENTITY_MAX_GENERATIONS - round,
+        pool_exhausted: poolExhausted, print_method: printMethod, concepts
+      });
+    }
+
+    async function handleIdentitySelect(request, env) {
+      const auth = await authenticateRequest(request, env);
+      if (!auth.ok) return jsonResponse({ error: "Unauthorized" }, auth.status || 401);
+      const brandId = auth.user.brand_id;
+      if (!brandId) return jsonResponse({ error: "Brand required" }, 404);
+
+      let body;
+      try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+      if (!body.concept_id) return jsonResponse({ error: "concept_id required" }, 400);
+
+      const concept = await selectConcept(env, brandId, body.concept_id);
+      if (!concept) return jsonResponse({ error: "Concept not found for this brand" }, 404);
+
+      return jsonResponse({
+        success: true,
+        selected: { concept_id: concept.concept_id, archetype_id: concept.archetype_id, font_family: concept.font_family, logo_url: concept.logo_url }
+      });
+    }
+
+    async function handleIdentityGet(request, env) {
+      const auth = await authenticateRequest(request, env);
+      if (!auth.ok) return jsonResponse({ error: "Unauthorized" }, auth.status || 401);
+      const brand = await resolveBrand(env, auth.user.brand_id);
+      if (!brand) return jsonResponse({ error: "Brand not found" }, 404);
+
+      return jsonResponse({
+        success: true,
+        identity: {
+          archetype_id: brand.identity_archetype_id, font_primary: brand.font_primary, font_secondary: brand.font_secondary,
+          primary_color: brand.primary_color, secondary_color: brand.secondary_color, accent_color: brand.accent_color,
+          logo_url: brand.logo_url, generations_used: brand.identity_generation_count || 0,
+          generations_remaining: IDENTITY_MAX_GENERATIONS - (brand.identity_generation_count || 0)
+        }
+      });
+    }
+
+    async function handleIdentityMockup(request, env) {
+      const auth = await authenticateRequest(request, env);
+      if (!auth.ok) return jsonResponse({ error: "Unauthorized" }, auth.status || 401);
+      let body;
+      try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+      if (!body.concept_id) return jsonResponse({ error: "concept_id required" }, 400);
+
+      const concept = await env.DB.prepare(`SELECT * FROM brand_identity_concepts WHERE concept_id = ? AND brand_id = ?`).bind(body.concept_id, auth.user.brand_id).first();
+      if (!concept) return jsonResponse({ error: "Concept not found" }, 404);
+
+      const mockupUrl = await generateAndStoreMockup(env, auth.user.brand_id, body.concept_id, concept.svg_black_r2_key, body.product_type || "tshirt", "#000000");
+      return jsonResponse({ success: true, mockup_url: mockupUrl });
+    }
+
+
     // ───── MAIN FETCH HANDLER ──────────────────────────────────
     const url = new URL(request.url);
     const path = url.pathname;
@@ -3773,6 +4408,20 @@ export default {
       }
       if (path === "/admin/catalog/update" && request.method === "POST") {
         return await handleAdminCatalogUpdate(request, env);
+      }
+
+      // ─── BRAND IDENTITY / ARTWORK GENERATOR ROUTES ─────────────
+      if (path === "/identity/generate" && request.method === "POST") {
+        return await handleIdentityGenerate(request, env);
+      }
+      if (path === "/identity/select" && request.method === "POST") {
+        return await handleIdentitySelect(request, env);
+      }
+      if (path === "/identity" && request.method === "GET") {
+        return await handleIdentityGet(request, env);
+      }
+      if (path === "/identity/mockup" && request.method === "POST") {
+        return await handleIdentityMockup(request, env);
       }
 
       // ─── WHOLESALE MANUFACTURING ROUTES ───────────────────────
