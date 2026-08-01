@@ -465,7 +465,7 @@
                 <div class="stream-row"><span>Artist Share</span><b id="merchArtistShare">Pending</b></div>
                 <div class="stream-row"><span>ZVAKHO Share</span><b id="merchZvakhoShare">Pending</b></div>
                 <div class="stream-row"><span>Units</span><b id="merchUnits">0</b></div>
-                <div class="stream-note">Gross revenue – final split after costs</div>
+                <div class="stream-note">Retail minus ZVAKHO's real production cost</div>
               </div>
               <!-- Combined -->
               <div class="stream-card highlight">
@@ -780,26 +780,21 @@
           <div class="card-head"><h2>Your plan</h2></div>
           <div class="card-body">
             <div id="currentPlanDisplay">
-              <div style="font-size:20px; font-weight:800; color:var(--accent);" id="currentPlanName">Launch</div>
-              <div style="color:var(--muted);" id="currentPlanFeatures">5 products · 20% fee · Basic storefront</div>
+              <div style="font-size:20px; font-weight:800; color:var(--accent);" id="currentPlanName">Free</div>
+              <div style="color:var(--muted);" id="currentPlanFeatures">1 product · ZVAKHO branding shown · No custom domain</div>
             </div>
             <hr style="border-color:var(--line); margin:16px 0;">
             <h3 style="font-weight:700; margin-top:0;">Upgrade</h3>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:12px 0;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0;">
               <div class="plan-card" data-plan="grow">
                 <div class="name">Grow</div>
-                <div class="price">$15/mo</div>
-                <div class="features">25 products · 12% fee · Media gallery</div>
+                <div class="price">$8/mo</div>
+                <div class="features">15 products · White-label</div>
               </div>
               <div class="plan-card" data-plan="pro">
                 <div class="name">Pro</div>
-                <div class="price">$35/mo</div>
-                <div class="features">100 products · 7% fee · Custom domains</div>
-              </div>
-              <div class="plan-card" data-plan="enterprise">
-                <div class="name">Enterprise</div>
-                <div class="price">$149/mo</div>
-                <div class="features">Unlimited · 2% fee · White‑label</div>
+                <div class="price">$20/mo</div>
+                <div class="features">Unlimited · White-label · Custom domain</div>
               </div>
             </div>
             <button class="btn btn-primary" id="openUpgradeBtn" style="width:100%;">Upgrade now</button>
@@ -827,28 +822,19 @@
     <h2 style="margin-top:0;">Upgrade your plan</h2>
     <p style="color:var(--muted);">Select the plan that fits your business.</p>
     <div id="modalPlanCards">
-      <div class="plan-card" data-plan="launch">
-        <div class="name">Launch</div>
-        <div class="price">$5/mo</div>
-        <div class="features">5 products · 20% fee</div>
-      </div>
       <div class="plan-card" data-plan="grow">
         <div class="name">Grow</div>
-        <div class="price">$15/mo</div>
-        <div class="features">25 products · 12% fee · Gallery</div>
+        <div class="price">$8/mo</div>
+        <div class="features">15 products · White-label branding</div>
       </div>
       <div class="plan-card" data-plan="pro">
         <div class="name">Pro</div>
-        <div class="price">$35/mo</div>
-        <div class="features">100 products · 7% fee · Custom domains</div>
-      </div>
-      <div class="plan-card" data-plan="enterprise">
-        <div class="name">Enterprise</div>
-        <div class="price">$149/mo</div>
-        <div class="features">Unlimited · 2% fee · White‑label</div>
+        <div class="price">$20/mo</div>
+        <div class="features">Unlimited products · White-label · Custom domain</div>
       </div>
     </div>
-    <button class="btn btn-primary" id="checkoutBtn" style="width:100%; margin-top:16px;">Continue to checkout</button>
+    <input id="upgradePhone" type="tel" placeholder="EcoCash number, e.g. 077..." style="width:100%; margin-top:14px; padding:11px 14px; border-radius:var(--r-sm); border:1px solid var(--line-2); background:var(--surface); color:var(--text);">
+    <button class="btn btn-primary" id="checkoutBtn" style="width:100%; margin-top:12px;">Continue to checkout</button>
     <div id="checkoutError" style="color:var(--danger); margin-top:8px; font-size:13px; display:none;"></div>
   </div>
 </div>
@@ -886,6 +872,7 @@
       window.location.href = '/login.html?reason=unverified';
       return;
     }
+    if (data.user && data.user.email) window.__zvakhoUserEmail = data.user.email;
   } catch (e) {
     // Network error – redirect to login to avoid stuck state
     window.location.href = '/login.html';
@@ -893,7 +880,12 @@
   }
 
   // ─── DASHBOARD LOGIC ──────────────────────────────────────────
-  const apiBase = window.ZVAKHO_CONFIG?.apiBase || window.location.origin + '/api';
+  // FIX: this read window.ZVAKHO_CONFIG?.apiBase (lowercase b), but
+  // config.js sets API_BASE (uppercase) — always undefined, so every
+  // call silently fell back to window.location.origin + '/api', which
+  // doesn't exist as a route anywhere on the real worker. That's why
+  // the dashboard couldn't load anything.
+  const apiBase = window.ZVAKHO_CONFIG?.API_BASE || 'https://zvakho-workers-universal.yasibomedia.workers.dev';
 
   function apiFetch(path, options = {}) {
     const headers = { 'Content-Type': 'application/json', ...(token ? { 'Authorization': 'Bearer ' + token } : {}) };
@@ -912,7 +904,7 @@
     return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
-  let artistData = {}, storeConfig = {}, subscription = {}, products = [], orders = [], domains = [];
+  let artistData = {}, storeConfig = {}, subscription = {}, products = [], orders = [], domains = [], revenueData = null;
   let dirty = { brand: false, media: false, products: false, payout: false, domains: false };
 
   // ── Navigation ──
@@ -976,6 +968,11 @@
         else orders = [];
       } catch { orders = []; }
 
+      // 6. Fetch real revenue/commission breakdown
+      try {
+        revenueData = await apiFetch('/artist-dashboard');
+      } catch { revenueData = null; }
+
       renderAll();
     } catch (e) {
       showToast('Error loading dashboard: ' + e.message, 'error');
@@ -998,8 +995,33 @@
 
   // ── Overview ──
   function renderOverview() {
-    // Placeholder – implement as needed
-    // (Existing code can be added here)
+    if (!revenueData || revenueData.status !== 'success') return;
+    const b = revenueData.revenue_breakdown || {};
+    const money = n => '$' + Number(n || 0).toFixed(2);
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+    set('musicRevenue', money(b.music?.confirmed_revenue));
+    set('musicArtistShare', money(b.music?.brand_share));
+    set('musicZvakhoShare', money(b.music?.zvakho_share));
+    set('musicUnits', b.music?.units_sold || 0);
+
+    set('vipRevenue', money(b.vip?.confirmed_revenue));
+    set('vipArtistShare', money(b.vip?.brand_share));
+    set('vipZvakhoShare', money(b.vip?.zvakho_share));
+    set('vipUnits', b.vip?.units_sold || 0);
+
+    // Merch now shows a real commission number (retail minus ZVAKHO's
+    // catalog base cost, snapshotted per sale) instead of "Pending" — that
+    // placeholder is retired now that order_items carries owner_commission.
+    set('merchRevenue', money(b.merch?.confirmed_revenue));
+    set('merchArtistShare', money(b.merch?.brand_share));
+    set('merchZvakhoShare', money(b.merch?.zvakho_share));
+    set('merchUnits', b.merch?.units_sold || 0);
+
+    set('combinedRevenue', money(b.combined?.confirmed_revenue));
+    set('combinedArtistShare', money(b.combined?.brand_share));
+    set('combinedZvakhoShare', money(b.combined?.zvakho_share));
+    set('combinedUnits', b.combined?.units_sold || 0);
   }
 
   // ── Other placeholder functions ──
@@ -1010,13 +1032,11 @@
   function renderProducts() {}
   function renderDomains() {}
   function renderBilling() {
-    const planNames = { free: 'Free', launch: 'Launch', grow: 'Grow', pro: 'Pro', enterprise: 'Enterprise' };
+    const planNames = { free: 'Free', grow: 'Grow', pro: 'Pro' };
     const planFeatures = {
-      free: '1 product · 25% fee · Basic storefront',
-      launch: '5 products · 20% fee · Basic storefront',
-      grow: '25 products · 12% fee · Media gallery',
-      pro: '100 products · 7% fee · Custom domains',
-      enterprise: 'Unlimited · 2% fee · White‑label'
+      free: '1 product · ZVAKHO branding shown · No custom domain',
+      grow: '15 products · White-label (your branding only) · $8/mo',
+      pro: 'Unlimited products · White-label · Custom domain · $20/mo'
     };
     const plan = subscription.plan || 'free';
     document.getElementById('currentPlanName').textContent = planNames[plan] || 'Free';
@@ -1026,9 +1046,9 @@
   function updateProductNavBadge() {}
   function updateLockStates() {
     const plan = subscription.plan || 'free';
-    const galleryLocked = !['grow','pro','enterprise'].includes(plan);
-    const videoLocked = !['pro','enterprise'].includes(plan);
-    const domainsLocked = !['pro','enterprise'].includes(plan);
+    const galleryLocked = !['grow','pro'].includes(plan);
+    const videoLocked = plan !== 'pro';
+    const domainsLocked = plan !== 'pro';
 
     document.getElementById('galleryLockOverlay').style.display = galleryLocked ? 'flex' : 'none';
     document.getElementById('galleryLockedContent').classList.toggle('locked-content', galleryLocked);
@@ -1065,21 +1085,53 @@
   window.closeUpgradeModal = function() { document.getElementById('upgradeModal').style.display = 'none'; };
   document.getElementById('checkoutBtn').addEventListener('click', async () => {
     const btn = document.getElementById('checkoutBtn');
+    const phone = document.getElementById('upgradePhone').value.trim();
+    const errEl = document.getElementById('checkoutError');
+    if (!phone) {
+      errEl.textContent = 'Enter your EcoCash number to continue.';
+      errEl.style.display = 'block';
+      return;
+    }
     btn.disabled = true; btn.textContent = 'Processing...';
-    document.getElementById('checkoutError').style.display = 'none';
+    errEl.style.display = 'none';
     try {
-      const data = await apiFetch('/subscription/checkout', {
+      const data = await apiFetch('/subscription/purchase', {
         method: 'POST',
-        body: JSON.stringify({ plan: selectedPlan })
+        body: JSON.stringify({ plan: selectedPlan, billing_cycle: 'monthly', phone, email: (window.__zvakhoUserEmail || '') })
       });
-      if (data.payment_url) { window.location.href = data.payment_url; }
-      else { throw new Error(data.error || 'No payment URL received.'); }
+      if (data.status === 'success' && data.reference) {
+        showToast('Payment prompt sent — enter your EcoCash PIN on your phone.', 'success');
+        pollSubscriptionPurchase(data.reference, btn);
+      } else {
+        throw new Error(data.paynow_error || data.message || 'No payment reference received.');
+      }
     } catch (err) {
-      document.getElementById('checkoutError').textContent = err.message || 'Upgrade failed. Please try again.';
-      document.getElementById('checkoutError').style.display = 'block';
+      errEl.textContent = err.message || 'Upgrade failed. Please try again.';
+      errEl.style.display = 'block';
       btn.disabled = false; btn.textContent = 'Continue to checkout';
     }
   });
+
+  function pollSubscriptionPurchase(reference, btn) {
+    let attempts = 0;
+    const timer = setInterval(async () => {
+      attempts++;
+      try {
+        const status = await apiFetch('/subscription/purchase/status?reference=' + encodeURIComponent(reference));
+        if (status.payment_status === 'paid') {
+          clearInterval(timer);
+          showToast('Plan upgraded to ' + (status.plan || selectedPlan) + '!', 'success');
+          closeUpgradeModal();
+          btn.disabled = false; btn.textContent = 'Continue to checkout';
+          loadDashboard();
+        } else if (attempts > 40) {
+          clearInterval(timer);
+          btn.disabled = false; btn.textContent = 'Continue to checkout';
+          showToast('Still waiting on payment confirmation — refresh once it completes.', 'error');
+        }
+      } catch { /* keep polling */ }
+    }, 4000);
+  }
   document.getElementById('upgradeFromGallery').addEventListener('click', () => { document.getElementById('openUpgradeBtn').click(); });
   document.getElementById('upgradeFromVideo').addEventListener('click', () => { document.getElementById('openUpgradeBtn').click(); });
   document.getElementById('upgradeFromDomains').addEventListener('click', () => { document.getElementById('openUpgradeBtn').click(); });
