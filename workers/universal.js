@@ -1,13 +1,23 @@
 // ================================================================
-// ZVAKHO Universal Worker — v24 (adds Brand Identity / artwork generator)
+// ZVAKHO Universal Worker — v25 (Brand Identity / artwork generator,
+// private/public asset split)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem;
-// this patch only adds the /identity/* routes and does not touch anything
-// else). Brand Identity generate/select/get/mockup logic ported from the
-// standalone backend build into this file's own conventions: raw
-// env.DB.prepare(), authenticateRequest()/jsonResponse(), no imports.
-// Requires an R2 binding (var name "R2") and R2_PUBLIC_URL env var, both
-// newly required by this patch -- see DEPLOY NOTES at the bottom.
+// this patch only adds the /identity/*, /assets/* routes and does not
+// touch anything else). Brand Identity generate/select/get/mockup logic
+// ported from the standalone backend build into this file's own
+// conventions: raw env.DB.prepare(), authenticateRequest()/jsonResponse(),
+// no imports.
+//
+// Access model: the R2 bucket is NEVER made public at the Cloudflare
+// level (no r2.dev subdomain, no custom domain). Draft concepts are only
+// reachable via GET /identity/preview/:key (owner-auth-gated); once
+// selected, files are copied to a brands/{id}/public/ prefix and served
+// via the open GET /assets/:key (hard prefix-checked, same access level
+// as any storefront product photo). No R2_PUBLIC_URL env var needed --
+// asset URLs are built from env.BASE_URL, same pattern already used
+// elsewhere in this file. Requires only the R2 binding (var name "R2")
+// -- see DEPLOY NOTES at the bottom.
 // ================================================================
 
 export default {
@@ -2713,20 +2723,48 @@ export default {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // BRAND IDENTITY / ARTWORK GENERATOR
+    // BRAND IDENTITY / ARTWORK GENERATOR  (v2 — private/public split)
     // Ported from the standalone Brand Identity backend build into this
     // worker's own conventions: raw env.DB.prepare() (no query/queryOne
     // helper module), authenticateRequest()/jsonResponse() for consistency
     // with every other route in this file. No new imports, no new files --
     // this worker stays single-file.
     //
+    // ACCESS MODEL — the R2 bucket itself is NEVER public (no r2.dev
+    // subdomain, no custom domain, ever). Every byte flows through this
+    // worker's own R2 binding:
+    //   - Draft concepts (unpicked generate() output) live under
+    //     brands/{brandId}/identity/drafts/... and are only reachable via
+    //     GET /identity/preview/:key, which checks the caller's own
+    //     brand_id against the key -- owner-only.
+    //   - Once a concept is selected, its files are copied to
+    //     brands/{brandId}/public/... and become reachable via the open,
+    //     unauthenticated GET /assets/:key route -- same access level as
+    //     any storefront product photo, which is what a selected logo
+    //     functionally is (your existing store-config/public-brand routes
+    //     already read brand.logo_url and show it to customers).
+    //   - Raw font .woff2 files are NEVER served over HTTP at all, in
+    //     either route -- only fetched server-side via env.R2.get() inside
+    //     identityFetchFontBase64() and baked into generated SVGs as
+    //     base64. No route in this file returns a raw font file.
+    //
     // Requires (see deploy notes): an R2 bucket binding named `R2` on THIS
-    // worker (Settings -> Bindings -> R2 -- not present before this patch),
-    // an `R2_PUBLIC_URL` environment variable, and migrations
-    // 005_brand_identity_schema.sql + 006_seed_fonts.sql run against D1.
+    // worker (Settings -> Bindings -> R2). No R2_PUBLIC_URL needed --
+    // asset URLs are built from env.BASE_URL, same pattern already used
+    // elsewhere in this file (line ~2149).
     // ═══════════════════════════════════════════════════════════════
 
     const IDENTITY_MAX_GENERATIONS = 3;
+
+    function identityBaseUrl(env) {
+      return env.BASE_URL || "https://zvakho-workers-universal.yasibomedia.workers.dev";
+    }
+    function identityAssetContentType(key) {
+      if (key.endsWith(".svg")) return "image/svg+xml";
+      if (key.endsWith(".png")) return "image/png";
+      if (key.endsWith(".jpg") || key.endsWith(".jpeg")) return "image/jpeg";
+      return "application/octet-stream";
+    }
 
     // ── small SVG helpers ──
     function escapeXML(s) {
@@ -2748,7 +2786,9 @@ export default {
       return ink === "#ffffff" ? "#141210" : "#ffffff";
     }
 
-    // ── font fetch from R2, cached per-request via a plain Map ──
+    // ── font fetch from R2, cached per-request via a plain Map. This is
+    // the ONLY place fonts are ever read, and it's always server-side --
+    // no route returns these bytes to a client. ──
     async function identityFetchFontBase64(env, r2Key, fontCache) {
       if (fontCache.has(r2Key)) return fontCache.get(r2Key);
       const obj = await env.R2.get(r2Key);
@@ -2772,8 +2812,8 @@ export default {
     }
 
     // ── archetype renderers (6 of 11 registered archetypes have a render
-    // function; see IDENTITY_ARCHETYPE_RENDERERS below for the remaining 5
-    // that still need porting -- see deploy notes) ──
+    // function; the other 5 are seeded but not yet ported -- see deploy
+    // notes) ──
     async function renderWordmark(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
       const text = String(brandName).toUpperCase();
@@ -2955,12 +2995,6 @@ export default {
       circle_badge: renderCircleBadge,
       bootleg_stack: renderBootlegStack,
       monogram_mark: renderMonogramMark
-      // NOT YET PORTED: ornate_tagline, script_serif_script,
-      // arc_label_shadow_word, boxed_tagline, weight_contrast_word.
-      // These 5 are seeded in the `archetypes` table (so they show up as
-      // structurally eligible) but have no render function here, so
-      // buildComboPool()/the generate loop will simply skip them if the
-      // random pick lands on one -- see deploy notes for how to add them.
     };
     const IDENTITY_ARCHETYPES_NEEDING_SUPPORT_FONT = new Set(["split_connector", "ornate_tagline", "script_serif_script"]);
 
@@ -3130,9 +3164,19 @@ export default {
         conceptId, brandId, round, concept.archetype_id, concept.font_family,
         concept.support_font_family || null, concept.combo_id,
         concept.svg_black_r2_key, concept.svg_white_r2_key,
-        JSON.stringify(concept.mockup_urls || []), JSON.stringify(concept.palette || {})
+        JSON.stringify(concept.mockup_r2_keys || []), JSON.stringify(concept.palette || {})
       ).run();
       return conceptId;
+    }
+    // Copies an R2 object from one key to another (R2 has no native
+    // server-side copy in the Workers binding API -- this reads the bytes
+    // then re-puts them, which is fine at this size/frequency: once per
+    // brand, only on selection, a handful of small SVGs).
+    async function identityCopyR2Object(env, fromKey, toKey, contentType) {
+      const obj = await env.R2.get(fromKey);
+      if (!obj) throw new Error(`Cannot copy — source not found in R2: ${fromKey}`);
+      const bytes = await obj.arrayBuffer();
+      await env.R2.put(toKey, bytes, { httpMetadata: { contentType, cacheControl: "public, max-age=3600" } });
     }
     async function selectConcept(env, brandId, conceptId) {
       const concept = await env.DB.prepare(`SELECT * FROM brand_identity_concepts WHERE concept_id = ? AND brand_id = ?`).bind(conceptId, brandId).first();
@@ -3140,25 +3184,40 @@ export default {
       await env.DB.prepare(`UPDATE brand_identity_concepts SET is_selected = 0 WHERE brand_id = ?`).bind(brandId).run();
       await env.DB.prepare(`UPDATE brand_identity_concepts SET is_selected = 1 WHERE concept_id = ?`).bind(conceptId).run();
       const palette = JSON.parse(concept.palette_json || "{}");
-      // FIX vs. the original prototype: store the full public R2 URL on
-      // brands.logo_url, not the raw r2_key -- everywhere else in this
-      // worker (publicBrand, store-config, etc.) treats logo_url as a
-      // ready-to-render URL.
-      const logoUrl = `${env.R2_PUBLIC_URL}/${concept.svg_black_r2_key}`;
+
+      // Promote the selected concept's files from the private draft prefix
+      // to the public prefix -- this is the only point at which anything
+      // becomes reachable by the open /assets/ route.
+      const publicBlackKey = `brands/${brandId}/public/logo_black.svg`;
+      const publicWhiteKey = `brands/${brandId}/public/logo_white.svg`;
+      await identityCopyR2Object(env, concept.svg_black_r2_key, publicBlackKey, "image/svg+xml");
+      await identityCopyR2Object(env, concept.svg_white_r2_key, publicWhiteKey, "image/svg+xml");
+
+      const draftMockupKeys = JSON.parse(concept.mockup_r2_keys || "[]");
+      const publicMockupUrls = [];
+      const baseUrl = identityBaseUrl(env);
+      for (let i = 0; i < draftMockupKeys.length; i++) {
+        const publicMockupKey = `brands/${brandId}/public/mockup_${i}.svg`;
+        await identityCopyR2Object(env, draftMockupKeys[i], publicMockupKey, "image/svg+xml");
+        publicMockupUrls.push(`${baseUrl}/assets/${publicMockupKey}`);
+      }
+
+      const logoUrl = `${baseUrl}/assets/${publicBlackKey}`;
+      const logoWhiteUrl = `${baseUrl}/assets/${publicWhiteKey}`;
       await env.DB.prepare(`
         UPDATE brands SET
           identity_archetype_id = ?, identity_selected_concept_id = ?,
           font_primary = ?, font_secondary = ?,
           primary_color = ?, secondary_color = ?, accent_color = ?,
-          logo_url = ?, updated_at = datetime('now')
+          logo_url = ?, logo_black_url = ?, logo_white_url = ?, updated_at = datetime('now')
         WHERE brand_id = ?
       `).bind(
         concept.archetype_id, conceptId, concept.font_family,
         concept.support_font_family || concept.font_family,
         palette.base || "#000000", palette.shade || "#333333", palette.tint || "#f5f5f5",
-        logoUrl, brandId
+        logoUrl, logoUrl, logoWhiteUrl, brandId
       ).run();
-      return { ...concept, logo_url: logoUrl };
+      return { ...concept, logo_url: logoUrl, logo_white_url: logoWhiteUrl, mockup_urls: publicMockupUrls };
     }
 
     // ── mockup compositor ──
@@ -3197,12 +3256,44 @@ export default {
   </g>
 </svg>`;
     }
-    async function generateAndStoreMockup(env, brandId, conceptId, conceptSvgR2Key, productType, ink) {
+    // Always writes to the DRAFT prefix and returns the raw R2 key (not a
+    // URL) -- callers decide the URL shape (preview vs public) based on
+    // whether the parent concept is selected.
+    async function generateDraftMockup(env, brandId, conceptId, conceptSvgR2Key, productType, ink) {
       const template = await getDefaultPrintTemplate(env, productType, ink);
       const compositeSvg = await compositeMockup(env, conceptSvgR2Key, template);
-      const mockupKey = `brands/${brandId}/mockups/${conceptId}.svg`;
-      await env.R2.put(mockupKey, compositeSvg, { httpMetadata: { contentType: "image/svg+xml", cacheControl: "public, max-age=3600" } });
-      return `${env.R2_PUBLIC_URL}/${mockupKey}`;
+      const mockupKey = `brands/${brandId}/identity/drafts/mockup_${conceptId}.svg`;
+      await env.R2.put(mockupKey, compositeSvg, { httpMetadata: { contentType: "image/svg+xml", cacheControl: "private, max-age=0" } });
+      return mockupKey;
+    }
+
+    // ── asset-serving routes ──
+    // Open, unauthenticated -- but only ever serves keys under
+    // brands/{id}/public/, checked with a hard prefix match. Even a
+    // correctly-guessed draft key under .../identity/drafts/... gets a 403
+    // here; that path only exists in /identity/preview/, which requires
+    // owner auth.
+    async function handleAssetServe(env, key) {
+      if (!/^brands\/[^/]+\/public\//.test(key)) {
+        return jsonResponse({ error: "Not found" }, 404);
+      }
+      const obj = await env.R2.get(key);
+      if (!obj) return jsonResponse({ error: "Not found" }, 404);
+      return new Response(obj.body, {
+        headers: { "Content-Type": identityAssetContentType(key), "Cache-Control": "public, max-age=3600" }
+      });
+    }
+    async function handleIdentityPreviewServe(request, env, key) {
+      const auth = await authenticateRequest(request, env);
+      if (!auth.ok) return jsonResponse({ error: "Unauthorized" }, auth.status || 401);
+      if (!key.startsWith(`brands/${auth.user.brand_id}/`)) {
+        return jsonResponse({ error: "Not found" }, 404);
+      }
+      const obj = await env.R2.get(key);
+      if (!obj) return jsonResponse({ error: "Not found" }, 404);
+      return new Response(obj.body, {
+        headers: { "Content-Type": identityAssetContentType(key), "Cache-Control": "private, max-age=0" }
+      });
     }
 
     // ── route handlers ──
@@ -3250,6 +3341,7 @@ export default {
       const { picks, poolExhausted } = pickThreeDistinctCombos(comboPool, shownComboIds);
 
       const fontCache = new Map();
+      const baseUrl = identityBaseUrl(env);
       const concepts = [];
       for (const combo of picks) {
         const archetypeId = combo.archetype_id;
@@ -3263,23 +3355,28 @@ export default {
         const svgBlack = await renderFn(env, combo.font, supportFont, brand.brand_name, "#000000", personalityTag, meta, fontCache);
         const svgWhite = await renderFn(env, combo.font, supportFont, brand.brand_name, "#ffffff", personalityTag, meta, fontCache);
 
-        const svgBlackKey = `brands/${brandId}/identity/${combo.combo_id}_black_${Date.now()}.svg`;
-        const svgWhiteKey = `brands/${brandId}/identity/${combo.combo_id}_white_${Date.now()}.svg`;
-        await env.R2.put(svgBlackKey, svgBlack, { httpMetadata: { contentType: "image/svg+xml", cacheControl: "public, max-age=3600" } });
-        await env.R2.put(svgWhiteKey, svgWhite, { httpMetadata: { contentType: "image/svg+xml", cacheControl: "public, max-age=3600" } });
+        // Draft prefix -- private, owner-only via /identity/preview/.
+        const svgBlackKey = `brands/${brandId}/identity/drafts/${combo.combo_id}_black_${Date.now()}.svg`;
+        const svgWhiteKey = `brands/${brandId}/identity/drafts/${combo.combo_id}_white_${Date.now()}.svg`;
+        await env.R2.put(svgBlackKey, svgBlack, { httpMetadata: { contentType: "image/svg+xml", cacheControl: "private, max-age=0" } });
+        await env.R2.put(svgWhiteKey, svgWhite, { httpMetadata: { contentType: "image/svg+xml", cacheControl: "private, max-age=0" } });
 
         const conceptId = await saveConcept(env, brandId, currentRound + 1, {
           archetype_id: archetypeId, font_family: combo.font.family_name,
           support_font_family: supportFont?.family_name || null, combo_id: combo.combo_id,
-          svg_black_r2_key: svgBlackKey, svg_white_r2_key: svgWhiteKey, palette
+          svg_black_r2_key: svgBlackKey, svg_white_r2_key: svgWhiteKey, palette, mockup_r2_keys: []
         });
 
-        const mockupUrl = await generateAndStoreMockup(env, brandId, conceptId, svgBlackKey, productType, "#000000");
-        await env.DB.prepare(`UPDATE brand_identity_concepts SET mockup_r2_keys = ? WHERE concept_id = ?`).bind(JSON.stringify([mockupUrl]), conceptId).run();
+        const mockupKey = await generateDraftMockup(env, brandId, conceptId, svgBlackKey, productType, "#000000");
+        await env.DB.prepare(`UPDATE brand_identity_concepts SET mockup_r2_keys = ? WHERE concept_id = ?`).bind(JSON.stringify([mockupKey]), conceptId).run();
 
         concepts.push({
           concept_id: conceptId, archetype_id: archetypeId, font_family: combo.font.family_name,
-          support_font_family: supportFont?.family_name || null, mockup_url: mockupUrl, palette
+          support_font_family: supportFont?.family_name || null,
+          // Private preview URLs -- require the owner's own Bearer token to load.
+          preview_url: `${baseUrl}/identity/preview/${encodeURIComponent(svgBlackKey)}`,
+          mockup_preview_url: `${baseUrl}/identity/preview/${encodeURIComponent(mockupKey)}`,
+          palette
         });
       }
 
@@ -3307,7 +3404,10 @@ export default {
 
       return jsonResponse({
         success: true,
-        selected: { concept_id: concept.concept_id, archetype_id: concept.archetype_id, font_family: concept.font_family, logo_url: concept.logo_url }
+        selected: {
+          concept_id: concept.concept_id, archetype_id: concept.archetype_id, font_family: concept.font_family,
+          logo_url: concept.logo_url, logo_white_url: concept.logo_white_url, mockup_urls: concept.mockup_urls
+        }
       });
     }
 
@@ -3322,7 +3422,8 @@ export default {
         identity: {
           archetype_id: brand.identity_archetype_id, font_primary: brand.font_primary, font_secondary: brand.font_secondary,
           primary_color: brand.primary_color, secondary_color: brand.secondary_color, accent_color: brand.accent_color,
-          logo_url: brand.logo_url, generations_used: brand.identity_generation_count || 0,
+          logo_url: brand.logo_url, logo_white_url: brand.logo_white_url,
+          generations_used: brand.identity_generation_count || 0,
           generations_remaining: IDENTITY_MAX_GENERATIONS - (brand.identity_generation_count || 0)
         }
       });
@@ -3338,10 +3439,24 @@ export default {
       const concept = await env.DB.prepare(`SELECT * FROM brand_identity_concepts WHERE concept_id = ? AND brand_id = ?`).bind(body.concept_id, auth.user.brand_id).first();
       if (!concept) return jsonResponse({ error: "Concept not found" }, 404);
 
-      const mockupUrl = await generateAndStoreMockup(env, auth.user.brand_id, body.concept_id, concept.svg_black_r2_key, body.product_type || "tshirt", "#000000");
-      return jsonResponse({ success: true, mockup_url: mockupUrl });
-    }
+      const productType = body.product_type || "tshirt";
+      const baseUrl = identityBaseUrl(env);
 
+      if (concept.is_selected) {
+        // Already public — regenerate straight into the public prefix and
+        // return an open URL, consistent with everything else about a
+        // selected identity.
+        const template = await getDefaultPrintTemplate(env, productType, "#000000");
+        const compositeSvg = await compositeMockup(env, concept.svg_black_r2_key, template);
+        const idx = JSON.parse(concept.mockup_r2_keys || "[]").length;
+        const publicKey = `brands/${auth.user.brand_id}/public/mockup_${idx}.svg`;
+        await env.R2.put(publicKey, compositeSvg, { httpMetadata: { contentType: "image/svg+xml", cacheControl: "public, max-age=3600" } });
+        return jsonResponse({ success: true, mockup_url: `${baseUrl}/assets/${publicKey}` });
+      }
+
+      const mockupKey = await generateDraftMockup(env, auth.user.brand_id, body.concept_id, concept.svg_black_r2_key, productType, "#000000");
+      return jsonResponse({ success: true, mockup_preview_url: `${baseUrl}/identity/preview/${encodeURIComponent(mockupKey)}` });
+    }
 
     // ───── MAIN FETCH HANDLER ──────────────────────────────────
     const url = new URL(request.url);
@@ -4422,6 +4537,17 @@ export default {
       }
       if (path === "/identity/mockup" && request.method === "POST") {
         return await handleIdentityMockup(request, env);
+      }
+      // Open, unauthenticated — but handleAssetServe hard-checks the key
+      // is under brands/*/public/ before returning anything. Everything
+      // else 404s regardless of whether the object actually exists.
+      if (path.startsWith("/assets/") && request.method === "GET") {
+        return await handleAssetServe(env, decodeURIComponent(path.slice("/assets/".length)));
+      }
+      // Auth-gated — only the owning brand's Bearer token can read a
+      // draft key here; handleIdentityPreviewServe checks brand_id itself.
+      if (path.startsWith("/identity/preview/") && request.method === "GET") {
+        return await handleIdentityPreviewServe(request, env, decodeURIComponent(path.slice("/identity/preview/".length)));
       }
 
       // ─── WHOLESALE MANUFACTURING ROUTES ───────────────────────
