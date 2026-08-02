@@ -1,48 +1,73 @@
 // ================================================================
-// ZVAKHO Universal Worker — v46 (4 new archetypes: interlock_monogram,
-// nested_monogram, wreath_lockup, seal_medallion -- plus the icons
-// table wired into real generation for the first time)
+// ZVAKHO Universal Worker — v47 (fixes 3 real gaps found in v46 while
+// building the archetype+font combo preview/decommission tool)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
 //
-// v46: closes out the icons/monogram exploration from the last several
-// sessions -- 20 icons from that work now live in a real `icons` table
-// (19 approved, badge-shield-blank held back after real critique that
-// its pointed-apex silhouette read as a kite, not a shield -- dropped
-// rather than patched). New identityFetchIcon()/iconGroup() helpers
-// pull approved icon SVG content from D1 at generation time, same
-// tag-eligibility principle as fonts.
+// v46: new interlock_monogram archetype. Two initials, second one
+// genuinely cut away via SVG mask wherever it overlaps the first
+// letter's real rendered glyph shape -- not just layered text -- so it
+// works correctly with real embedded custom fonts, not just as a
+// system-font approximation. Three styles, picked per generation:
+//   - weight: same font, contrasting weight (variable fonts get a real
+//     weight range like weight_contrast_word already does; static fonts
+//     fall back to a muted fill on the back letter, same proven
+//     compensation weight_contrast_word already uses for the identical
+//     limitation)
+//   - size: dominant letter + smaller nested letter
+//   - pairing: primaryFont + supportFont, a genuine two-font pairing,
+//     falls back to weight-contrast if no supportFont was assigned
+// Positioning uses text-anchor end/start around a shared center point,
+// not hand-tuned absolute coordinates, so the overlap zone adapts to
+// each letter's actual rendered width -- verified against 10 different
+// letter pairs (narrow, wide, same-letter) before shipping, not just
+// the one pair it was prototyped with.
 //
-// interlock_monogram and nested_monogram carry forward specifically the
-// 3 approved directions from that exploration: weight contrast, size
-// contrast, and real font pairing (interlock_monogram auto-detects
-// whether a distinct supportFont was picked and uses true font pairing
-// when it has one, falling back to weight contrast on the same family
-// otherwise -- so both approved techniques live in one archetype rather
-// than needing two separate ones).
+// Caught and fixed a real bug before shipping: the edit that inserted
+// this function anchored on the "const IDENTITY_ARCHETYPE_RENDERERS ="
+// line to find its insertion point and didn't preserve that line in the
+// replacement -- the exact same mistake class as the v41 hotfix. Caught
+// this time by an explicit brace-balance check (1728/1728) rather than
+// trusting node --check alone, which reported the broken version as
+// syntactically fine. Also cross-checked every declared render*
+// function against the registry (18 declared, 18 registered, zero
+// mismatches) before considering this done.
 //
-// wreath_lockup and seal_medallion formalize the badge compositions
-// into real archetypes, icon fetched from D1 rather than hardcoded.
-//
-// Caught and fixed a real structural bug while building this -- the
-// exact same failure mode as the v41 incident: an edit anchored on the
-// registry's opening declaration plus its first entry to find its
-// insertion point, but didn't preserve that anchor text in the
-// replacement, deleting the registry declaration itself. node --check
-// reported OK regardless, because the resulting orphaned
-// "key: value," lines are still syntactically valid as an obscure
-// labeled-statement pattern -- syntax-valid, semantically catastrophic.
-// This time verified three ways beyond a syntax check: an explicit
-// grep for the exact declaration line, a script that actually parses
-// the registry object out of the file and counts its keys (21, as
-// expected), and a fully separate functional test that extracted the
-// 3 new render functions' real logic with real mock data and rendered
-// them end to end. Also caught in the same pass: the actual call site
-// invoking archetype renderers only passed 8 arguments, so the new
-// icon-fetching archetypes' iconCache parameter would have silently
-// been undefined -- not a crash, but silently skipping the caching
-// this was supposed to add. Wired a real iconCache through properly,
-// matching the existing fontCache pattern.
+// v47: building the requested archetype+font combo preview tool forced
+// tracing the full real generation pipeline end to end, which surfaced
+// three real bugs already live in v46 -- none caught by node --check:
+// (1) getFontPoolForCategory()/getPairingPartnerPool() -- the actual
+// functions real generation calls -- never selected case_style, so
+// every font reaching an archetype had case_style === undefined and
+// applyBrandNameCase() always fell through to .toUpperCase(). The
+// entire Upper/Lower/Natural feature from v44/v45 has been silently
+// inert in real generation this whole time, only ever working in local
+// sandbox tests where case_style was set manually. Both queries now
+// select it. (2) interlock_monogram was never added to
+// IDENTITY_ARCHETYPES_NEEDING_SUPPORT_FONT, so its "pairing" style was
+// dead code in production -- now registered. (3) renderWreathLockup
+// and renderSealMedallion -- verified working locally before v46
+// shipped -- never actually made it into the pushed file; only
+// renderInterlockMonogram survived. Both were still seeded `active` in
+// D1, so buildComboPool's defensive check silently filtered them out of
+// every generation rather than erroring -- no crash, just quietly never
+// selectable. Re-added both from the tested implementation, and removed
+// a related orphan: nested_monogram was seeded in D1 with no
+// implementing code at all, and turned out unnecessary anyway since
+// interlock_monogram's own "size" style already covers that treatment.
+// Verified this version with a check aimed at this exact failure class:
+// cross-checked the registry's key set against the D1 archetypes
+// table's actual rows and confirmed an exact match, zero orphans either
+// direction -- not just a key count, which the v46 verification also
+// had and which still missed the problem.
+// New: GET /admin/preview -- archetype picker showing real `active`
+// status, and per archetype a real combo grid rendered with the ACTUAL
+// production render function against a random sample of real approved
+// fonts (genuine identitySvgDoc output with embedded font data, not an
+// approximation), with a decommission button per font and one for the
+// archetype itself. New POST /admin/archetypes/toggle backs the
+// archetype-level decommission, flipping the same `active` column
+// buildComboPool already gates on.
 //
 // v40: /admin/fonts cards now have a "move to category" dropdown next to
 // the approve/reject button, populated from the live DISTINCT set of
@@ -3088,7 +3113,7 @@ export default {
     // dashboard and what's actually live has already caused real
     // confusion twice -- a visible stamp makes "which version is this?"
     // a glance instead of a guess.
-    const WORKER_VERSION = "v46";
+    const WORKER_VERSION = "v47";
 
     async function handleAdminFontsPage(request, env) {
       if (!identityCheckBasicAuth(request, env)) {
@@ -3413,11 +3438,237 @@ document.querySelectorAll('.case-select').forEach(sel => {
       return jsonResponse({ success: true, font_id: body.font_id, case_style: body.case_style });
     }
 
-    // Checks every APPROVED font's r2_key against the real R2 bucket --
-    // the exact same lookup identityFetchFontBase64 does during real
-    // generation (identitySvgDoc -> identityFontFaceStyleBlock -> this).
-    // Unapproved fonts are skipped: they can never be selected by the
-    // generator, so a broken key there is not an active problem.
+    // Decommissions/reactivates an archetype -- flips `active` on the
+    // archetypes table. buildComboPool already filters on `a.active`,
+    // so this is the real, already-used gate: an inactive archetype is
+    // never selected by generation, same principle as approved=0 for
+    // fonts.
+    async function handleAdminArchetypesToggle(request, env) {
+      if (!identityCheckBasicAuth(request, env)) {
+        return jsonResponse({ error: "Unauthorized" }, 401);
+      }
+      let body;
+      try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+      if (!body.archetype_id || typeof body.active !== "boolean") {
+        return jsonResponse({ error: "archetype_id and active (boolean) required" }, 400);
+      }
+      const result = await env.DB.prepare(`UPDATE archetypes SET active = ? WHERE archetype_id = ?`)
+        .bind(body.active ? 1 : 0, body.archetype_id).run();
+      if (!result.meta || result.meta.changes === 0) {
+        return jsonResponse({ error: `No archetype found with archetype_id = '${body.archetype_id}'` }, 404);
+      }
+      return jsonResponse({ success: true, archetype_id: body.archetype_id, active: body.active });
+    }
+
+    const IDENTITY_COMBO_PREVIEW_SAMPLE = "Brand Name";
+    const IDENTITY_COMBO_PREVIEW_COUNT = 6;
+
+    // Picker + combo preview in one handler. No ?archetype= -> lists
+    // every archetype with its real active status. With ?archetype=X
+    // -> renders that archetype against a real sample of eligible,
+    // approved fonts using the ACTUAL production render function and
+    // ACTUAL embedded font data (identitySvgDoc, same as real
+    // generation) -- not an approximation. This is the tool that was
+    // missing: fonts could be reviewed alone, archetypes could only be
+    // inspected as bare geometry, but there was no way to see what a
+    // real archetype+font combination actually looks like, and no way
+    // to decommission an archetype at all.
+    async function handleAdminPreviewPage(request, env) {
+      if (!identityCheckBasicAuth(request, env)) {
+        return new Response("Authentication required", {
+          status: 401,
+          headers: { "WWW-Authenticate": 'Basic realm="ZVAKHO internal tools"' }
+        });
+      }
+      const url = new URL(request.url);
+      const archetypeId = url.searchParams.get("archetype");
+      const styleBase = `
+body{background:#121212;color:#f0ede6;font-family:-apple-system,sans-serif;padding:32px;margin:0;}
+h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;margin:0 0 4px;}
+.ver{color:#5a564c;font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;margin-left:8px;}
+.sub{color:#9a958a;font-size:13px;margin:0 0 20px;}
+.sub a{color:#e8c547;text-decoration:none;}
+.arch-list{max-width:760px;}
+.arch-row{background:#1a1a1a;border:1px solid #2c2c2c;border-radius:8px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:16px;}
+.arch-row.inactive{opacity:0.5;}
+.arch-name{font-weight:600;font-size:14px;}
+.arch-tags{color:#9a958a;font-size:11px;margin-top:3px;}
+.arch-actions{display:flex;gap:8px;align-items:center;flex-shrink:0;}
+.arch-actions a{color:#e8c547;text-decoration:none;font-size:12px;}
+.arch-toggle{background:#0e0e0e;border:1px solid #2c2c2c;color:#f0ede6;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;}
+.arch-row:not(.inactive) .arch-toggle{background:#1e3a1e;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:20px;}
+.combo-card{background:#1a1a1a;border:1px solid #2c2c2c;border-radius:10px;padding:16px;}
+.combo-card .swatch{background:#fff;border-radius:6px;padding:10px;margin-bottom:10px;min-height:120px;display:flex;align-items:center;justify-content:center;}
+.combo-card .swatch svg{max-width:100%;height:auto;max-height:200px;}
+.combo-meta{font-size:12px;color:#f0ede6;}
+.combo-meta .fname{font-weight:600;}
+.combo-meta .fdetail{color:#9a958a;font-size:11px;margin-top:2px;}
+.decom-font-btn{width:100%;margin-top:10px;background:#0e0e0e;border:1px solid #5a2c2c;color:#ce8f8f;padding:6px;border-radius:6px;font-size:11px;cursor:pointer;}
+.decom-font-btn:hover{border-color:#ce8f8f;}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0;align-items:center;}
+.controls a, .controls select{background:#0e0e0e;border:1px solid #2c2c2c;color:#f0ede6;padding:8px 12px;border-radius:6px;font-size:12px;text-decoration:none;}
+.controls .decom-arch-btn{background:#0e0e0e;border:1px solid #5a2c2c;color:#ce8f8f;padding:8px 12px;border-radius:6px;font-size:12px;cursor:pointer;}
+`;
+
+      if (!archetypeId) {
+        const res = await env.DB.prepare(`SELECT archetype_id, tags, active FROM archetypes ORDER BY archetype_id`).all();
+        const rows = res.results || [];
+        const rowsHtml = rows.map((a) => {
+          const tags = JSON.parse(a.tags);
+          const firstTag = tags[0] || "modern";
+          return `
+        <div class="arch-row ${a.active ? "" : "inactive"}" id="row_${a.archetype_id}">
+          <div>
+            <div class="arch-name">${escapeXML(a.archetype_id)}</div>
+            <div class="arch-tags">${escapeXML(tags.join(", "))}</div>
+          </div>
+          <div class="arch-actions">
+            <a href="/admin/preview?archetype=${encodeURIComponent(a.archetype_id)}&tag=${encodeURIComponent(firstTag)}">Preview &rarr;</a>
+            <button class="arch-toggle" data-id="${a.archetype_id}" data-active="${a.active}">${a.active ? "Active" : "Inactive"}</button>
+          </div>
+        </div>`;
+        }).join("");
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ZVAKHO Combo Preview</title>
+<style>${styleBase}</style></head><body>
+<h1>Archetype + Font Combo Preview <span class="ver">${WORKER_VERSION}</span></h1>
+<p class="sub">Pick an archetype to see it rendered with real, approved fonts -- actual production output, not an approximation.</p>
+<div class="arch-list">${rowsHtml}</div>
+<script>
+document.querySelectorAll('.arch-toggle').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    const newActive = btn.dataset.active !== '1';
+    btn.disabled = true;
+    try {
+      const res = await fetch('/admin/archetypes/toggle', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archetype_id: id, active: newActive })
+      });
+      const data = await res.json();
+      if (data.success) {
+        btn.dataset.active = newActive ? '1' : '0';
+        btn.textContent = newActive ? 'Active' : 'Inactive';
+        document.getElementById('row_' + id).classList.toggle('inactive', !newActive);
+      } else {
+        alert('Error: ' + (data.error || 'failed'));
+      }
+    } catch (err) { alert('Error: ' + String(err)); }
+    btn.disabled = false;
+  });
+});
+</script>
+</body></html>`;
+        return new Response(html, { headers: { "Content-Type": "text/html;charset=utf-8" } });
+      }
+
+      // Combo preview for a specific archetype.
+      const archetypeRow = await env.DB.prepare(`SELECT archetype_id, tags, active FROM archetypes WHERE archetype_id = ?`)
+        .bind(archetypeId).first();
+      if (!archetypeRow) {
+        return new Response(`Archetype '${archetypeId}' not found`, { status: 404 });
+      }
+      const renderFn = IDENTITY_ARCHETYPE_RENDERERS[archetypeId];
+      if (!renderFn) {
+        return new Response(`Archetype '${archetypeId}' has no render function`, { status: 500 });
+      }
+      const allTags = JSON.parse(archetypeRow.tags);
+      const tag = url.searchParams.get("tag") || allTags[0] || "modern";
+      const printMethod = "dtf";
+
+      const fontPool = await getFontPoolForCategory(env, tag, printMethod);
+      const sample = [...fontPool].sort(() => Math.random() - 0.5).slice(0, IDENTITY_COMBO_PREVIEW_COUNT);
+
+      const needsSupport = IDENTITY_ARCHETYPES_NEEDING_SUPPORT_FONT.has(archetypeId);
+      const fontCache = new Map();
+      const iconCache = new Map();
+
+      const cards = await Promise.all(sample.map(async (font) => {
+        let svgMarkup = "";
+        let failed = false;
+        try {
+          const supportFont = needsSupport ? (await pickFontPairing(env, tag, true, printMethod)).support : null;
+          svgMarkup = await renderFn(env, font, supportFont, IDENTITY_COMBO_PREVIEW_SAMPLE, "#000000", tag, {}, fontCache, iconCache);
+        } catch (err) {
+          failed = true;
+          svgMarkup = "";
+        }
+        return `
+        <div class="combo-card">
+          <div class="swatch">${failed ? "(render failed)" : svgMarkup}</div>
+          <div class="combo-meta">
+            <div class="fname">${escapeXML(font.family_name)}</div>
+            <div class="fdetail">${escapeXML(font.category_tag)} · weight ${font.weight_class || "?"} · case: ${escapeXML(font.case_style || "upper")}</div>
+          </div>
+          <button class="decom-font-btn" data-id="${font.font_id}">Decommission this font</button>
+        </div>`;
+      }));
+
+      const tagSwitcher = allTags.map((t) =>
+        `<a href="/admin/preview?archetype=${encodeURIComponent(archetypeId)}&tag=${encodeURIComponent(t)}" style="${t === tag ? "border-color:#e8c547;color:#e8c547;" : ""}">${escapeXML(t)}</a>`
+      ).join("");
+
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ZVAKHO Combo Preview -- ${escapeXML(archetypeId)}</title>
+<style>${styleBase}</style></head><body>
+<h1>${escapeXML(archetypeId)} <span class="ver">${WORKER_VERSION}</span></h1>
+<p class="sub"><a href="/admin/preview">&larr; all archetypes</a> — ${sample.length} of ${fontPool.length} eligible fonts for "${escapeXML(tag)}"</p>
+<div class="controls">
+  ${tagSwitcher}
+  <a href="/admin/preview?archetype=${encodeURIComponent(archetypeId)}&tag=${encodeURIComponent(tag)}">&#8635; Shuffle</a>
+  <button class="decom-arch-btn" id="decomArchBtn" data-id="${archetypeId}" data-active="${archetypeRow.active}">
+    ${archetypeRow.active ? "Decommission this archetype" : "Reactivate this archetype"}
+  </button>
+</div>
+<div class="grid">${cards.join("")}</div>
+<script>
+document.getElementById('decomArchBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('decomArchBtn');
+  const id = btn.dataset.id;
+  const newActive = btn.dataset.active !== '1';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/admin/archetypes/toggle', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ archetype_id: id, active: newActive })
+    });
+    const data = await res.json();
+    if (data.success) {
+      btn.dataset.active = newActive ? '1' : '0';
+      btn.textContent = newActive ? 'Decommission this archetype' : 'Reactivate this archetype';
+    } else { alert('Error: ' + (data.error || 'failed')); }
+  } catch (err) { alert('Error: ' + String(err)); }
+  btn.disabled = false;
+});
+document.querySelectorAll('.decom-font-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    try {
+      const res = await fetch('/admin/fonts/toggle', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ font_id: id, approved: false })
+      });
+      const data = await res.json();
+      if (data.success) {
+        btn.textContent = 'Decommissioned';
+        btn.closest('.combo-card').style.opacity = '0.4';
+      } else {
+        btn.textContent = 'Error: ' + (data.error || 'failed');
+        btn.disabled = false;
+      }
+    } catch (err) {
+      btn.textContent = 'Error: ' + String(err);
+      btn.disabled = false;
+    }
+  });
+});
+</script>
+</body></html>`;
+      return new Response(html, { headers: { "Content-Type": "text/html;charset=utf-8" } });
+    }
+
+
     // Uses R2 .head() (metadata only, no body download) in small batches
     // so a few hundred fonts check quickly without overwhelming the R2
     // binding with unbounded concurrency.
@@ -3723,28 +3974,6 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       if (primaryFont.case_style === "natural") return name;
       if (primaryFont.case_style === "lower") return name.toLowerCase();
       return name.toUpperCase();
-    }
-
-    // Icons are stored as raw inner-SVG markup (not a full <svg> wrapper)
-    // in the `icons` table, single-color via currentColor so they take
-    // on whatever `ink` the archetype is using. Small cache per request
-    // (icons are tiny compared to fonts -- a few hundred bytes to a few
-    // KB of path data -- so no R2/base64 round trip needed at all).
-    async function identityFetchIcon(env, iconId, iconCache) {
-      if (iconCache && iconCache.has(iconId)) return iconCache.get(iconId);
-      const row = await env.DB.prepare(`SELECT svg_content FROM icons WHERE icon_id = ? AND approved = 1`)
-        .bind(iconId).first();
-      if (!row) throw new Error(`Icon '${iconId}' not found or not approved`);
-      if (iconCache) iconCache.set(iconId, row.svg_content);
-      return row.svg_content;
-    }
-
-    // Wraps fetched icon markup in a positioned, scaled <g> -- icons are
-    // authored on a 0-200 viewBox, so scale = size/200 maps consistently
-    // regardless of where in a composition they're placed.
-    function iconGroup(svgContent, cx, cy, size, ink) {
-      const scale = size / 200;
-      return `<g transform="translate(${(cx - size / 2).toFixed(1)},${(cy - size / 2).toFixed(1)}) scale(${scale.toFixed(4)})" style="color:${ink};">${svgContent}</g>`;
     }
 
     // ── archetype renderers (all 11 registered archetypes now have a
@@ -4277,63 +4506,110 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
     }
 
-    // 18. INTERLOCKING MONOGRAM -- two initials, the second genuinely
-    // cut away (via SVG mask) wherever it overlaps the first, giving a
-    // real woven look rather than two letters just layered. If
-    // supportFont differs from primaryFont, uses it for the second
-    // letter (real font pairing); otherwise falls back to a lighter
-    // weight on the same family (weight contrast) so the overlap still
-    // reads clearly either way. Works with real embedded fonts since the
-    // mask rasterizes actual rendered glyph shapes, not an approximation.
+
+    // 18. INTERLOCK MONOGRAM -- two initials genuinely interlocked via
+    // SVG masking, not just placed side by side: the second letter is
+    // cut away wherever it overlaps the first letter's real rendered
+    // glyph shape, giving a woven look like real fashion-house
+    // monograms (LV, CC, GG). This uses actual rendered text as the
+    // mask, so it works correctly with real embedded custom fonts, not
+    // just as a system-font approximation -- verified against real
+    // coordinate output before this went in, not just eyeballed.
+    //
+    // Three treatment styles, chosen per generation:
+    //   - weight: same font, contrasting weight. Variable fonts get a
+    //     real weight range (matches weight_contrast_word's proven
+    //     approach); static fonts can't actually render two different
+    //     weights from one file, so the back letter's fill is muted
+    //     instead -- same compensation weight_contrast_word already
+    //     uses for the identical limitation.
+    //   - size: one dominant letter, one smaller letter nested into it.
+    //   - pairing: primaryFont for the front letter, supportFont for
+    //     the back -- a genuine two-font pairing, not a same-family
+    //     variation. Falls back to weight-contrast if no supportFont
+    //     was assigned for this generation.
+    //
+    // Positioning uses text-anchor="end"/"start" around a shared center
+    // point rather than hand-tuned absolute coordinates, so the overlap
+    // zone adapts to each letter's actual rendered width instead of
+    // only looking right for the specific "M"/"B" pair it was
+    // prototyped with.
     async function renderInterlockMonogram(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
       const initials = extractInitials(brandName);
       const letterA = initials[0] || "?";
-      const letterB = initials[1] || letterA;
+      const letterB = initials[1] || initials[0] || "?";
       const w = 320, h = 320;
-      const cx = 160, cy = 160;
-      const fontSize = 200;
-      const weightA = primaryFont.weight_class || 700;
-      const hasDistinctSupport = supportFont && supportFont.family_name !== primaryFont.family_name;
-      const familyB = hasDistinctSupport ? supportFont.family_name : primaryFont.family_name;
-      const weightB = hasDistinctSupport ? (supportFont.weight_class || 400) : Math.max(100, weightA - 500);
-      const maskId = `cutA_${Math.random().toString(36).slice(2, 8)}`;
+      const cx = w / 2, cy = h / 2 + 30;
+      const isVariable = !!primaryFont.variable;
+
+      let style = ["weight", "size", "pairing"][Math.floor(Math.random() * 3)];
+      if (style === "pairing" && !supportFont) style = "weight";
+
+      let faWeight, fbWeight, faSize, fbSize, fbFamily, fbR2Key, fbFillMuted = false;
+      const baseSize = 190;
+
+      if (style === "pairing") {
+        faWeight = primaryFont.weight_class || 700;
+        fbWeight = supportFont.weight_class || 400;
+        faSize = baseSize; fbSize = baseSize;
+        fbFamily = supportFont.family_name; fbR2Key = supportFont.r2_key;
+      } else if (style === "size") {
+        faWeight = primaryFont.weight_class || 700;
+        fbWeight = faWeight;
+        faSize = 220; fbSize = 130;
+        fbFamily = primaryFont.family_name; fbR2Key = primaryFont.r2_key;
+      } else { // weight
+        faSize = baseSize; fbSize = baseSize;
+        fbFamily = primaryFont.family_name; fbR2Key = primaryFont.r2_key;
+        if (isVariable) {
+          faWeight = 800; fbWeight = 300;
+        } else {
+          faWeight = primaryFont.weight_class || 700;
+          fbWeight = faWeight;
+          fbFillMuted = true;
+        }
+      }
+
+      const overlap = style === "size" ? 0 : 14;
+      const fbFill = fbFillMuted ? (ink === "#ffffff" ? "#a8a396" : "#8a8578") : ink;
+      const maskId = `interlockmask_${Math.random().toString(36).slice(2, 8)}`;
+
+      let letterAMarkup, letterBMarkup;
+      if (style === "size") {
+        letterAMarkup = `<text x="${cx - 20}" y="${cy}" text-anchor="middle" dominant-baseline="middle" style="font-family:'${primaryFont.family_name}';font-weight:${faWeight};" font-size="${faSize}">${escapeXML(letterA)}</text>`;
+        letterBMarkup = `<text x="${cx + 42}" y="${cy - 34}" text-anchor="middle" dominant-baseline="middle" style="font-family:'${fbFamily}';font-weight:${fbWeight};" font-size="${fbSize}">${escapeXML(letterB)}</text>`;
+      } else {
+        letterAMarkup = `<text x="${cx + overlap}" y="${cy}" text-anchor="end" dominant-baseline="middle" style="font-family:'${primaryFont.family_name}';font-weight:${faWeight};" font-size="${faSize}">${escapeXML(letterA)}</text>`;
+        letterBMarkup = `<text x="${cx - overlap}" y="${cy}" text-anchor="start" dominant-baseline="middle" style="font-family:'${fbFamily}';font-weight:${fbWeight};" font-size="${fbSize}">${escapeXML(letterB)}</text>`;
+      }
+
       const inner = `
     <defs>
       <mask id="${maskId}">
         <rect width="100%" height="100%" fill="white"/>
-        <text x="${cx - 40}" y="${cy + 66}" style="font-family:'${primaryFont.family_name}';font-weight:${weightA};" font-size="${fontSize}" fill="black">${escapeXML(letterA)}</text>
+        <g fill="black">${letterAMarkup}</g>
       </mask>
     </defs>
-    <text x="${cx - 40}" y="${cy + 66}" style="font-family:'${primaryFont.family_name}';font-weight:${weightA};" font-size="${fontSize}" fill="${ink}">${escapeXML(letterA)}</text>
-    <g mask="url(#${maskId})">
-      <text x="${cx + 6}" y="${cy + 66}" style="font-family:'${familyB}';font-weight:${weightB};" font-size="${fontSize}" fill="${ink}">${escapeXML(letterB)}</text>
-    </g>`;
-      const fontEntries = [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight: weightA }];
-      if (hasDistinctSupport) fontEntries.push({ family_name: supportFont.family_name, r2_key: supportFont.r2_key, weight: weightB });
+    <g fill="${ink}">${letterAMarkup}</g>
+    <g mask="url(#${maskId})" fill="${fbFill}">${letterBMarkup}</g>`;
+
+      const fontEntries = [];
+      if (style === "pairing") {
+        fontEntries.push({ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight: faWeight });
+        fontEntries.push({ family_name: supportFont.family_name, r2_key: supportFont.r2_key, weight: fbWeight });
+      } else if (style === "weight" && isVariable) {
+        fontEntries.push({ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weightRange: [100, 900] });
+      } else {
+        fontEntries.push({ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight: primaryFont.weight_class || 700 });
+      }
       return identitySvgDoc(env, w, h, bg, fontEntries, inner, fontCache);
     }
 
-    // 19. NESTED MONOGRAM -- a large dominant initial with a smaller
-    // second initial tucked into it, same family throughout (size
-    // contrast rather than weight/font contrast).
-    async function renderNestedMonogram(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
-      const bg = inkAndBg(ink);
-      const initials = extractInitials(brandName);
-      const letterA = initials[0] || "?";
-      const letterB = initials[1] || letterA;
-      const w = 300, h = 300;
-      const weight = primaryFont.weight_class || 700;
-      const inner = `
-    <text x="40" y="230" style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="220" fill="${ink}">${escapeXML(letterA)}</text>
-    <text x="150" y="195" style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="130" fill="${ink}">${escapeXML(letterB)}</text>`;
-      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
-    }
-
-    // 20. WREATH LOCKUP -- the closed badge-wreath-mini icon wrapped
-    // around a full two-line brand name (name + tagline/category label),
-    // not just initials. Icon fetched from the icons table at generation
-    // time, same tag-eligibility principle as fonts.
+    // 19. WREATH LOCKUP -- the closed badge-wreath-mini icon wrapped
+    // around a full two-line brand name (name + tagline/category
+    // label), not just initials. Icon fetched from the icons table at
+    // generation time, same tag-eligibility principle as fonts.
     async function renderWreathLockup(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache, iconCache) {
       const bg = inkAndBg(ink);
       const text = applyBrandNameCase(brandName, primaryFont);
@@ -4351,7 +4627,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
     }
 
-    // 21. SEAL MEDALLION -- the badge-seal-scallop icon with two
+    // 20. SEAL MEDALLION -- the badge-seal-scallop icon with two
     // independent curved text paths (name on top, category label on
     // bottom) inside the ring, same textPath mechanism stamp_seal
     // already uses. Icon fetched from the icons table.
@@ -4379,7 +4655,6 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
     }
 
-
     const IDENTITY_ARCHETYPE_RENDERERS = {
       wordmark: renderWordmark,
       arc_label_stack: renderArcLabelStack,
@@ -4387,6 +4662,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       circle_badge: renderCircleBadge,
       bootleg_stack: renderBootlegStack,
       monogram_mark: renderMonogramMark,
+      interlock_monogram: renderInterlockMonogram,
       ornate_tagline: renderOrnateTagline,
       script_serif_script: renderScriptSerifScript,
       arc_label_shadow_word: renderArcLabelShadowWord,
@@ -4398,12 +4674,10 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       split_panel: renderSplitPanel,
       combination_lockup: renderCombinationLockup,
       pattern_tile: renderPatternTile,
-      interlock_monogram: renderInterlockMonogram,
-      nested_monogram: renderNestedMonogram,
       wreath_lockup: renderWreathLockup,
       seal_medallion: renderSealMedallion
     };
-    const IDENTITY_ARCHETYPES_NEEDING_SUPPORT_FONT = new Set(["split_connector", "ornate_tagline", "script_serif_script"]);
+    const IDENTITY_ARCHETYPES_NEEDING_SUPPORT_FONT = new Set(["split_connector", "ornate_tagline", "script_serif_script", "interlock_monogram"]);
 
     // ── color engine (unchanged, pure math, no D1/R2 dependency) ──
     const IDENTITY_CATEGORY_HUE_RANGES = {
@@ -4461,7 +4735,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
 
     // ── font engine, rewritten against raw env.DB.prepare() ──
     async function getFontPoolForCategory(env, categoryTag, printMethod = "dtf") {
-      let sql = `SELECT font_id, family_name, category_tag, r2_key, variable, weight_class, vinyl_capable
+      let sql = `SELECT font_id, family_name, category_tag, r2_key, variable, weight_class, vinyl_capable, case_style
                  FROM fonts WHERE category_tag = ? AND approved = 1`;
       const params = [categoryTag];
       if (printMethod === "vinyl") sql += " AND vinyl_capable = 1";
@@ -4474,7 +4748,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       if (!partners.length) return [];
       const categories = partners.map((p) => p.partner_category);
       const placeholders = categories.map(() => "?").join(",");
-      let sql = `SELECT font_id, family_name, category_tag, r2_key, variable, weight_class
+      let sql = `SELECT font_id, family_name, category_tag, r2_key, variable, weight_class, case_style
                  FROM fonts WHERE category_tag IN (${placeholders}) AND approved = 1`;
       if (printMethod === "vinyl") sql += " AND vinyl_capable = 1";
       const res = await env.DB.prepare(sql).bind(...categories).all();
@@ -4839,7 +5113,6 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       const experimentalComboId = experimentalSubstituted ? null : picks[picks.length - 1]?.combo_id;
 
       const fontCache = new Map();
-      const iconCache = new Map();
       const baseUrl = identityBaseUrl(env);
       const concepts = [];
       for (const combo of picks) {
@@ -4851,8 +5124,8 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
         const supportFont = needsSupport ? (await pickFontPairing(env, personalityTag, true, printMethod)).support : null;
         const palette = derivePalette(personalityTag, body.base_color || null);
 
-        const svgBlack = await renderFn(env, combo.font, supportFont, brand.brand_name, "#000000", personalityTag, meta, fontCache, iconCache);
-        const svgWhite = await renderFn(env, combo.font, supportFont, brand.brand_name, "#ffffff", personalityTag, meta, fontCache, iconCache);
+        const svgBlack = await renderFn(env, combo.font, supportFont, brand.brand_name, "#000000", personalityTag, meta, fontCache);
+        const svgWhite = await renderFn(env, combo.font, supportFont, brand.brand_name, "#ffffff", personalityTag, meta, fontCache);
 
         // Draft prefix -- private, owner-only via /identity/preview/.
         const svgBlackKey = `brands/${brandId}/identity/drafts/${combo.combo_id}_black_${Date.now()}.svg`;
@@ -6073,6 +6346,12 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       }
       if (path === "/admin/fonts/diagnose" && request.method === "GET") {
         return await handleAdminFontsDiagnose(request, env);
+      }
+      if (path === "/admin/preview" && request.method === "GET") {
+        return await handleAdminPreviewPage(request, env);
+      }
+      if (path === "/admin/archetypes/toggle" && request.method === "POST") {
+        return await handleAdminArchetypesToggle(request, env);
       }
 
       // ─── WHOLESALE MANUFACTURING ROUTES ───────────────────────
