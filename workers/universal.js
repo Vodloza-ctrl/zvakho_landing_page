@@ -1,39 +1,16 @@
 // ================================================================
-// ZVAKHO Universal Worker — v44 (per-font case handling for the main
-// wordmark text -- fonts with no real lowercase, or with small-caps-
-// style/script lowercase, no longer get the same one-size-fits-all
-// .toUpperCase() as every other font)
+// ZVAKHO Universal Worker — v45 (case_style is now a real 3-way switch:
+// upper / lower / natural, not just upper/natural)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
 //
-// v44: new `case_style` column on fonts (D1 migration run directly,
-// default 'upper' -- preserves current behavior for every existing font
-// until reviewed). New shared applyBrandNameCase(brandName, primaryFont)
-// helper, now used by all 16 archetypes that render the main brand name
-// (renderMonogramMark is the one exception -- it only ever shows
-// initials via extractInitials, which already handles its own casing
-// correctly and doesn't need this).
-//
-// Also fixes a real, live asymmetry found while building this: two
-// archetypes (ornate_tagline, script_serif_script) were already
-// hardcoded to always preserve natural case, regardless of which font
-// landed on them -- meaning any all-caps-only font that happened to get
-// paired with one of those two archetypes was already being sent real
-// lowercase text it can't render. Both now go through the same shared
-// helper as everything else, so the decision follows the FONT, not
-// whichever archetype happened to pick it.
-//
-// New POST /admin/fonts/set-case, same Basic Auth as the rest of
-// /admin/fonts, and a per-card "Case: Upper / Natural" dropdown right
-// next to the category-move control. Deliberately did not try to guess
-// which fonts need 'natural' from their text descriptions -- that's a
-// real visual call (does lowercase look like broken glyphs, deliberate
-// small caps, or normal script strokes?) made once per font while
-// looking at the review tool's mixed-case "Brand Name" sample, not
-// something to infer from a font's name or marketing copy. Verified the
-// UPDATE logic directly against live D1 (real font, real change,
-// confirmed persisted, then reverted) before shipping -- the actual
-// case_style calls are Lenni's to make with the tool.
+// v45: v44 only offered Upper and Natural. Natural preserves whatever
+// casing the brand name was typed in, which isn't the same thing as
+// forced-lowercase -- a real, distinct, deliberate choice a lot of
+// modern/minimal brand identities make on purpose. applyBrandNameCase()
+// and the /admin/fonts dropdown both now offer all three. Existing
+// approved fonts are unaffected -- anything not explicitly set to
+// 'lower' or 'natural' still defaults to 'upper', same as before.
 //
 // v40: /admin/fonts cards now have a "move to category" dropdown next to
 // the approve/reject button, populated from the live DISTINCT set of
@@ -3079,7 +3056,7 @@ export default {
     // dashboard and what's actually live has already caused real
     // confusion twice -- a visible stamp makes "which version is this?"
     // a glance instead of a guess.
-    const WORKER_VERSION = "v44";
+    const WORKER_VERSION = "v45";
 
     async function handleAdminFontsPage(request, env) {
       if (!identityCheckBasicAuth(request, env)) {
@@ -3171,8 +3148,9 @@ h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;ma
             ${categoryOptionsHtml(f.category_tag)}
           </select>
           <div class="moved-note" id="moved_${f.font_id}"></div>
-          <select class="case-select" data-id="${f.font_id}" title="Brand name casing -- Upper forces caps, Natural keeps the name as typed (for fonts with small-caps-style or script lowercase)">
-            <option value="upper" ${f.case_style !== "natural" ? "selected" : ""}>Case: Upper</option>
+          <select class="case-select" data-id="${f.font_id}" title="Brand name casing -- Upper forces caps (default, safe for all-caps-only fonts), Lower forces lowercase (deliberate minimal/modern brand look), Natural keeps the name as typed (for fonts with small-caps-style or script lowercase)">
+            <option value="upper" ${f.case_style === "upper" || !f.case_style ? "selected" : ""}>Case: Upper</option>
+            <option value="lower" ${f.case_style === "lower" ? "selected" : ""}>Case: Lower</option>
             <option value="natural" ${f.case_style === "natural" ? "selected" : ""}>Case: Natural</option>
           </select>
           <div class="case-note" id="case_${f.font_id}"></div>
@@ -3392,8 +3370,8 @@ document.querySelectorAll('.case-select').forEach(sel => {
       }
       let body;
       try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
-      if (!body.font_id || (body.case_style !== "upper" && body.case_style !== "natural")) {
-        return jsonResponse({ error: "font_id and case_style ('upper' or 'natural') required" }, 400);
+      if (!body.font_id || !["upper", "lower", "natural"].includes(body.case_style)) {
+        return jsonResponse({ error: "font_id and case_style ('upper', 'lower', or 'natural') required" }, 400);
       }
       const result = await env.DB.prepare(`UPDATE fonts SET case_style = ? WHERE font_id = ?`)
         .bind(body.case_style, body.font_id).run();
@@ -3709,7 +3687,10 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     // uppercase-only font already shows broken glyphs on sight), stored
     // per font, and respected here regardless of which archetype uses it.
     function applyBrandNameCase(brandName, primaryFont) {
-      return primaryFont.case_style === "natural" ? String(brandName) : String(brandName).toUpperCase();
+      const name = String(brandName);
+      if (primaryFont.case_style === "natural") return name;
+      if (primaryFont.case_style === "lower") return name.toLowerCase();
+      return name.toUpperCase();
     }
 
     // ── archetype renderers (all 11 registered archetypes now have a
