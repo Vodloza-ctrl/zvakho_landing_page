@@ -1,7 +1,18 @@
 // ================================================================
-// ZVAKHO Universal Worker — v35 (always 3 concepts, always 1 experimental)
+// ZVAKHO Universal Worker — v36 (generation cap raised 3 -> 10)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
+//
+// v36: IDENTITY_MAX_GENERATIONS raised from 3 to 10, per direct decision
+// -- the original 3-cap made sense for a system charging a paid AI API
+// call per generation, which this build never actually used (no LLM,
+// deterministic selection logic throughout). Real cost per generation
+// here is negligible. Kept finite rather than unlimited on purpose --
+// unlimited regeneration risks decision paralysis rather than helping
+// anyone actually land on an identity, a real UX cost independent of
+// infra cost. 10 comfortably covers even the smallest category pool
+// (handwritten, 22 combos as of the font-approval pass run directly
+// against D1 this session) without leaning on the v35 repeat-fallback.
 //
 // v35, per direct request: two real changes to /identity/generate.
 // (1) Never returns fewer than 3 concepts again. Previously, once a
@@ -3029,7 +3040,17 @@ export default {
     // elsewhere in this file (line ~2149).
     // ═══════════════════════════════════════════════════════════════
 
-    const IDENTITY_MAX_GENERATIONS = 3;
+    // Was 3 -- that number made sense if each generation cost a paid AI
+    // API call, which this system never actually used (deterministic
+    // font/archetype/color selection, no LLM). Raised per direct
+    // decision: real infra cost per generation is negligible (Workers
+    // CPU + a few small R2 writes), so cost isn't a real constraint here.
+    // Kept finite rather than removed entirely -- unlimited regeneration
+    // tends to produce decision paralysis rather than helping anyone
+    // land on a brand identity, which is a real UX cost independent of
+    // infra cost. 10 comfortably covers even the smallest category pool
+    // (handwritten, 22 combos) without leaning on the repeat-fallback.
+    const IDENTITY_MAX_GENERATIONS = 10;
 
     function identityBaseUrl(env) {
       // env.BASE_URL is configured with a trailing slash in the dashboard
