@@ -1,16 +1,48 @@
 // ================================================================
-// ZVAKHO Universal Worker — v45 (case_style is now a real 3-way switch:
-// upper / lower / natural, not just upper/natural)
+// ZVAKHO Universal Worker — v46 (4 new archetypes: interlock_monogram,
+// nested_monogram, wreath_lockup, seal_medallion -- plus the icons
+// table wired into real generation for the first time)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
 //
-// v45: v44 only offered Upper and Natural. Natural preserves whatever
-// casing the brand name was typed in, which isn't the same thing as
-// forced-lowercase -- a real, distinct, deliberate choice a lot of
-// modern/minimal brand identities make on purpose. applyBrandNameCase()
-// and the /admin/fonts dropdown both now offer all three. Existing
-// approved fonts are unaffected -- anything not explicitly set to
-// 'lower' or 'natural' still defaults to 'upper', same as before.
+// v46: closes out the icons/monogram exploration from the last several
+// sessions -- 20 icons from that work now live in a real `icons` table
+// (19 approved, badge-shield-blank held back after real critique that
+// its pointed-apex silhouette read as a kite, not a shield -- dropped
+// rather than patched). New identityFetchIcon()/iconGroup() helpers
+// pull approved icon SVG content from D1 at generation time, same
+// tag-eligibility principle as fonts.
+//
+// interlock_monogram and nested_monogram carry forward specifically the
+// 3 approved directions from that exploration: weight contrast, size
+// contrast, and real font pairing (interlock_monogram auto-detects
+// whether a distinct supportFont was picked and uses true font pairing
+// when it has one, falling back to weight contrast on the same family
+// otherwise -- so both approved techniques live in one archetype rather
+// than needing two separate ones).
+//
+// wreath_lockup and seal_medallion formalize the badge compositions
+// into real archetypes, icon fetched from D1 rather than hardcoded.
+//
+// Caught and fixed a real structural bug while building this -- the
+// exact same failure mode as the v41 incident: an edit anchored on the
+// registry's opening declaration plus its first entry to find its
+// insertion point, but didn't preserve that anchor text in the
+// replacement, deleting the registry declaration itself. node --check
+// reported OK regardless, because the resulting orphaned
+// "key: value," lines are still syntactically valid as an obscure
+// labeled-statement pattern -- syntax-valid, semantically catastrophic.
+// This time verified three ways beyond a syntax check: an explicit
+// grep for the exact declaration line, a script that actually parses
+// the registry object out of the file and counts its keys (21, as
+// expected), and a fully separate functional test that extracted the
+// 3 new render functions' real logic with real mock data and rendered
+// them end to end. Also caught in the same pass: the actual call site
+// invoking archetype renderers only passed 8 arguments, so the new
+// icon-fetching archetypes' iconCache parameter would have silently
+// been undefined -- not a crash, but silently skipping the caching
+// this was supposed to add. Wired a real iconCache through properly,
+// matching the existing fontCache pattern.
 //
 // v40: /admin/fonts cards now have a "move to category" dropdown next to
 // the approve/reject button, populated from the live DISTINCT set of
@@ -3056,7 +3088,7 @@ export default {
     // dashboard and what's actually live has already caused real
     // confusion twice -- a visible stamp makes "which version is this?"
     // a glance instead of a guess.
-    const WORKER_VERSION = "v45";
+    const WORKER_VERSION = "v46";
 
     async function handleAdminFontsPage(request, env) {
       if (!identityCheckBasicAuth(request, env)) {
@@ -3693,6 +3725,28 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       return name.toUpperCase();
     }
 
+    // Icons are stored as raw inner-SVG markup (not a full <svg> wrapper)
+    // in the `icons` table, single-color via currentColor so they take
+    // on whatever `ink` the archetype is using. Small cache per request
+    // (icons are tiny compared to fonts -- a few hundred bytes to a few
+    // KB of path data -- so no R2/base64 round trip needed at all).
+    async function identityFetchIcon(env, iconId, iconCache) {
+      if (iconCache && iconCache.has(iconId)) return iconCache.get(iconId);
+      const row = await env.DB.prepare(`SELECT svg_content FROM icons WHERE icon_id = ? AND approved = 1`)
+        .bind(iconId).first();
+      if (!row) throw new Error(`Icon '${iconId}' not found or not approved`);
+      if (iconCache) iconCache.set(iconId, row.svg_content);
+      return row.svg_content;
+    }
+
+    // Wraps fetched icon markup in a positioned, scaled <g> -- icons are
+    // authored on a 0-200 viewBox, so scale = size/200 maps consistently
+    // regardless of where in a composition they're placed.
+    function iconGroup(svgContent, cx, cy, size, ink) {
+      const scale = size / 200;
+      return `<g transform="translate(${(cx - size / 2).toFixed(1)},${(cy - size / 2).toFixed(1)}) scale(${scale.toFixed(4)})" style="color:${ink};">${svgContent}</g>`;
+    }
+
     // ── archetype renderers (all 11 registered archetypes now have a
     // render function) ──
     async function renderWordmark(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
@@ -4223,6 +4277,108 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
     }
 
+    // 18. INTERLOCKING MONOGRAM -- two initials, the second genuinely
+    // cut away (via SVG mask) wherever it overlaps the first, giving a
+    // real woven look rather than two letters just layered. If
+    // supportFont differs from primaryFont, uses it for the second
+    // letter (real font pairing); otherwise falls back to a lighter
+    // weight on the same family (weight contrast) so the overlap still
+    // reads clearly either way. Works with real embedded fonts since the
+    // mask rasterizes actual rendered glyph shapes, not an approximation.
+    async function renderInterlockMonogram(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const initials = extractInitials(brandName);
+      const letterA = initials[0] || "?";
+      const letterB = initials[1] || letterA;
+      const w = 320, h = 320;
+      const cx = 160, cy = 160;
+      const fontSize = 200;
+      const weightA = primaryFont.weight_class || 700;
+      const hasDistinctSupport = supportFont && supportFont.family_name !== primaryFont.family_name;
+      const familyB = hasDistinctSupport ? supportFont.family_name : primaryFont.family_name;
+      const weightB = hasDistinctSupport ? (supportFont.weight_class || 400) : Math.max(100, weightA - 500);
+      const maskId = `cutA_${Math.random().toString(36).slice(2, 8)}`;
+      const inner = `
+    <defs>
+      <mask id="${maskId}">
+        <rect width="100%" height="100%" fill="white"/>
+        <text x="${cx - 40}" y="${cy + 66}" style="font-family:'${primaryFont.family_name}';font-weight:${weightA};" font-size="${fontSize}" fill="black">${escapeXML(letterA)}</text>
+      </mask>
+    </defs>
+    <text x="${cx - 40}" y="${cy + 66}" style="font-family:'${primaryFont.family_name}';font-weight:${weightA};" font-size="${fontSize}" fill="${ink}">${escapeXML(letterA)}</text>
+    <g mask="url(#${maskId})">
+      <text x="${cx + 6}" y="${cy + 66}" style="font-family:'${familyB}';font-weight:${weightB};" font-size="${fontSize}" fill="${ink}">${escapeXML(letterB)}</text>
+    </g>`;
+      const fontEntries = [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight: weightA }];
+      if (hasDistinctSupport) fontEntries.push({ family_name: supportFont.family_name, r2_key: supportFont.r2_key, weight: weightB });
+      return identitySvgDoc(env, w, h, bg, fontEntries, inner, fontCache);
+    }
+
+    // 19. NESTED MONOGRAM -- a large dominant initial with a smaller
+    // second initial tucked into it, same family throughout (size
+    // contrast rather than weight/font contrast).
+    async function renderNestedMonogram(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const initials = extractInitials(brandName);
+      const letterA = initials[0] || "?";
+      const letterB = initials[1] || letterA;
+      const w = 300, h = 300;
+      const weight = primaryFont.weight_class || 700;
+      const inner = `
+    <text x="40" y="230" style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="220" fill="${ink}">${escapeXML(letterA)}</text>
+    <text x="150" y="195" style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="130" fill="${ink}">${escapeXML(letterB)}</text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    // 20. WREATH LOCKUP -- the closed badge-wreath-mini icon wrapped
+    // around a full two-line brand name (name + tagline/category label),
+    // not just initials. Icon fetched from the icons table at generation
+    // time, same tag-eligibility principle as fonts.
+    async function renderWreathLockup(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache, iconCache) {
+      const bg = inkAndBg(ink);
+      const text = applyBrandNameCase(brandName, primaryFont);
+      const w = 360, h = 360;
+      const cx = 180, cy = 180;
+      const weight = primaryFont.weight_class || 700;
+      const iconSvg = await identityFetchIcon(env, "badge-wreath-mini", iconCache);
+      const nameFontSize = autoFitFontSize(text, 190);
+      const label = (tag || "ORIGINAL").toUpperCase();
+      const inner = `
+    ${iconGroup(iconSvg, cx, cy, 250, ink)}
+    <text x="${cx}" y="${cy - 6}" text-anchor="middle" style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="${nameFontSize}" fill="${ink}">${escapeXML(text)}</text>
+    <line x1="${cx - 36}" y1="${cy + 12}" x2="${cx + 36}" y2="${cy + 12}" stroke="${ink}" stroke-width="1"/>
+    <text x="${cx}" y="${cy + 30}" text-anchor="middle" font-weight="400" font-size="11" letter-spacing="0.2em" fill="${ink}">${escapeXML(label)}</text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    // 21. SEAL MEDALLION -- the badge-seal-scallop icon with two
+    // independent curved text paths (name on top, category label on
+    // bottom) inside the ring, same textPath mechanism stamp_seal
+    // already uses. Icon fetched from the icons table.
+    async function renderSealMedallion(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache, iconCache) {
+      const bg = inkAndBg(ink);
+      const text = applyBrandNameCase(brandName, primaryFont);
+      const w = 360, h = 360;
+      const cx = 180, cy = 180;
+      const weight = primaryFont.weight_class || 700;
+      const iconSvg = await identityFetchIcon(env, "badge-seal-scallop", iconCache);
+      const nameFontSize = autoFitFontSize(text, 92);
+      const label = (tag || "GOODS CO.").toUpperCase();
+      const topId = `sealtop_${Math.random().toString(36).slice(2, 8)}`;
+      const botId = `sealbot_${Math.random().toString(36).slice(2, 8)}`;
+      const inner = `
+    ${iconGroup(iconSvg, cx, cy, 260, ink)}
+    <path id="${topId}" d="M ${cx - 46} ${cy + 6} A 46 46 0 0 1 ${cx + 46} ${cy + 6}" fill="none"/>
+    <path id="${botId}" d="M ${cx - 40} ${cy + 18} A 40 40 0 0 0 ${cx + 40} ${cy + 18}" fill="none"/>
+    <text style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="${nameFontSize}" letter-spacing="0.06em" fill="${ink}">
+      <textPath href="#${topId}" startOffset="50%" text-anchor="middle">${escapeXML(text)}</textPath>
+    </text>
+    <text font-weight="400" font-size="10" letter-spacing="0.18em" fill="${ink}">
+      <textPath href="#${botId}" startOffset="50%" text-anchor="middle">${escapeXML(label)}</textPath>
+    </text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
 
     const IDENTITY_ARCHETYPE_RENDERERS = {
       wordmark: renderWordmark,
@@ -4241,7 +4397,11 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       stamp_seal: renderStampSeal,
       split_panel: renderSplitPanel,
       combination_lockup: renderCombinationLockup,
-      pattern_tile: renderPatternTile
+      pattern_tile: renderPatternTile,
+      interlock_monogram: renderInterlockMonogram,
+      nested_monogram: renderNestedMonogram,
+      wreath_lockup: renderWreathLockup,
+      seal_medallion: renderSealMedallion
     };
     const IDENTITY_ARCHETYPES_NEEDING_SUPPORT_FONT = new Set(["split_connector", "ornate_tagline", "script_serif_script"]);
 
@@ -4679,6 +4839,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       const experimentalComboId = experimentalSubstituted ? null : picks[picks.length - 1]?.combo_id;
 
       const fontCache = new Map();
+      const iconCache = new Map();
       const baseUrl = identityBaseUrl(env);
       const concepts = [];
       for (const combo of picks) {
@@ -4690,8 +4851,8 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
         const supportFont = needsSupport ? (await pickFontPairing(env, personalityTag, true, printMethod)).support : null;
         const palette = derivePalette(personalityTag, body.base_color || null);
 
-        const svgBlack = await renderFn(env, combo.font, supportFont, brand.brand_name, "#000000", personalityTag, meta, fontCache);
-        const svgWhite = await renderFn(env, combo.font, supportFont, brand.brand_name, "#ffffff", personalityTag, meta, fontCache);
+        const svgBlack = await renderFn(env, combo.font, supportFont, brand.brand_name, "#000000", personalityTag, meta, fontCache, iconCache);
+        const svgWhite = await renderFn(env, combo.font, supportFont, brand.brand_name, "#ffffff", personalityTag, meta, fontCache, iconCache);
 
         // Draft prefix -- private, owner-only via /identity/preview/.
         const svgBlackKey = `brands/${brandId}/identity/drafts/${combo.combo_id}_black_${Date.now()}.svg`;
