@@ -1,21 +1,30 @@
 // ================================================================
-// ZVAKHO Universal Worker — v34 (real fix: artwork is never generated
-// with a baked-in background at all, not just stripped before compositing)
+// ZVAKHO Universal Worker — v35 (always 3 concepts, always 1 experimental)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
 //
-// v34: the v33 fix (regex-strip the background rect before compositing)
-// treated the symptom, not the cause -- confirmed live and correct, but
-// the underlying design was still wrong: identitySvgDoc() baked an
-// opaque background into every stored artwork SVG in the first place.
-// Real print production never bakes a background into artwork; ink sits
-// directly on the garment. Fixed at the source: identitySvgDoc() no
-// longer draws any background rect at all -- all generated artwork
-// (logos, mockup composites) is genuinely transparent now. The v33
-// regex-strip in compositeMockup() is gone too -- nothing left to strip.
-// (`preview_url` has always pointed at the black-ink variant specifically,
-// so this doesn't create a white-on-white visibility problem for
-// anything currently reachable through the API.)
+// v35, per direct request: two real changes to /identity/generate.
+// (1) Never returns fewer than 3 concepts again. Previously, once a
+// brand's shown-combo history exhausted the (small) pool for a tag --
+// which happens fast: e.g. "modern" only had 4 eligible archetypes x 2
+// approved fonts = 8 total combos against 3 rounds x 3 concepts = 9
+// requested slots -- round 3 would come back with fewer than 3
+// (confirmed live: got exactly 2, both forced onto the same leftover
+// font). Now pickNFromPool() falls back to allowing a repeat from the
+// full pool rather than ever returning short. Real fix long-term is
+// approving more fonts per category; this just stops the short-count
+// symptom regardless.
+// (2) 1 of the 3 concepts is now ALWAYS drawn from the "experimental" tag
+// specifically -- a standing guarantee via pickConceptsForRound(), not
+// gated behind the old creative_mode opt-in anymore (that flag folded
+// experimental into the same pool rather than reserving it a real slot,
+// which wasn't actually the ask). Each concept in the response now has
+// an `is_experimental` flag so it's identifiable which one it is.
+// creative_mode is still accepted in the request body for backward
+// compatibility but no longer does anything.
+//
+// Also includes the v34 fix (artwork never has a baked-in background,
+// at the source) and everything from v29-v33 before it.
 //
 // v32: the calibrator tool (added in v31) only ever generated SQL text
 // to copy-paste -- no real persistence, which was confusing ("no way of
@@ -3565,24 +3574,74 @@ export default {
       }
       return pool;
     }
-    function pickThreeDistinctCombos(pool, excludeComboIds = []) {
+    // Picks n combos from a pool, preferring distinct archetypes first,
+    // then filling with anything not-yet-picked, then -- only if the pool
+    // is genuinely too small to avoid it -- falling back to allowing a
+    // repeat of something already shown in an earlier round. This is the
+    // "never return fewer than requested" guarantee: a small pool (few
+    // approved fonts x few eligible archetypes) degrades to an occasional
+    // repeat rather than silently shortchanging the round.
+    function pickNFromPool(pool, n, excludeComboIds = []) {
+      if (!pool.length) return { picks: [], usedFallback: false };
       const available = pool.filter((c) => !excludeComboIds.includes(c.combo_id));
       const distinctArchetypeCount = new Set(available.map((c) => c.archetype_id)).size;
       const shuffled = [...available].sort(() => Math.random() - 0.5);
       const picks = [];
       const usedArchetypes = new Set();
       for (const combo of shuffled) {
-        if (picks.length >= 3) break;
+        if (picks.length >= n) break;
         if (usedArchetypes.has(combo.archetype_id) && usedArchetypes.size < distinctArchetypeCount) continue;
         picks.push(combo);
         usedArchetypes.add(combo.archetype_id);
       }
       for (const combo of shuffled) {
-        if (picks.length >= 3) break;
+        if (picks.length >= n) break;
         if (!picks.includes(combo)) picks.push(combo);
       }
-      return { picks: picks.slice(0, 3), poolExhausted: picks.length < 3 };
+      let usedFallback = false;
+      if (picks.length < n) {
+        // Pool (after excluding already-shown) is smaller than what's
+        // needed -- fall back to the FULL pool, repeats allowed, rather
+        // than returning short.
+        usedFallback = true;
+        const fullShuffled = [...pool].sort(() => Math.random() - 0.5);
+        for (const combo of fullShuffled) {
+          if (picks.length >= n) break;
+          if (!picks.includes(combo)) picks.push(combo);
+        }
+      }
+      return { picks: picks.slice(0, n), usedFallback };
     }
+    // Every round: 2 concepts from the requested personality tag, and
+    // ALWAYS 1 from the "experimental" tag specifically -- a standing
+    // guarantee, not gated behind creative_mode anymore (creative_mode is
+    // still accepted for backward compatibility but no longer changes
+    // this behavior -- it was already folding experimental into the same
+    // pool rather than reserving it a real slot, which is what was
+    // actually requested).
+    async function pickConceptsForRound(mainPool, experimentalPool, excludeComboIds) {
+      const mainResult = pickNFromPool(mainPool, 2, excludeComboIds);
+      let experimentalResult = pickNFromPool(experimentalPool, 1, excludeComboIds);
+      let experimentalSubstituted = false;
+      if (!experimentalResult.picks.length) {
+        // No experimental combos exist at all for this product/print
+        // method (e.g. no experimental fonts approved yet) -- rather than
+        // returning only 2, fill the 3rd slot from the main pool instead
+        // and say so explicitly in the response, so this is visible
+        // rather than silently degrading the "always 1 experimental"
+        // guarantee.
+        experimentalSubstituted = true;
+        const usedIds = mainResult.picks.map((p) => p.combo_id);
+        experimentalResult = pickNFromPool(mainPool, 1, [...excludeComboIds, ...usedIds]);
+      }
+      const picks = [...mainResult.picks, ...experimentalResult.picks];
+      return {
+        picks,
+        poolExhausted: mainResult.usedFallback || experimentalResult.usedFallback,
+        experimentalSubstituted
+      };
+    }
+
 
     // ── brand-identity model helpers (raw D1; resolveBrand() above is
     // reused directly for brand lookup rather than duplicating it) ──
@@ -3801,7 +3860,12 @@ export default {
       const productType = body.product_type || "tshirt";
       const placement = body.placement || "front_chest"; // front_chest | pocket | back
       const productId = body.product_id || null;
-      const creativeMode = !!(body.creative_mode ?? brand.identity_creative_mode);
+      // creative_mode is still accepted in the request body for backward
+      // compatibility but no longer changes anything -- 1 experimental
+      // concept is now ALWAYS included every round (see
+      // pickConceptsForRound below), which is what this flag used to
+      // gate behind an opt-in. Left unread deliberately.
+      void body.creative_mode;
       const printMethod = await getProductPrintMethod(env, productId);
       const meta = {
         city: body.city || brand.identity_city || null,
@@ -3810,17 +3874,21 @@ export default {
       };
 
       const archetypeRows = await getArchetypeRows(env);
-      let comboPool = await buildComboPool(env, archetypeRows, personalityTag, printMethod, productType);
-      if (creativeMode) {
-        const experimentalPool = await buildComboPool(env, archetypeRows, "experimental", printMethod, productType);
-        comboPool = comboPool.concat(experimentalPool);
-      }
-      if (!comboPool.length) {
+      const mainPool = await buildComboPool(env, archetypeRows, personalityTag, printMethod, productType);
+      const experimentalPool = personalityTag === "experimental"
+        ? []
+        : await buildComboPool(env, archetypeRows, "experimental", printMethod, productType);
+      if (!mainPool.length) {
         return jsonResponse({ error: `No eligible archetype/font combinations for tag="${personalityTag}", print_method="${printMethod}". Check that fonts are approved=1 in this category.` }, 500);
       }
 
       const shownComboIds = JSON.parse(brand.identity_shown_combo_ids || "[]");
-      const { picks, poolExhausted } = pickThreeDistinctCombos(comboPool, shownComboIds);
+      const { picks, poolExhausted, experimentalSubstituted } = await pickConceptsForRound(mainPool, experimentalPool, shownComboIds);
+      // Last 1 of `picks` is always the intended experimental slot (see
+      // pickConceptsForRound) unless experimentalSubstituted is true, in
+      // which case it's a second main-pool pick instead -- reflected
+      // below in each concept's is_experimental flag.
+      const experimentalComboId = experimentalSubstituted ? null : picks[picks.length - 1]?.combo_id;
 
       const fontCache = new Map();
       const baseUrl = identityBaseUrl(env);
@@ -3855,6 +3923,7 @@ export default {
         concepts.push({
           concept_id: conceptId, archetype_id: archetypeId, font_family: combo.font.family_name,
           support_font_family: supportFont?.family_name || null,
+          is_experimental: combo.combo_id === experimentalComboId,
           // Private preview URLs -- require the owner's own Bearer token to load.
           preview_url: `${baseUrl}/identity/preview/${encodeURIComponent(svgBlackKey)}`,
           mockup_preview_url: `${baseUrl}/identity/preview/${encodeURIComponent(mockupKey)}`,
@@ -3867,7 +3936,8 @@ export default {
 
       return jsonResponse({
         success: true, generation_round: round, generations_remaining: IDENTITY_MAX_GENERATIONS - round,
-        pool_exhausted: poolExhausted, print_method: printMethod, concepts
+        pool_exhausted: poolExhausted, experimental_substituted: experimentalSubstituted,
+        print_method: printMethod, concepts
       });
     }
 
