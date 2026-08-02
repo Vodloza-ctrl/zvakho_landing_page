@@ -1,24 +1,39 @@
 // ================================================================
-// ZVAKHO Universal Worker — v43 (decommission action for broken fonts,
-// visible version stamp on all /admin/fonts* pages)
+// ZVAKHO Universal Worker — v44 (per-font case handling for the main
+// wordmark text -- fonts with no real lowercase, or with small-caps-
+// style/script lowercase, no longer get the same one-size-fits-all
+// .toUpperCase() as every other font)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
 //
-// v43: two real gaps closed, both surfaced by actually using v42 --
-// 1) The R2 diagnostic page only ever reported broken fonts, with no
-//    way to act on them without leaving the page. Each broken font now
-//    has a "Decommission" button that calls the existing
-//    /admin/fonts/toggle endpoint (approved -> false) -- reuses the
-//    already-tested gate that keeps a font out of generation, rather
-//    than inventing a second mechanism to keep in sync with the first.
-//    Decommissioning does NOT fix a missing R2 file -- it just stops
-//    that font from being picked. The actual fix for a missing file is
-//    re-uploading it to the same r2_key.
-// 2) Version confusion (the exact same paste ending up live twice in a
-//    row) has now cost two separate rounds of back-and-forth. Every
-//    /admin/fonts* page now stamps the live WORKER_VERSION constant
-//    right in the page header -- which version is actually deployed is
-//    a glance at the page, not a guess from a file header comment.
+// v44: new `case_style` column on fonts (D1 migration run directly,
+// default 'upper' -- preserves current behavior for every existing font
+// until reviewed). New shared applyBrandNameCase(brandName, primaryFont)
+// helper, now used by all 16 archetypes that render the main brand name
+// (renderMonogramMark is the one exception -- it only ever shows
+// initials via extractInitials, which already handles its own casing
+// correctly and doesn't need this).
+//
+// Also fixes a real, live asymmetry found while building this: two
+// archetypes (ornate_tagline, script_serif_script) were already
+// hardcoded to always preserve natural case, regardless of which font
+// landed on them -- meaning any all-caps-only font that happened to get
+// paired with one of those two archetypes was already being sent real
+// lowercase text it can't render. Both now go through the same shared
+// helper as everything else, so the decision follows the FONT, not
+// whichever archetype happened to pick it.
+//
+// New POST /admin/fonts/set-case, same Basic Auth as the rest of
+// /admin/fonts, and a per-card "Case: Upper / Natural" dropdown right
+// next to the category-move control. Deliberately did not try to guess
+// which fonts need 'natural' from their text descriptions -- that's a
+// real visual call (does lowercase look like broken glyphs, deliberate
+// small caps, or normal script strokes?) made once per font while
+// looking at the review tool's mixed-case "Brand Name" sample, not
+// something to infer from a font's name or marketing copy. Verified the
+// UPDATE logic directly against live D1 (real font, real change,
+// confirmed persisted, then reverted) before shipping -- the actual
+// case_style calls are Lenni's to make with the tool.
 //
 // v40: /admin/fonts cards now have a "move to category" dropdown next to
 // the approve/reject button, populated from the live DISTINCT set of
@@ -3064,7 +3079,7 @@ export default {
     // dashboard and what's actually live has already caused real
     // confusion twice -- a visible stamp makes "which version is this?"
     // a glance instead of a guess.
-    const WORKER_VERSION = "v43";
+    const WORKER_VERSION = "v44";
 
     async function handleAdminFontsPage(request, env) {
       if (!identityCheckBasicAuth(request, env)) {
@@ -3109,7 +3124,7 @@ h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;ma
 </body></html>`, { headers: { "Content-Type": "text/html;charset=utf-8" } });
       }
 
-      let sql = `SELECT font_id, family_name, category_tag, r2_key, weight_class, approved, license_status FROM fonts WHERE category_tag = ?`;
+      let sql = `SELECT font_id, family_name, category_tag, r2_key, weight_class, approved, license_status, case_style FROM fonts WHERE category_tag = ?`;
       const params = [category];
       if (status === "approved") sql += " AND approved = 1";
       if (status === "pending") sql += " AND approved = 0";
@@ -3156,6 +3171,11 @@ h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;ma
             ${categoryOptionsHtml(f.category_tag)}
           </select>
           <div class="moved-note" id="moved_${f.font_id}"></div>
+          <select class="case-select" data-id="${f.font_id}" title="Brand name casing -- Upper forces caps, Natural keeps the name as typed (for fonts with small-caps-style or script lowercase)">
+            <option value="upper" ${f.case_style !== "natural" ? "selected" : ""}>Case: Upper</option>
+            <option value="natural" ${f.case_style === "natural" ? "selected" : ""}>Case: Natural</option>
+          </select>
+          <div class="case-note" id="case_${f.font_id}"></div>
         </div>`;
       }));
 
@@ -3187,7 +3207,10 @@ h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;ma
 .is-approved .toggle-btn{background:#1e3a1e;}
 .cat-select{width:100%;background:#0e0e0e;border:1px solid #2c2c2c;color:#9a958a;padding:6px 8px;border-radius:6px;font-size:12px;margin-top:8px;cursor:pointer;}
 .cat-select:hover{border-color:#e8c547;color:#f0ede6;}
+.case-select{width:100%;background:#0e0e0e;border:1px solid #2c2c2c;color:#9a958a;padding:6px 8px;border-radius:6px;font-size:12px;margin-top:8px;cursor:pointer;}
+.case-select:hover{border-color:#e8c547;color:#f0ede6;}
 .moved-note{font-size:11px;color:#8fce8f;margin-top:6px;min-height:14px;}
+.case-note{font-size:11px;color:#8fce8f;margin-top:6px;min-height:14px;}
 .pager{margin-top:24px;font-size:13px;}
 .pager a{color:#e8c547;text-decoration:none;margin-right:14px;}
 .ver{color:#5a564c;font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;margin-left:8px;}
@@ -3268,6 +3291,39 @@ document.querySelectorAll('.cat-select').forEach(sel => {
     }
   });
 });
+document.querySelectorAll('.case-select').forEach(sel => {
+  sel.dataset.confirmed = sel.value; // server-rendered value is the last known-good state
+  sel.addEventListener('change', async () => {
+    const id = sel.dataset.id;
+    const newCase = sel.value;
+    const note = document.getElementById('case_' + id);
+    sel.disabled = true;
+    note.textContent = 'Saving...';
+    note.style.color = '#9a958a';
+    try {
+      const res = await fetch('/admin/fonts/set-case', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ font_id: id, case_style: newCase })
+      });
+      const data = await res.json();
+      if (data.success) {
+        sel.dataset.confirmed = newCase;
+        note.textContent = 'Saved';
+        note.style.color = '#8fce8f';
+      } else {
+        note.textContent = 'Error: ' + (data.error || 'failed');
+        note.style.color = '#ce8f8f';
+        sel.value = sel.dataset.confirmed;
+      }
+    } catch (err) {
+      note.textContent = 'Error: ' + String(err);
+      note.style.color = '#ce8f8f';
+      sel.value = sel.dataset.confirmed;
+    }
+    sel.disabled = false;
+  });
+});
 </script>
 </body></html>`;
 
@@ -3318,6 +3374,33 @@ document.querySelectorAll('.cat-select').forEach(sel => {
         return jsonResponse({ error: `No font found with font_id = '${body.font_id}'` }, 404);
       }
       return jsonResponse({ success: true, font_id: body.font_id, category_tag: newCategory });
+    }
+
+    // Sets which case treatment applyBrandNameCase() should use for this
+    // font's main wordmark text during real generation. 'upper' is the
+    // safe default -- correct for fonts with no real lowercase, or where
+    // lowercase is a genuinely broken/missing glyph rather than a design
+    // choice. 'natural' preserves the brand name's real casing -- correct
+    // for fonts whose lowercase is drawn as small caps (the contrast is
+    // the whole point of the design) or script/handwritten fonts that
+    // look worse forced into full caps. This is a visual call, not
+    // something to infer automatically -- made once here per font while
+    // looking at the review tool's mixed-case "Brand Name" sample.
+    async function handleAdminFontsSetCase(request, env) {
+      if (!identityCheckBasicAuth(request, env)) {
+        return jsonResponse({ error: "Unauthorized" }, 401);
+      }
+      let body;
+      try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+      if (!body.font_id || (body.case_style !== "upper" && body.case_style !== "natural")) {
+        return jsonResponse({ error: "font_id and case_style ('upper' or 'natural') required" }, 400);
+      }
+      const result = await env.DB.prepare(`UPDATE fonts SET case_style = ? WHERE font_id = ?`)
+        .bind(body.case_style, body.font_id).run();
+      if (!result.meta || result.meta.changes === 0) {
+        return jsonResponse({ error: `No font found with font_id = '${body.font_id}'` }, 404);
+      }
+      return jsonResponse({ success: true, font_id: body.font_id, case_style: body.case_style });
     }
 
     // Checks every APPROVED font's r2_key against the real R2 bucket --
@@ -3611,11 +3694,29 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${styleBlock}${inner}</svg>`;
     }
 
+    // Every archetype's main wordmark text goes through this instead of
+    // hardcoding .toUpperCase() -- the RIGHT case treatment depends on
+    // the font that landed in this generation, not on which archetype
+    // happened to pick it. A font with no real lowercase (or one where
+    // lowercase is a genuinely broken glyph, not a design choice) needs
+    // 'upper' -- the current universal default, correct for most bold
+    // display fonts. A font whose lowercase is drawn as small caps, or
+    // a script/handwritten font whose whole appeal is its natural
+    // connecting strokes, needs 'natural' -- forcing those to full caps
+    // flattens the exact contrast the type designer built in. Which
+    // fonts need which is a visual call made once in /admin/fonts (the
+    // review sample is deliberately mixed-case "Brand Name" so a
+    // uppercase-only font already shows broken glyphs on sight), stored
+    // per font, and respected here regardless of which archetype uses it.
+    function applyBrandNameCase(brandName, primaryFont) {
+      return primaryFont.case_style === "natural" ? String(brandName) : String(brandName).toUpperCase();
+    }
+
     // ── archetype renderers (all 11 registered archetypes now have a
     // render function) ──
     async function renderWordmark(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName).toUpperCase();
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 600, h = 300;
       const fontSize = autoFitFontSize(text, w - 60);
       const weight = primaryFont.weight_class || 700;
@@ -3639,7 +3740,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
 
     async function renderArcLabelStack(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName).toUpperCase();
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 600;
       const r = w * 0.34, cx = w / 2;
       const pathId = `arc_${Math.random().toString(36).slice(2, 8)}`;
@@ -3666,7 +3767,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
 
     async function renderSplitConnector(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const words = splitForStack(String(brandName).toUpperCase(), 2);
+      const words = splitForStack(applyBrandNameCase(brandName, primaryFont), 2);
       const w = 600, h = 300;
       const weight = primaryFont.weight_class || 700;
       const connFont = supportFont || primaryFont;
@@ -3689,7 +3790,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
 
     async function renderCircleBadge(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName).toUpperCase();
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 600;
       const cx = w / 2;
       const weight = primaryFont.weight_class || 700;
@@ -3731,7 +3832,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     }
     async function renderBootlegStack(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName).toUpperCase();
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 640;
       const weight = primaryFont.weight_class || 800;
       const heroFontSize = autoFitFontSize(text, w - 60);
@@ -3805,7 +3906,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     // EST. year fallback) rather than making up brand voice.
     async function renderOrnateTagline(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName);
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 600, h = 240;
       const weight = primaryFont.weight_class || 500;
       const fontSize = autoFitFontSize(text, w - 120);
@@ -3833,7 +3934,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     // Same no-invented-copy fallback as above for the sub-label.
     async function renderScriptSerifScript(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName);
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 600, h = 220;
       const weight = primaryFont.weight_class || 500;
       const fontSize = autoFitFontSize(text, w - 100);
@@ -3860,7 +3961,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     // here for that safety check.
     async function renderArcLabelShadowWord(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName).toUpperCase();
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 600, h = 260;
       const weight = primaryFont.weight_class || 700;
       const fontSize = autoFitFontSize(text, w - 140);
@@ -3889,7 +3990,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     // bootleg_stack's existing fallback pattern exactly.
     async function renderBoxedTagline(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName).toUpperCase();
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 600, h = 220;
       const weight = primaryFont.weight_class || 700;
       const fontSize = autoFitFontSize(text, w - 80);
@@ -3924,7 +4025,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     }
     async function renderWeightContrastWord(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const [partA, partB] = splitWordForWeightContrast(String(brandName).toUpperCase());
+      const [partA, partB] = splitWordForWeightContrast(applyBrandNameCase(brandName, primaryFont));
       const w = 600, h = 240;
       const fontSize = autoFitFontSize(partA + partB, w - 80);
       const isVariable = !!primaryFont.variable;
@@ -3972,7 +4073,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     }
     async function renderLaurelBadge(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName).toUpperCase();
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 640, h = 320;
       const weight = primaryFont.weight_class || 600;
       const cx = w / 2, cy = h / 2 + 10;
@@ -3994,7 +4095,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     // Vintage/athletic register.
     async function renderRibbonBanner(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName).toUpperCase();
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 640, h = 220;
       const weight = primaryFont.weight_class || 700;
       const bandY = 80, bandH = 90, bandX = 100, bandW = w - 200, notch = 26;
@@ -4015,7 +4116,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     // ornate/decorative. Premium/vintage register.
     async function renderStampSeal(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName).toUpperCase();
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 500, h = 500;
       const weight = primaryFont.weight_class || 600;
       const cx = w / 2, cy = h / 2;
@@ -4055,7 +4156,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     // would clip in the wrong place). Modern/bold/graphic register.
     async function renderSplitPanel(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName).toUpperCase();
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 640, h = 300;
       const weight = primaryFont.weight_class || 800;
       const fontSize = autoFitFontSize(text, w - 60);
@@ -4093,7 +4194,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     async function renderCombinationLockup(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
       const initials = extractInitials(brandName);
-      const text = String(brandName).toUpperCase();
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 640, h = 260;
       const weight = primaryFont.weight_class || 700;
       const markSize = 150;
@@ -4119,7 +4220,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     // against the textured fill. Creative/experimental/graphic register.
     async function renderPatternTile(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
-      const text = String(brandName).toUpperCase();
+      const text = applyBrandNameCase(brandName, primaryFont);
       const w = 640, h = 320;
       const weight = primaryFont.weight_class || 800;
       const fontSize = autoFitFontSize(text, w - 100);
@@ -5824,6 +5925,9 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       }
       if (path === "/admin/fonts/recategorize" && request.method === "POST") {
         return await handleAdminFontsRecategorize(request, env);
+      }
+      if (path === "/admin/fonts/set-case" && request.method === "POST") {
+        return await handleAdminFontsSetCase(request, env);
       }
       if (path === "/admin/fonts/diagnose" && request.method === "GET") {
         return await handleAdminFontsDiagnose(request, env);
