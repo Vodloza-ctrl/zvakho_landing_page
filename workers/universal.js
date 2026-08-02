@@ -1,9 +1,22 @@
 // ================================================================
-// ZVAKHO Universal Worker — v39 (typography polish pass -- Phase 1 of 3
-// on the "better design" push: typography, then icons, then curated
-// design-language recipes)
+// ZVAKHO Universal Worker — v40 (adds category-move to the font review
+// tool -- fonts miscategorized into "experimental" etc. can now be
+// reassigned to their real category without touching D1 by hand)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
+//
+// v40: /admin/fonts cards now have a "move to category" dropdown next to
+// the approve/reject button, populated from the live DISTINCT set of
+// category_tag values. New POST /admin/fonts/recategorize endpoint
+// backs it -- same Basic Auth as the rest of /admin/fonts. Deliberately
+// only allows moving into a category_tag that already exists somewhere
+// in the table (this is a recategorize tool, not a category-creation
+// tool -- a typo in the request body can't spawn a stray new category).
+// Logic verified directly against live D1 before shipping: moved a real
+// font ("Winter Half") to a different category, confirmed the change
+// persisted, then reverted it -- the actual recategorization decisions
+// are Lenni's to make with the tool, not something to bake in as a
+// side effect of testing.
 //
 // v39: 4 archetypes that were bare (no supporting micro-copy at all) now
 // carry real structural text -- same no-invented-copy principle already
@@ -3079,6 +3092,17 @@ h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;ma
       const res = await env.DB.prepare(sql).bind(...params).all();
       const fonts = res.results || [];
 
+      // All known categories, for the move-to-category dropdown on each
+      // card. Queried fresh each load so a category created elsewhere
+      // shows up immediately, with no separate config to keep in sync.
+      const allCatsRes = await env.DB.prepare(`SELECT DISTINCT category_tag FROM fonts ORDER BY category_tag`).all();
+      const allCategories = (allCatsRes.results || []).map((r) => r.category_tag);
+      function categoryOptionsHtml(current) {
+        return allCategories.map((c) =>
+          `<option value="${escapeXML(c)}" ${c === current ? "selected" : ""}>${escapeXML(c)}</option>`
+        ).join("");
+      }
+
       const fontCache = new Map();
       const cards = await Promise.all(fonts.map(async (f) => {
         let styleBlock = "";
@@ -3102,6 +3126,10 @@ h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;ma
           <button class="toggle-btn" data-id="${f.font_id}" data-approved="${f.approved}">
             ${f.approved ? "Approved — click to reject" : "Pending — click to approve"}
           </button>
+          <select class="cat-select" data-id="${f.font_id}" title="Move to category">
+            ${categoryOptionsHtml(f.category_tag)}
+          </select>
+          <div class="moved-note" id="moved_${f.font_id}"></div>
         </div>`;
       }));
 
@@ -3131,6 +3159,9 @@ h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;ma
 .toggle-btn{width:100%;background:#0e0e0e;border:1px solid #2c2c2c;color:#f0ede6;padding:8px;border-radius:6px;font-size:12px;cursor:pointer;}
 .toggle-btn:hover{border-color:#e8c547;}
 .is-approved .toggle-btn{background:#1e3a1e;}
+.cat-select{width:100%;background:#0e0e0e;border:1px solid #2c2c2c;color:#9a958a;padding:6px 8px;border-radius:6px;font-size:12px;margin-top:8px;cursor:pointer;}
+.cat-select:hover{border-color:#e8c547;color:#f0ede6;}
+.moved-note{font-size:11px;color:#8fce8f;margin-top:6px;min-height:14px;}
 .pager{margin-top:24px;font-size:13px;}
 .pager a{color:#e8c547;text-decoration:none;margin-right:14px;}
 </style></head><body>
@@ -3174,6 +3205,42 @@ document.querySelectorAll('.toggle-btn').forEach(btn => {
     btn.disabled = false;
   });
 });
+document.querySelectorAll('.cat-select').forEach(sel => {
+  const originalValue = sel.value;
+  sel.addEventListener('change', async () => {
+    const id = sel.dataset.id;
+    const newCat = sel.value;
+    const note = document.getElementById('moved_' + id);
+    sel.disabled = true;
+    note.textContent = 'Moving...';
+    note.style.color = '#9a958a';
+    try {
+      const res = await fetch('/admin/fonts/recategorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ font_id: id, category_tag: newCat })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('card_' + id).style.opacity = '0.5';
+        note.textContent = 'Moved to ' + newCat + ' — reload to update the list';
+        note.style.color = '#8fce8f';
+        // Leave the dropdown disabled: the font no longer belongs in this
+        // filtered view, so nothing useful to change here without a reload.
+      } else {
+        note.textContent = 'Error: ' + (data.error || 'failed');
+        note.style.color = '#ce8f8f';
+        sel.value = originalValue;
+        sel.disabled = false;
+      }
+    } catch (err) {
+      note.textContent = 'Error: ' + String(err);
+      note.style.color = '#ce8f8f';
+      sel.value = originalValue;
+      sel.disabled = false;
+    }
+  });
+});
 </script>
 </body></html>`;
 
@@ -3195,6 +3262,35 @@ document.querySelectorAll('.toggle-btn').forEach(btn => {
         return jsonResponse({ error: `No font found with font_id = '${body.font_id}'` }, 404);
       }
       return jsonResponse({ success: true, font_id: body.font_id, approved: body.approved });
+    }
+
+    // Moves a single font to a different category_tag -- e.g. correcting
+    // one that landed in "experimental" but genuinely belongs in
+    // "vintage" or "streetwear". Only allows moving into a category_tag
+    // that already exists somewhere in the table: this is a recategorize
+    // tool, not a category-creation tool, so a typo in the request body
+    // can't silently spawn a stray new category with one font in it.
+    async function handleAdminFontsRecategorize(request, env) {
+      if (!identityCheckBasicAuth(request, env)) {
+        return jsonResponse({ error: "Unauthorized" }, 401);
+      }
+      let body;
+      try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+      if (!body.font_id || typeof body.category_tag !== "string" || !body.category_tag.trim()) {
+        return jsonResponse({ error: "font_id and category_tag (non-empty string) required" }, 400);
+      }
+      const newCategory = body.category_tag.trim();
+      const validCategory = await env.DB.prepare(`SELECT 1 FROM fonts WHERE category_tag = ? LIMIT 1`)
+        .bind(newCategory).first();
+      if (!validCategory) {
+        return jsonResponse({ error: `'${newCategory}' is not an existing category_tag -- this tool moves fonts between existing categories, it does not create new ones` }, 400);
+      }
+      const result = await env.DB.prepare(`UPDATE fonts SET category_tag = ? WHERE font_id = ?`)
+        .bind(newCategory, body.font_id).run();
+      if (!result.meta || result.meta.changes === 0) {
+        return jsonResponse({ error: `No font found with font_id = '${body.font_id}'` }, 404);
+      }
+      return jsonResponse({ success: true, font_id: body.font_id, category_tag: newCategory });
     }
 
     async function handleAdminCalibrator(request, env) {
@@ -5582,6 +5678,9 @@ document.querySelectorAll('.toggle-btn').forEach(btn => {
       }
       if (path === "/admin/fonts/toggle" && request.method === "POST") {
         return await handleAdminFontsToggle(request, env);
+      }
+      if (path === "/admin/fonts/recategorize" && request.method === "POST") {
+        return await handleAdminFontsRecategorize(request, env);
       }
 
       // ─── WHOLESALE MANUFACTURING ROUTES ───────────────────────
