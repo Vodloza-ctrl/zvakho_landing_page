@@ -1,8 +1,23 @@
 // ================================================================
-// ZVAKHO Universal Worker — v37 (adds a real font review tool at
-// /admin/fonts, in response to bad-looking generated artwork)
+// ZVAKHO Universal Worker — v38 (6 new archetypes with real graphic
+// elements -- laurel, ribbon, seal, split panel, lockup, pattern tile)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
+//
+// v38: direct response to "this is just text in circle/square frames" --
+// fair critique. Of the original 11 archetypes, only 2 (circle_badge,
+// monogram_mark) had any real shape/frame at all; the rest were pure
+// typography. Added 6 new ones built from actual graphic elements
+// (trig-placed laurel leaves, a fishtail ribbon path, a double-ring
+// tick-marked seal, an SVG-masked two-tone split panel, a real icon+
+// wordmark lockup, a pattern-fill knockout mark) -- none of this needed
+// image generation, all pure SVG. Each was rendered and visually
+// reviewed locally with real geometry before shipping (not shipped
+// blind) -- one (split_panel) was caught using a fragile inline
+// CSS clip-path with ambiguous percentage semantics and rewritten with a
+// proper SVG <clipPath clipPathUnits="userSpaceOnUse"> before going in.
+// Registered but not yet seeded into the `archetypes` D1 table with tags
+// -- run the accompanying SQL to make them actually selectable.
 //
 // v37: after live generations came back looking bad ("terrible", one
 // illegible), traced the likely real cause -- the 311-font bulk approval
@@ -3657,6 +3672,192 @@ document.querySelectorAll('.toggle-btn').forEach(btn => {
       return identitySvgDoc(env, w, h, bg, [fontEntry], inner, fontCache);
     }
 
+    // 12. LAUREL BADGE -- wordmark flanked by laurel branches, a grounding
+    // rule beneath. Heritage/premium register -- fills the elegant/
+    // premium gap identified earlier (nothing with real ceremonial
+    // structure existed before this).
+    function laurelLeafPath(size, ink) {
+      return `<path d="M0,0 Q${size * 0.5},-${size * 0.32} ${size},0 Q${size * 0.5},${size * 0.32} 0,0 Z" fill="none" stroke="${ink}" stroke-width="1.6"/>`;
+    }
+    function laurelBranch(cx, cy, r0, r1, startDeg, endDeg, count, leafSize, side, ink) {
+      let out = "";
+      for (let i = 0; i < count; i++) {
+        const t = count === 1 ? 0 : i / (count - 1);
+        const deg = startDeg + t * (endDeg - startDeg);
+        const r = r0 + t * (r1 - r0);
+        const rad = (deg * Math.PI) / 180;
+        const x = cx + side * r * Math.cos(rad);
+        const y = cy - r * Math.sin(rad);
+        const size = leafSize * (0.65 + 0.45 * t);
+        const rot = side === 1 ? 90 - deg : 90 + deg + 180;
+        out += `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${rot.toFixed(1)})">${laurelLeafPath(size, ink)}</g>`;
+      }
+      return out;
+    }
+    async function renderLaurelBadge(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName).toUpperCase();
+      const w = 640, h = 320;
+      const weight = primaryFont.weight_class || 600;
+      const cx = w / 2, cy = h / 2 + 10;
+      const fontSize = autoFitFontSize(text, 260);
+      const inner = `
+    ${laurelBranch(cx, cy, 90, 130, -75, 75, 7, 26, -1, ink)}
+    ${laurelBranch(cx, cy, 90, 130, -75, 75, 7, 26, 1, ink)}
+    <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${fontSize}">${escapeXML(text)}</text>
+    <line x1="${cx - 70}" y1="${cy + 34}" x2="${cx + 70}" y2="${cy + 34}" stroke="${ink}" stroke-width="1"/>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    // 13. RIBBON BANNER -- text on a fishtail-notched banner shape.
+    // Vintage/athletic register.
+    async function renderRibbonBanner(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName).toUpperCase();
+      const w = 640, h = 220;
+      const weight = primaryFont.weight_class || 700;
+      const bandY = 80, bandH = 90, bandX = 100, bandW = w - 200, notch = 26;
+      const fontSize = autoFitFontSize(text, bandW - 60);
+      const path = `M${bandX},${bandY} L${bandX + bandW},${bandY} L${bandX + bandW - notch},${bandY + bandH / 2} L${bandX + bandW},${bandY + bandH} L${bandX},${bandY + bandH} L${bandX + notch},${bandY + bandH / 2} Z`;
+      const inner = `
+    <path d="${path}" fill="none" stroke="${ink}" stroke-width="2.5"/>
+    <text x="${w / 2}" y="${bandY + bandH / 2}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${fontSize}" letter-spacing="0.05em">${escapeXML(text)}</text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    // 14. ORNATE STAMP SEAL -- double-ring border with radial tick marks
+    // around the perimeter, like a wax seal or certification stamp.
+    // Distinct from circle_badge (that one's a clean minimal ring with
+    // curved text labels top/bottom); this one is deliberately more
+    // ornate/decorative. Premium/vintage register.
+    async function renderStampSeal(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName).toUpperCase();
+      const w = 500, h = 500;
+      const weight = primaryFont.weight_class || 600;
+      const cx = w / 2, cy = h / 2;
+      const R = 190, r2 = 170;
+      const fontSize = autoFitFontSize(text, R * 1.1);
+      const ticks = [];
+      const tickCount = 40;
+      for (let i = 0; i < tickCount; i++) {
+        const deg = (360 / tickCount) * i;
+        const rad = (deg * Math.PI) / 180;
+        const x1 = cx + (R + 6) * Math.cos(rad), y1 = cy + (R + 6) * Math.sin(rad);
+        const x2 = cx + (R + 16) * Math.cos(rad), y2 = cy + (R + 16) * Math.sin(rad);
+        ticks.push(`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${ink}" stroke-width="2"/>`);
+      }
+      const inner = `
+    ${ticks.join("")}
+    <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${ink}" stroke-width="2.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${r2}" fill="none" stroke="${ink}" stroke-width="1"/>
+    <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${fontSize}">${escapeXML(text)}</text>
+    <circle cx="${cx}" cy="${cy + fontSize * 0.9}" r="4" fill="${ink}"/>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    // 15. SPLIT PANEL BLOCK -- two-tone color-blocked background with the
+    // wordmark crossing the seam: knocked out (reads as background color)
+    // over the filled panel via an SVG mask, solid ink over the empty
+    // side via a proper clipPath (clipPathUnits="userSpaceOnUse" --
+    // deliberately NOT an inline CSS clip-path with percentages, which
+    // resolves against the text's own bounding box, not the canvas, and
+    // would clip in the wrong place). Modern/bold/graphic register.
+    async function renderSplitPanel(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName).toUpperCase();
+      const w = 640, h = 300;
+      const weight = primaryFont.weight_class || 800;
+      const fontSize = autoFitFontSize(text, w - 60);
+      const leftPoly = `0,0 ${w * 0.55},0 ${w * 0.4},${h} 0,${h}`;
+      const maskId = `splitmask_${Math.random().toString(36).slice(2, 8)}`;
+      const clipId = `rightclip_${Math.random().toString(36).slice(2, 8)}`;
+      const inner = `
+    <defs>
+      <mask id="${maskId}">
+        <rect width="100%" height="100%" fill="white"/>
+        <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle"
+              style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="${fontSize}" fill="black">${escapeXML(text)}</text>
+      </mask>
+      <clipPath id="${clipId}" clipPathUnits="userSpaceOnUse">
+        <polygon points="${w * 0.55},0 ${w},0 ${w},${h} ${w * 0.4},${h}"/>
+      </clipPath>
+    </defs>
+    <polygon points="${leftPoly}" fill="${ink}" mask="url(#${maskId})"/>
+    <g clip-path="url(#${clipId})">
+      <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+            font-size="${fontSize}">${escapeXML(text)}</text>
+    </g>
+    <rect x="0" y="0" width="${w}" height="${h}" fill="none" stroke="${ink}" stroke-width="1.5"/>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    // 16. COMBINATION LOCKUP -- a real icon+wordmark lockup: monogram
+    // initials in a bordered square on the left, full brand name +
+    // personality-tag label stacked beside it. Different from
+    // monogram_mark (initials alone) -- this is the combined mark real
+    // brand systems use when both the icon and the full name need to
+    // appear together. Broadly applicable register, same breadth as
+    // monogram_mark.
+    async function renderCombinationLockup(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const initials = extractInitials(brandName);
+      const text = String(brandName).toUpperCase();
+      const w = 640, h = 260;
+      const weight = primaryFont.weight_class || 700;
+      const markSize = 150;
+      const markCx = 130, markCy = h / 2;
+      const nameFontSize = autoFitFontSize(text, w - 280);
+      const inner = `
+    <rect x="${markCx - markSize / 2}" y="${markCy - markSize / 2}" width="${markSize}" height="${markSize}" rx="14" fill="none" stroke="${ink}" stroke-width="3"/>
+    <text x="${markCx}" y="${markCy}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${markSize * 0.42}">${escapeXML(initials)}</text>
+    <line x1="240" y1="${h / 2 - 30}" x2="240" y2="${h / 2 + 30}" stroke="${ink}" stroke-width="1"/>
+    <text x="270" y="${h / 2 - 6}" text-anchor="start" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
+          font-size="${nameFontSize}">${escapeXML(text)}</text>
+    <text x="270" y="${h / 2 + 22}" text-anchor="start" dominant-baseline="middle" fill="${ink}"
+          font-size="14" letter-spacing="0.2em">${escapeXML((tag || "ORIGINAL").toUpperCase())}</text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    // 17. PATTERN TILE MARK -- a repeating dot pattern fills a bordered
+    // panel, with the wordmark knocked out of it (mask, same technique as
+    // split_panel's filled side) so the letters read as background color
+    // against the textured fill. Creative/experimental/graphic register.
+    async function renderPatternTile(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
+      const bg = inkAndBg(ink);
+      const text = String(brandName).toUpperCase();
+      const w = 640, h = 320;
+      const weight = primaryFont.weight_class || 800;
+      const fontSize = autoFitFontSize(text, w - 100);
+      const maskId = `patternmask_${Math.random().toString(36).slice(2, 8)}`;
+      const patId = `dotpat_${Math.random().toString(36).slice(2, 8)}`;
+      const inner = `
+    <defs>
+      <pattern id="${patId}" width="18" height="18" patternUnits="userSpaceOnUse">
+        <circle cx="4" cy="4" r="2" fill="${ink}"/>
+      </pattern>
+      <mask id="${maskId}">
+        <rect width="100%" height="100%" fill="white"/>
+        <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle"
+              style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="${fontSize}" fill="black">${escapeXML(text)}</text>
+      </mask>
+    </defs>
+    <rect x="30" y="30" width="${w - 60}" height="${h - 60}" fill="url(#${patId})" mask="url(#${maskId})"/>
+    <rect x="30" y="30" width="${w - 60}" height="${h - 60}" fill="none" stroke="${ink}" stroke-width="2"/>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+
     const IDENTITY_ARCHETYPE_RENDERERS = {
       wordmark: renderWordmark,
       arc_label_stack: renderArcLabelStack,
@@ -3668,7 +3869,13 @@ document.querySelectorAll('.toggle-btn').forEach(btn => {
       script_serif_script: renderScriptSerifScript,
       arc_label_shadow_word: renderArcLabelShadowWord,
       boxed_tagline: renderBoxedTagline,
-      weight_contrast_word: renderWeightContrastWord
+      weight_contrast_word: renderWeightContrastWord,
+      laurel_badge: renderLaurelBadge,
+      ribbon_banner: renderRibbonBanner,
+      stamp_seal: renderStampSeal,
+      split_panel: renderSplitPanel,
+      combination_lockup: renderCombinationLockup,
+      pattern_tile: renderPatternTile
     };
     const IDENTITY_ARCHETYPES_NEEDING_SUPPORT_FONT = new Set(["split_connector", "ornate_tagline", "script_serif_script"]);
 
