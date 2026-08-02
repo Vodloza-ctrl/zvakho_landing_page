@@ -1,9 +1,24 @@
 // ================================================================
-// ZVAKHO Universal Worker — v40 (adds category-move to the font review
-// tool -- fonts miscategorized into "experimental" etc. can now be
-// reassigned to their real category without touching D1 by hand)
+// ZVAKHO Universal Worker — v41 (adds a real diagnostic for "font
+// failed to load" errors in /admin/fonts -- checks every approved
+// font's r2_key against the actual R2 bucket, since that's the exact
+// same lookup real generation does)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
+//
+// v41: new GET /admin/fonts/diagnose, linked from the category picker.
+// Confirmed by reading the code (not guessed) that identitySvgDoc --
+// used by every archetype renderer during REAL generation -- calls the
+// exact same identityFetchFontBase64() the review tool uses to show
+// "font failed to load". There's no try/catch around that call during
+// real generation, unlike the review tool's graceful fallback: a broken
+// r2_key picked into a real generate request throws an unhandled error
+// and fails that request outright, not a silent fallback font. This
+// tool reports which approved fonts are actually broken so that's a
+// checkable fact instead of a guess. Unapproved fonts are skipped --
+// they can never be selected by the generator, so a broken key there
+// isn't an active problem. Uses R2 .head() in batches of 25 so a few
+// hundred fonts check in one request without unbounded R2 concurrency.
 //
 // v40: /admin/fonts cards now have a "move to category" dropdown next to
 // the approve/reject button, populated from the live DISTINCT set of
@@ -3071,7 +3086,9 @@ export default {
 <title>ZVAKHO Font Review</title>
 <style>
 body{background:#121212;color:#f0ede6;font-family:-apple-system,sans-serif;padding:32px;margin:0;}
-h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;margin:0 0 20px;}
+h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;margin:0 0 4px;}
+.sub{color:#9a958a;font-size:13px;margin:0 0 20px;}
+.sub a{color:#e8c547;text-decoration:none;}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
 .cat-card{display:block;background:#1a1a1a;border:1px solid #2c2c2c;border-radius:8px;padding:16px;text-decoration:none;color:inherit;}
 .cat-card:hover{border-color:#e8c547;}
@@ -3079,6 +3096,7 @@ h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;ma
 .cat-count{font-size:12px;color:#9a958a;}
 </style></head><body>
 <h1>Font Review — pick a category</h1>
+<p class="sub"><a href="/admin/fonts/diagnose">Check all approved fonts against R2 &rarr;</a></p>
 <div class="grid">${links}</div>
 </body></html>`, { headers: { "Content-Type": "text/html;charset=utf-8" } });
       }
@@ -3293,7 +3311,81 @@ document.querySelectorAll('.cat-select').forEach(sel => {
       return jsonResponse({ success: true, font_id: body.font_id, category_tag: newCategory });
     }
 
-    async function handleAdminCalibrator(request, env) {
+    // Checks every APPROVED font's r2_key against the real R2 bucket --
+    // the exact same lookup identityFetchFontBase64 does during real
+    // generation (identitySvgDoc -> identityFontFaceStyleBlock -> this).
+    // Unapproved fonts are skipped: they can never be selected by the
+    // generator, so a broken key there is not an active problem.
+    // Uses R2 .head() (metadata only, no body download) in small batches
+    // so a few hundred fonts check quickly without overwhelming the R2
+    // binding with unbounded concurrency.
+    async function handleAdminFontsDiagnose(request, env) {
+      if (!identityCheckBasicAuth(request, env)) {
+        return new Response("Authentication required", {
+          status: 401,
+          headers: { "WWW-Authenticate": 'Basic realm="ZVAKHO internal tools"' }
+        });
+      }
+      const res = await env.DB.prepare(
+        `SELECT font_id, family_name, category_tag, r2_key FROM fonts WHERE approved = 1 ORDER BY category_tag, family_name`
+      ).all();
+      const fonts = res.results || [];
+
+      const BATCH_SIZE = 25;
+      const broken = [];
+      let checked = 0;
+      for (let i = 0; i < fonts.length; i += BATCH_SIZE) {
+        const batch = fonts.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(batch.map(async (f) => {
+          try {
+            const head = await env.R2.head(f.r2_key);
+            return head ? null : f; // null head = key not found, same as identityFetchFontBase64's check
+          } catch {
+            return f; // any R2 error also counts as broken for this report
+          }
+        }));
+        for (const r of results) if (r) broken.push(r);
+        checked += batch.length;
+      }
+
+      const byCategory = {};
+      for (const f of broken) {
+        (byCategory[f.category_tag] = byCategory[f.category_tag] || []).push(f);
+      }
+      const categoryBlocks = Object.keys(byCategory).sort().map((cat) => `
+        <h2>${escapeXML(cat)} (${byCategory[cat].length})</h2>
+        <ul>${byCategory[cat].map((f) => `<li><span class="fname">${escapeXML(f.family_name)}</span> <span class="key">${escapeXML(f.r2_key)}</span></li>`).join("")}</ul>
+      `).join("");
+
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>ZVAKHO Font R2 Diagnostic</title>
+<style>
+body{background:#121212;color:#f0ede6;font-family:-apple-system,sans-serif;padding:32px;margin:0;max-width:760px;}
+h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;margin:0 0 4px;}
+.sub{color:#9a958a;font-size:13px;margin:0 0 24px;}
+.sub a{color:#e8c547;}
+.summary{background:#1a1a1a;border:1px solid #2c2c2c;border-radius:8px;padding:16px;margin-bottom:24px;font-size:13px;}
+.summary strong{color:${broken.length ? "#ce8f8f" : "#8fce8f"};}
+h2{font-size:13px;text-transform:capitalize;color:#e8c547;margin:20px 0 8px;border-bottom:1px solid #2c2c2c;padding-bottom:6px;}
+ul{list-style:none;padding:0;margin:0;}
+li{font-size:13px;padding:8px 0;border-bottom:1px solid #1e1e1e;display:flex;justify-content:space-between;gap:12px;}
+.fname{color:#f0ede6;}
+.key{color:#9a958a;font-family:monospace;font-size:11px;word-break:break-all;text-align:right;}
+</style></head><body>
+<h1>Font R2 Diagnostic</h1>
+<p class="sub"><a href="/admin/fonts">&larr; back to font review</a></p>
+<div class="summary">
+  Checked ${checked} approved fonts against R2.
+  ${broken.length
+    ? `<strong>${broken.length} have a broken r2_key</strong> -- these are picked into real generation and will fail with an unhandled error if selected.`
+    : `<strong>All clear</strong> -- every approved font's r2_key resolves in R2.`}
+</div>
+${categoryBlocks || ""}
+</body></html>`;
+      return new Response(html, { headers: { "Content-Type": "text/html;charset=utf-8" } });
+    }
+
+
       if (!identityCheckBasicAuth(request, env)) {
         return new Response("Authentication required", {
           status: 401,
@@ -5681,6 +5773,9 @@ document.querySelectorAll('.cat-select').forEach(sel => {
       }
       if (path === "/admin/fonts/recategorize" && request.method === "POST") {
         return await handleAdminFontsRecategorize(request, env);
+      }
+      if (path === "/admin/fonts/diagnose" && request.method === "GET") {
+        return await handleAdminFontsDiagnose(request, env);
       }
 
       // ─── WHOLESALE MANUFACTURING ROUTES ───────────────────────
