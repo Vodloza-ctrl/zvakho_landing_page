@@ -1,6 +1,6 @@
 // ================================================================
-// ZVAKHO Universal Worker — v47 (fixes 3 real gaps found in v46 while
-// building the archetype+font combo preview/decommission tool)
+// ZVAKHO Universal Worker — v48 (fixes a real ReferenceError that made
+// wreath_lockup and seal_medallion fail on 100% of fonts)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
 //
@@ -32,6 +32,41 @@
 // syntactically fine. Also cross-checked every declared render*
 // function against the registry (18 declared, 18 registered, zero
 // mismatches) before considering this done.
+//
+// v48: real user report via screenshots -- wreath_lockup and
+// seal_medallion failed on every single font tested, across every tag
+// (premium/vintage/athletic), while every other archetype (including
+// pattern_tile and the curved-text ones with no icon dependency) worked
+// fine. That pattern -- both broken archetypes share icon-fetching,
+// nothing else does -- pointed straight at identityFetchIcon()/
+// iconGroup(). Ran a comprehensive audit (every camelCase call site in
+// the file cross-checked against actual declarations) rather than
+// guessing, and confirmed: both helper functions were called 4 times
+// combined, declared zero times, anywhere in the file. Calling an
+// undefined function throws a ReferenceError, silently caught by the
+// preview tool's error handling and shown as a bare "(render failed)"
+// with no detail -- which is also fixed this version: the preview tool
+// now shows the actual error message on a failed card instead of
+// swallowing it, so this exact situation is self-diagnosing next time
+// rather than needing a screenshot and a manual trace. Re-added both
+// helpers verified working, re-ran the same undefined-reference audit
+// afterward and confirmed clean (the audit also flags jsonResponse,
+// deriveBits, normalizeArtistId, renderFn, renderers as "missing" --
+// checked each individually and confirmed all five are false positives
+// from the heuristic: an alias assignment, a built-in Web Crypto API
+// call, a comment mentioning an old name, and two local variables
+// holding function references -- not real bugs).
+// Separately reported in the same screenshots: "Capo Rose" failing
+// across multiple different archetypes (not just one), which is a
+// different signature -- a font-level problem, not an archetype one.
+// Checked its D1 row: r2_key looks structurally normal
+// (fonts/premium/capo-rose/regular.woff2), same shape as the earlier
+// "Comico" case, which turned out to be a genuinely missing R2 file.
+// Can't confirm the actual R2 object from here (no object-level R2
+// access in this environment) -- this is exactly what
+// /admin/fonts/diagnose exists for, and the preview tool will now also
+// show the real error directly on the failing card once this version
+// is deployed.
 //
 // v47: building the requested archetype+font combo preview tool forced
 // tracing the full real generation pipeline end to end, which surfaced
@@ -3113,7 +3148,7 @@ export default {
     // dashboard and what's actually live has already caused real
     // confusion twice -- a visible stamp makes "which version is this?"
     // a glance instead of a guess.
-    const WORKER_VERSION = "v47";
+    const WORKER_VERSION = "v48";
 
     async function handleAdminFontsPage(request, env) {
       if (!identityCheckBasicAuth(request, env)) {
@@ -3501,6 +3536,7 @@ h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;ma
 .combo-card{background:#1a1a1a;border:1px solid #2c2c2c;border-radius:10px;padding:16px;}
 .combo-card .swatch{background:#fff;border-radius:6px;padding:10px;margin-bottom:10px;min-height:120px;display:flex;align-items:center;justify-content:center;}
 .combo-card .swatch svg{max-width:100%;height:auto;max-height:200px;}
+.render-error{color:#ce8f8f;font-size:11px;font-family:monospace;padding:8px;text-align:center;word-break:break-word;}
 .combo-meta{font-size:12px;color:#f0ede6;}
 .combo-meta .fname{font-weight:600;}
 .combo-meta .fdetail{color:#9a958a;font-size:11px;margin-top:2px;}
@@ -3585,17 +3621,17 @@ document.querySelectorAll('.arch-toggle').forEach(btn => {
 
       const cards = await Promise.all(sample.map(async (font) => {
         let svgMarkup = "";
-        let failed = false;
+        let errorMsg = null;
         try {
           const supportFont = needsSupport ? (await pickFontPairing(env, tag, true, printMethod)).support : null;
           svgMarkup = await renderFn(env, font, supportFont, IDENTITY_COMBO_PREVIEW_SAMPLE, "#000000", tag, {}, fontCache, iconCache);
         } catch (err) {
-          failed = true;
+          errorMsg = err && err.message ? err.message : String(err);
           svgMarkup = "";
         }
         return `
         <div class="combo-card">
-          <div class="swatch">${failed ? "(render failed)" : svgMarkup}</div>
+          <div class="swatch">${errorMsg ? `<span class="render-error">${escapeXML(errorMsg)}</span>` : svgMarkup}</div>
           <div class="combo-meta">
             <div class="fname">${escapeXML(font.family_name)}</div>
             <div class="fdetail">${escapeXML(font.category_tag)} · weight ${font.weight_class || "?"} · case: ${escapeXML(font.case_style || "upper")}</div>
@@ -4534,6 +4570,28 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     // zone adapts to each letter's actual rendered width instead of
     // only looking right for the specific "M"/"B" pair it was
     // prototyped with.
+    // Icons are stored as raw inner-SVG markup (not a full <svg> wrapper)
+    // in the `icons` table, single-color via currentColor so they take
+    // on whatever `ink` the archetype is using. Small in-request cache
+    // (icons are tiny -- a few hundred bytes to a few KB of path data --
+    // so no R2/base64 round trip needed at all, unlike fonts).
+    async function identityFetchIcon(env, iconId, iconCache) {
+      if (iconCache && iconCache.has(iconId)) return iconCache.get(iconId);
+      const row = await env.DB.prepare(`SELECT svg_content FROM icons WHERE icon_id = ? AND approved = 1`)
+        .bind(iconId).first();
+      if (!row) throw new Error(`Icon '${iconId}' not found or not approved`);
+      if (iconCache) iconCache.set(iconId, row.svg_content);
+      return row.svg_content;
+    }
+
+    // Wraps fetched icon markup in a positioned, scaled <g> -- icons are
+    // authored on a 0-200 viewBox, so scale = size/200 maps consistently
+    // regardless of where in a composition they're placed.
+    function iconGroup(svgContent, cx, cy, size, ink) {
+      const scale = size / 200;
+      return `<g transform="translate(${(cx - size / 2).toFixed(1)},${(cy - size / 2).toFixed(1)}) scale(${scale.toFixed(4)})" style="color:${ink};">${svgContent}</g>`;
+    }
+
     async function renderInterlockMonogram(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
       const initials = extractInitials(brandName);
