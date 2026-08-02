@@ -1,6 +1,7 @@
 // ================================================================
-// ZVAKHO Universal Worker — v48 (fixes a real ReferenceError that made
-// wreath_lockup and seal_medallion fail on 100% of fonts)
+// ZVAKHO Universal Worker — v49 (4 new pool-based icon archetypes --
+// icon_accent_wordmark, icon_medallion_hero, icon_divider_rule,
+// texture_panel_badge -- wire the trend-batch icons into real generation)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
 //
@@ -32,6 +33,38 @@
 // syntactically fine. Also cross-checked every declared render*
 // function against the registry (18 declared, 18 registered, zero
 // mismatches) before considering this done.
+//
+// v49: 4 new archetypes -- icon_accent_wordmark, icon_medallion_hero,
+// icon_divider_rule, texture_panel_badge -- give the 10 trend-research
+// icons (flame, spiderweb, smiley x2, heart-dagger, barbed wire, chain
+// link, cherry, line-leaf, halftone-distressed texture) a real path
+// into generated artwork. Rather than one bespoke archetype per icon
+// (10 icons would mean 10 archetypes), built a pool-based picker,
+// identityPickIcon() -- same principle getFontPoolForCategory already
+// uses for fonts: query a real pool (by register or an explicit icon_id
+// whitelist), prefer tag-matched rows, fall back to the broader pool,
+// pick randomly. icon_medallion_hero draws from the whole y2k register;
+// icon_divider_rule deliberately uses an explicit 2-icon whitelist
+// (barbed wire, chain link) instead, since those are the only current
+// icons actually shaped for a horizontal divider slot -- a flame or
+// smiley squeezed into that shape wouldn't read correctly, so this
+// isn't just "open the whole register" everywhere.
+// Caught a real bug while wiring this up, independent of anything new
+// being built: the actual /identity/generate render loop never declared
+// or passed iconCache at all -- wreath_lockup and seal_medallion have
+// been silently re-querying D1 for the same icon on every single call
+// since v46/v47 instead of reusing one cached lookup per request, same
+// class of gap as fontCache. Not a crash (identityFetchIcon/
+// identityPickIcon both guard against an undefined cache), just a real,
+// silent inefficiency that's been live this whole time. Fixed by adding
+// the missing `const iconCache = new Map();` and threading it through
+// both real render calls.
+// Verified the same way as v48, applied from the start this time rather
+// than after being caught out: registry key set cross-matched
+// character-for-character against the D1 archetypes table (24/24, zero
+// orphans either direction), and the actual composited logic tested
+// locally first with real icon file content and mock brand names,
+// rendered end to end, before any of it went into the real worker file.
 //
 // v48: real user report via screenshots -- wreath_lockup and
 // seal_medallion failed on every single font tested, across every tag
@@ -3148,7 +3181,7 @@ export default {
     // dashboard and what's actually live has already caused real
     // confusion twice -- a visible stamp makes "which version is this?"
     // a glance instead of a guess.
-    const WORKER_VERSION = "v48";
+    const WORKER_VERSION = "v49";
 
     async function handleAdminFontsPage(request, env) {
       if (!identityCheckBasicAuth(request, env)) {
@@ -4592,6 +4625,39 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       return `<g transform="translate(${(cx - size / 2).toFixed(1)},${(cy - size / 2).toFixed(1)}) scale(${scale.toFixed(4)})" style="color:${ink};">${svgContent}</g>`;
     }
 
+    // Pool-based icon selection -- same principle getFontPoolForCategory
+    // already uses for fonts: query a real pool, prefer tag-matched rows,
+    // fall back to the broader pool if nothing matches the current
+    // personality tag exactly, pick randomly. This is what lets a
+    // handful of generic archetypes each draw from many real icons
+    // instead of needing one bespoke archetype per icon. selector is
+    // either { registers: [...] } for a broad register-based pool, or
+    // { iconIds: [...] } for an explicit whitelist -- some icons are
+    // shape-specific (a linear divider element doesn't work squeezed
+    // into a circular medallion slot), so a whitelist stays available
+    // for archetypes that need one, rather than only ever allowing
+    // free-for-all register-wide picking.
+    async function identityPickIcon(env, tag, selector, iconCache) {
+      let sql, params;
+      if (selector.iconIds && selector.iconIds.length) {
+        const placeholders = selector.iconIds.map(() => "?").join(",");
+        sql = `SELECT icon_id, svg_content, tags FROM icons WHERE icon_id IN (${placeholders}) AND approved = 1`;
+        params = selector.iconIds;
+      } else {
+        const placeholders = selector.registers.map(() => "?").join(",");
+        sql = `SELECT icon_id, svg_content, tags FROM icons WHERE register IN (${placeholders}) AND approved = 1`;
+        params = selector.registers;
+      }
+      const res = await env.DB.prepare(sql).bind(...params).all();
+      const rows = res.results || [];
+      if (!rows.length) throw new Error(`No approved icons found for selector ${JSON.stringify(selector)}`);
+      const tagMatched = tag ? rows.filter((r) => JSON.parse(r.tags).includes(tag)) : [];
+      const pool = tagMatched.length ? tagMatched : rows;
+      const picked = pool[Math.floor(Math.random() * pool.length)];
+      if (iconCache) iconCache.set(picked.icon_id, picked.svg_content);
+      return picked;
+    }
+
     async function renderInterlockMonogram(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
       const initials = extractInitials(brandName);
@@ -4713,6 +4779,90 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
     }
 
+    // 22. ICON ACCENT WORDMARK -- small icon above a bold centered
+    // wordmark. Draws from a broad pool (y2k/fun/line-art/geo-floral),
+    // tag-preferred, so this single archetype expresses many different
+    // icons rather than needing one archetype per icon.
+    async function renderIconAccentWordmark(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache, iconCache) {
+      const bg = inkAndBg(ink);
+      const text = applyBrandNameCase(brandName, primaryFont);
+      const w = 480, h = 280;
+      const weight = primaryFont.weight_class || 700;
+      const icon = await identityPickIcon(env, tag, { registers: ["y2k", "fun", "line-art", "geo-floral"] }, iconCache);
+      const fontSize = autoFitFontSize(text, w - 60);
+      const inner = `
+    ${iconGroup(icon.svg_content, w / 2, 80, 68, ink)}
+    <text x="${w / 2}" y="200" text-anchor="middle" style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="${fontSize}" fill="${ink}">${escapeXML(text)}</text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    // 23. ICON MEDALLION HERO -- the icon is the dominant centerpiece,
+    // brand name sits smaller beneath it. Pool is y2k specifically --
+    // that register's icons are generally compact/radial shapes
+    // (flame, smiley, heart-dagger, spiderweb, spiky-star etc.), which
+    // reads as a genuine hero image at large scale, unlike the two
+    // deliberately-linear icons (barbed wire, chain link) that are
+    // reserved for icon_divider_rule instead.
+    async function renderIconMedallionHero(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache, iconCache) {
+      const bg = inkAndBg(ink);
+      const text = applyBrandNameCase(brandName, primaryFont);
+      const w = 360, h = 380;
+      const weight = primaryFont.weight_class || 700;
+      const icon = await identityPickIcon(env, tag, { registers: ["y2k"] }, iconCache);
+      const fontSize = autoFitFontSize(text, w - 60);
+      const inner = `
+    ${iconGroup(icon.svg_content, w / 2, 150, 200, ink)}
+    <text x="${w / 2}" y="300" text-anchor="middle" style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="${fontSize}" fill="${ink}">${escapeXML(text)}</text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    // 24. ICON DIVIDER RULE -- brand name, then a real decorative
+    // element standing in for a plain rule line, then a small label.
+    // Explicit icon_id whitelist rather than a register: barbed wire
+    // and chain link are the only two current icons genuinely shaped
+    // for a horizontal divider slot -- a flame or smiley squeezed into
+    // this shape wouldn't read correctly, so this deliberately does not
+    // pull from the whole y2k register the way the hero archetype does.
+    async function renderIconDividerRule(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache, iconCache) {
+      const bg = inkAndBg(ink);
+      const text = applyBrandNameCase(brandName, primaryFont);
+      const w = 460, h = 220;
+      const weight = primaryFont.weight_class || 700;
+      const icon = await identityPickIcon(env, tag, { iconIds: ["y2k-barbed-wire", "streetwear-chain-link"] }, iconCache);
+      const fontSize = autoFitFontSize(text, w - 60);
+      const label = (tag || "ORIGINAL").toUpperCase();
+      const inner = `
+    <text x="${w / 2}" y="90" text-anchor="middle" style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="${fontSize}" fill="${ink}">${escapeXML(text)}</text>
+    ${iconGroup(icon.svg_content, w / 2, 140, 60, ink)}
+    <text x="${w / 2}" y="185" text-anchor="middle" font-weight="400" font-size="11" letter-spacing="0.2em" fill="${ink}">${escapeXML(label)}</text>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
+    // 25. TEXTURE PANEL BADGE -- the halftone/distressed texture fills a
+    // bordered panel with the brand name genuinely knocked out of it
+    // (mask reveals background, not a separately-drawn text layer on
+    // top) -- same knockout principle pattern_tile already established,
+    // applied to a real trending texture instead of plain dots.
+    async function renderTexturePanelBadge(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache, iconCache) {
+      const bg = inkAndBg(ink);
+      const text = applyBrandNameCase(brandName, primaryFont);
+      const w = 340, h = 340;
+      const weight = primaryFont.weight_class || 800;
+      const icon = await identityFetchIcon(env, "texture-halftone-distressed", iconCache);
+      const fontSize = autoFitFontSize(text, w - 100);
+      const maskId = `texmask_${Math.random().toString(36).slice(2, 8)}`;
+      const inner = `
+    <defs>
+      <mask id="${maskId}">
+        <rect width="100%" height="100%" fill="white"/>
+        <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle" style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="${fontSize}" fill="black">${escapeXML(text)}</text>
+      </mask>
+    </defs>
+    <rect x="20" y="20" width="${w - 40}" height="${h - 40}" fill="none" stroke="${ink}" stroke-width="3"/>
+    <g mask="url(#${maskId})">${iconGroup(icon, w / 2, h / 2, w - 40, ink)}</g>`;
+      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    }
+
     const IDENTITY_ARCHETYPE_RENDERERS = {
       wordmark: renderWordmark,
       arc_label_stack: renderArcLabelStack,
@@ -4733,7 +4883,11 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       combination_lockup: renderCombinationLockup,
       pattern_tile: renderPatternTile,
       wreath_lockup: renderWreathLockup,
-      seal_medallion: renderSealMedallion
+      seal_medallion: renderSealMedallion,
+      icon_accent_wordmark: renderIconAccentWordmark,
+      icon_medallion_hero: renderIconMedallionHero,
+      icon_divider_rule: renderIconDividerRule,
+      texture_panel_badge: renderTexturePanelBadge
     };
     const IDENTITY_ARCHETYPES_NEEDING_SUPPORT_FONT = new Set(["split_connector", "ornate_tagline", "script_serif_script", "interlock_monogram"]);
 
@@ -5171,6 +5325,7 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       const experimentalComboId = experimentalSubstituted ? null : picks[picks.length - 1]?.combo_id;
 
       const fontCache = new Map();
+      const iconCache = new Map();
       const baseUrl = identityBaseUrl(env);
       const concepts = [];
       for (const combo of picks) {
@@ -5182,8 +5337,8 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
         const supportFont = needsSupport ? (await pickFontPairing(env, personalityTag, true, printMethod)).support : null;
         const palette = derivePalette(personalityTag, body.base_color || null);
 
-        const svgBlack = await renderFn(env, combo.font, supportFont, brand.brand_name, "#000000", personalityTag, meta, fontCache);
-        const svgWhite = await renderFn(env, combo.font, supportFont, brand.brand_name, "#ffffff", personalityTag, meta, fontCache);
+        const svgBlack = await renderFn(env, combo.font, supportFont, brand.brand_name, "#000000", personalityTag, meta, fontCache, iconCache);
+        const svgWhite = await renderFn(env, combo.font, supportFont, brand.brand_name, "#ffffff", personalityTag, meta, fontCache, iconCache);
 
         // Draft prefix -- private, owner-only via /identity/preview/.
         const svgBlackKey = `brands/${brandId}/identity/drafts/${combo.combo_id}_black_${Date.now()}.svg`;
