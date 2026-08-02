@@ -1,7 +1,23 @@
 // ================================================================
-// ZVAKHO Universal Worker — v36 (generation cap raised 3 -> 10)
+// ZVAKHO Universal Worker — v37 (adds a real font review tool at
+// /admin/fonts, in response to bad-looking generated artwork)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
+//
+// v37: after live generations came back looking bad ("terrible", one
+// illegible), traced the likely real cause -- the 311-font bulk approval
+// from last session filtered only on license status, which says nothing
+// about whether a font is actually legible or well-designed for a brand
+// wordmark. That was flagged as a tradeoff at the time; this is the
+// follow-through. New tool: GET /admin/fonts (category picker, then a
+// grid of every font in that category rendered with a real sample word
+// using its own embedded glyphs -- reuses identityFetchFontBase64(), the
+// same font-loading path generation itself uses) + POST
+// /admin/fonts/toggle (flips a single font's approved flag). Same Basic
+// Auth pattern as /admin/calibrator -- same session, no extra login.
+// This doesn't fix any font automatically; it makes the actual problem
+// (illegible fonts silently included) visible and fixable by eye, fast,
+// rather than needing to review 311 rows of text data blind.
 //
 // v36: IDENTITY_MAX_GENERATIONS raised from 3 to 10, per direct decision
 // -- the original 3-cap made sense for a system charging a paid AI API
@@ -2968,6 +2984,184 @@ export default {
       const pass = sepIdx >= 0 ? decoded.slice(sepIdx + 1) : decoded;
       return !!env.CALIBRATOR_PASSWORD && pass === env.CALIBRATOR_PASSWORD;
     }
+    // ── Font Review (internal tool) ──────────────────────────────────
+    // Answers the real problem behind "some generations look terrible" --
+    // fonts were bulk-approved by license status alone (the only signal
+    // available at the time), which says nothing about whether a font is
+    // actually legible or well-designed for a brand wordmark. This page
+    // renders every font with a real sample word using its own embedded
+    // glyphs, so a human can actually SEE and reject bad ones -- same
+    // Basic Auth pattern as the calibrator, same "the browser already has
+    // credentials cached" trick for the toggle POSTs.
+    const IDENTITY_FONT_REVIEW_SAMPLE = "Brand Name";
+    const IDENTITY_FONT_REVIEW_PAGE_SIZE = 24;
+
+    async function handleAdminFontsPage(request, env) {
+      if (!identityCheckBasicAuth(request, env)) {
+        return new Response("Authentication required", {
+          status: 401,
+          headers: { "WWW-Authenticate": 'Basic realm="ZVAKHO internal tools"' }
+        });
+      }
+      const url = new URL(request.url);
+      const category = url.searchParams.get("category") || "";
+      const status = url.searchParams.get("status") || "all"; // all | approved | pending
+      const page = Math.max(0, parseInt(url.searchParams.get("page") || "0", 10) || 0);
+
+      if (!category) {
+        const rows = await env.DB.prepare(`
+          SELECT category_tag, COUNT(*) as total, SUM(approved) as approved_count
+          FROM fonts GROUP BY category_tag ORDER BY category_tag
+        `).all();
+        const cats = rows.results || [];
+        const links = cats.map((c) => `
+          <a class="cat-card" href="/admin/fonts?category=${encodeURIComponent(c.category_tag)}">
+            <div class="cat-name">${c.category_tag}</div>
+            <div class="cat-count">${c.approved_count} / ${c.total} approved</div>
+          </a>`).join("");
+        return new Response(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>ZVAKHO Font Review</title>
+<style>
+body{background:#121212;color:#f0ede6;font-family:-apple-system,sans-serif;padding:32px;margin:0;}
+h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;margin:0 0 20px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.cat-card{display:block;background:#1a1a1a;border:1px solid #2c2c2c;border-radius:8px;padding:16px;text-decoration:none;color:inherit;}
+.cat-card:hover{border-color:#e8c547;}
+.cat-name{font-size:15px;font-weight:600;text-transform:capitalize;margin-bottom:6px;}
+.cat-count{font-size:12px;color:#9a958a;}
+</style></head><body>
+<h1>Font Review — pick a category</h1>
+<div class="grid">${links}</div>
+</body></html>`, { headers: { "Content-Type": "text/html;charset=utf-8" } });
+      }
+
+      let sql = `SELECT font_id, family_name, category_tag, r2_key, weight_class, approved, license_status FROM fonts WHERE category_tag = ?`;
+      const params = [category];
+      if (status === "approved") sql += " AND approved = 1";
+      if (status === "pending") sql += " AND approved = 0";
+      sql += ` ORDER BY family_name LIMIT ? OFFSET ?`;
+      params.push(IDENTITY_FONT_REVIEW_PAGE_SIZE, page * IDENTITY_FONT_REVIEW_PAGE_SIZE);
+      const res = await env.DB.prepare(sql).bind(...params).all();
+      const fonts = res.results || [];
+
+      const fontCache = new Map();
+      const cards = await Promise.all(fonts.map(async (f) => {
+        let styleBlock = "";
+        let failed = false;
+        try {
+          const base64 = await identityFetchFontBase64(env, f.r2_key, fontCache);
+          styleBlock = `<style>@font-face{font-family:'rf_${f.font_id}';src:url(data:font/woff2;base64,${base64}) format('woff2');}</style>`;
+        } catch {
+          failed = true;
+        }
+        return `
+        <div class="card ${f.approved ? "is-approved" : ""}" id="card_${f.font_id}">
+          ${styleBlock}
+          <div class="sample" style="font-family:${failed ? "sans-serif" : `'rf_${f.font_id}'`};">
+            ${failed ? "(font failed to load)" : escapeXML(IDENTITY_FONT_REVIEW_SAMPLE)}
+          </div>
+          <div class="meta">
+            <span class="fname">${escapeXML(f.family_name)}</span>
+            <span class="license ${f.license_status === "included" ? "ok" : "warn"}">${escapeXML(f.license_status || "unknown")}</span>
+          </div>
+          <button class="toggle-btn" data-id="${f.font_id}" data-approved="${f.approved}">
+            ${f.approved ? "Approved — click to reject" : "Pending — click to approve"}
+          </button>
+        </div>`;
+      }));
+
+      const countRow = await env.DB.prepare(`SELECT COUNT(*) as n FROM fonts WHERE category_tag = ?${status === "approved" ? " AND approved=1" : status === "pending" ? " AND approved=0" : ""}`).bind(category).first();
+      const totalInView = countRow?.n || 0;
+      const totalPages = Math.max(1, Math.ceil(totalInView / IDENTITY_FONT_REVIEW_PAGE_SIZE));
+
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>ZVAKHO Font Review — ${category}</title>
+<style>
+body{background:#121212;color:#f0ede6;font-family:-apple-system,sans-serif;padding:24px;margin:0;}
+h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;margin:0 0 4px;}
+.sub{color:#9a958a;font-size:13px;margin:0 0 18px;}
+.sub a{color:#e8c547;}
+.filters{margin-bottom:18px;font-size:13px;}
+.filters a{color:#9a958a;text-decoration:none;margin-right:14px;padding:4px 0;border-bottom:2px solid transparent;}
+.filters a.active{color:#e8c547;border-color:#e8c547;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+.card{background:#1a1a1a;border:1px solid #2c2c2c;border-radius:8px;padding:16px;}
+.card.is-approved{border-color:#3a4a2c;}
+.sample{font-size:28px;color:#f0ede6;min-height:40px;margin-bottom:10px;word-break:break-word;}
+.meta{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:10px;}
+.fname{color:#9a958a;}
+.license{padding:2px 8px;border-radius:10px;}
+.license.ok{background:#1e3a1e;color:#8fce8f;}
+.license.warn{background:#3a2a1e;color:#ceab8f;}
+.toggle-btn{width:100%;background:#0e0e0e;border:1px solid #2c2c2c;color:#f0ede6;padding:8px;border-radius:6px;font-size:12px;cursor:pointer;}
+.toggle-btn:hover{border-color:#e8c547;}
+.is-approved .toggle-btn{background:#1e3a1e;}
+.pager{margin-top:24px;font-size:13px;}
+.pager a{color:#e8c547;text-decoration:none;margin-right:14px;}
+</style></head><body>
+<h1>Font Review — ${category}</h1>
+<p class="sub"><a href="/admin/fonts">&larr; all categories</a> — ${totalInView} fonts, page ${page + 1} of ${totalPages}</p>
+<div class="filters">
+  <a href="?category=${category}&status=all" class="${status === "all" ? "active" : ""}">All</a>
+  <a href="?category=${category}&status=approved" class="${status === "approved" ? "active" : ""}">Approved</a>
+  <a href="?category=${category}&status=pending" class="${status === "pending" ? "active" : ""}">Pending</a>
+</div>
+<div class="grid">${cards.join("")}</div>
+<div class="pager">
+  ${page > 0 ? `<a href="?category=${category}&status=${status}&page=${page - 1}">&larr; Prev</a>` : ""}
+  ${page + 1 < totalPages ? `<a href="?category=${category}&status=${status}&page=${page + 1}">Next &rarr;</a>` : ""}
+</div>
+<script>
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    const currentlyApproved = btn.dataset.approved === '1';
+    const newApproved = !currentlyApproved;
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    try {
+      const res = await fetch('/admin/fonts/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ font_id: id, approved: newApproved })
+      });
+      const data = await res.json();
+      if (data.success) {
+        btn.dataset.approved = newApproved ? '1' : '0';
+        btn.textContent = newApproved ? 'Approved — click to reject' : 'Pending — click to approve';
+        document.getElementById('card_' + id).classList.toggle('is-approved', newApproved);
+      } else {
+        btn.textContent = 'Error: ' + (data.error || 'failed');
+      }
+    } catch (err) {
+      btn.textContent = 'Error: ' + String(err);
+    }
+    btn.disabled = false;
+  });
+});
+</script>
+</body></html>`;
+
+      return new Response(html, { headers: { "Content-Type": "text/html;charset=utf-8" } });
+    }
+
+    async function handleAdminFontsToggle(request, env) {
+      if (!identityCheckBasicAuth(request, env)) {
+        return jsonResponse({ error: "Unauthorized" }, 401);
+      }
+      let body;
+      try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, 400); }
+      if (!body.font_id || typeof body.approved !== "boolean") {
+        return jsonResponse({ error: "font_id and approved (boolean) required" }, 400);
+      }
+      const result = await env.DB.prepare(`UPDATE fonts SET approved = ? WHERE font_id = ?`)
+        .bind(body.approved ? 1 : 0, body.font_id).run();
+      if (!result.meta || result.meta.changes === 0) {
+        return jsonResponse({ error: `No font found with font_id = '${body.font_id}'` }, 404);
+      }
+      return jsonResponse({ success: true, font_id: body.font_id, approved: body.approved });
+    }
+
     async function handleAdminCalibrator(request, env) {
       if (!identityCheckBasicAuth(request, env)) {
         return new Response("Authentication required", {
@@ -5130,6 +5324,12 @@ export default {
       }
       if (path === "/admin/calibrator/save" && request.method === "POST") {
         return await handleAdminCalibratorSave(request, env);
+      }
+      if (path === "/admin/fonts" && request.method === "GET") {
+        return await handleAdminFontsPage(request, env);
+      }
+      if (path === "/admin/fonts/toggle" && request.method === "POST") {
+        return await handleAdminFontsToggle(request, env);
       }
 
       // ─── WHOLESALE MANUFACTURING ROUTES ───────────────────────
