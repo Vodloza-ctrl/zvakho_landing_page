@@ -1,24 +1,24 @@
 // ================================================================
-// ZVAKHO Universal Worker — v42 (HOTFIX for a real syntax bug shipped
-// in v41 -- do not deploy v41, it will not parse)
+// ZVAKHO Universal Worker — v43 (decommission action for broken fonts,
+// visible version stamp on all /admin/fonts* pages)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
 //
-// v42: v41's edit that inserted handleAdminFontsDiagnose accidentally
-// deleted the handleAdminCalibrator function-signature line right after
-// it -- the str_replace anchored on that line to find the insertion
-// point but didn't preserve it in the replacement. Net effect: one
-// missing opening brace for the rest of the file, surfacing as
-// "Unexpected token 'async'" at the next function declaration
-// (handleAdminCalibratorSave) once the parser's brace-counting caught up.
-// node --check reported OK on the pre-fix file during the original build
-// -- something in that check sequence didn't actually catch the real
-// pushed content, which is on me; this time the fix was verified three
-// ways before shipping: node --check, an explicit open/close brace count
-// (1630/1630, exactly balanced), and a full listing of every admin
-// handler function signature confirming handleAdminCalibrator and
-// handleAdminCalibratorSave are both present, correctly ordered, and
-// correctly closed.
+// v43: two real gaps closed, both surfaced by actually using v42 --
+// 1) The R2 diagnostic page only ever reported broken fonts, with no
+//    way to act on them without leaving the page. Each broken font now
+//    has a "Decommission" button that calls the existing
+//    /admin/fonts/toggle endpoint (approved -> false) -- reuses the
+//    already-tested gate that keeps a font out of generation, rather
+//    than inventing a second mechanism to keep in sync with the first.
+//    Decommissioning does NOT fix a missing R2 file -- it just stops
+//    that font from being picked. The actual fix for a missing file is
+//    re-uploading it to the same r2_key.
+// 2) Version confusion (the exact same paste ending up live twice in a
+//    row) has now cost two separate rounds of back-and-forth. Every
+//    /admin/fonts* page now stamps the live WORKER_VERSION constant
+//    right in the page header -- which version is actually deployed is
+//    a glance at the page, not a guess from a file header comment.
 //
 // v40: /admin/fonts cards now have a "move to category" dropdown next to
 // the approve/reject button, populated from the live DISTINCT set of
@@ -3058,6 +3058,13 @@ export default {
     // credentials cached" trick for the toggle POSTs.
     const IDENTITY_FONT_REVIEW_SAMPLE = "Brand Name";
     const IDENTITY_FONT_REVIEW_PAGE_SIZE = 24;
+    // Stamped visibly on every /admin/fonts* page. Bump this on every
+    // deploy that touches this file. This exists specifically because
+    // version confusion between what's pasted into the Cloudflare
+    // dashboard and what's actually live has already caused real
+    // confusion twice -- a visible stamp makes "which version is this?"
+    // a glance instead of a guess.
+    const WORKER_VERSION = "v43";
 
     async function handleAdminFontsPage(request, env) {
       if (!identityCheckBasicAuth(request, env)) {
@@ -3094,8 +3101,9 @@ h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;ma
 .cat-card:hover{border-color:#e8c547;}
 .cat-name{font-size:15px;font-weight:600;text-transform:capitalize;margin-bottom:6px;}
 .cat-count{font-size:12px;color:#9a958a;}
+.ver{color:#5a564c;font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;margin-left:8px;}
 </style></head><body>
-<h1>Font Review — pick a category</h1>
+<h1>Font Review — pick a category <span class="ver">${WORKER_VERSION}</span></h1>
 <p class="sub"><a href="/admin/fonts/diagnose">Check all approved fonts against R2 &rarr;</a></p>
 <div class="grid">${links}</div>
 </body></html>`, { headers: { "Content-Type": "text/html;charset=utf-8" } });
@@ -3182,8 +3190,9 @@ h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;ma
 .moved-note{font-size:11px;color:#8fce8f;margin-top:6px;min-height:14px;}
 .pager{margin-top:24px;font-size:13px;}
 .pager a{color:#e8c547;text-decoration:none;margin-right:14px;}
+.ver{color:#5a564c;font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;margin-left:8px;}
 </style></head><body>
-<h1>Font Review — ${category}</h1>
+<h1>Font Review — ${category} <span class="ver">${WORKER_VERSION}</span></h1>
 <p class="sub"><a href="/admin/fonts">&larr; all categories</a> — ${totalInView} fonts, page ${page + 1} of ${totalPages}</p>
 <div class="filters">
   <a href="?category=${category}&status=all" class="${status === "all" ? "active" : ""}">All</a>
@@ -3352,9 +3361,20 @@ document.querySelectorAll('.cat-select').forEach(sel => {
       for (const f of broken) {
         (byCategory[f.category_tag] = byCategory[f.category_tag] || []).push(f);
       }
+      // "Decommission" reuses the existing /admin/fonts/toggle endpoint
+      // (approved -> false) rather than inventing a separate mechanism --
+      // approved=0 is already the real, already-tested gate that keeps a
+      // font out of generation, so there's no new state to keep in sync.
       const categoryBlocks = Object.keys(byCategory).sort().map((cat) => `
         <h2>${escapeXML(cat)} (${byCategory[cat].length})</h2>
-        <ul>${byCategory[cat].map((f) => `<li><span class="fname">${escapeXML(f.family_name)}</span> <span class="key">${escapeXML(f.r2_key)}</span></li>`).join("")}</ul>
+        <ul>${byCategory[cat].map((f) => `
+          <li id="row_${f.font_id}">
+            <div>
+              <span class="fname">${escapeXML(f.family_name)}</span><br>
+              <span class="key">${escapeXML(f.r2_key)}</span>
+            </div>
+            <button class="decom-btn" data-id="${f.font_id}">Decommission</button>
+          </li>`).join("")}</ul>
       `).join("");
 
       const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -3362,17 +3382,21 @@ document.querySelectorAll('.cat-select').forEach(sel => {
 <style>
 body{background:#121212;color:#f0ede6;font-family:-apple-system,sans-serif;padding:32px;margin:0;max-width:760px;}
 h1{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#e8c547;margin:0 0 4px;}
+.ver{color:#5a564c;font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;margin-left:8px;}
 .sub{color:#9a958a;font-size:13px;margin:0 0 24px;}
 .sub a{color:#e8c547;}
 .summary{background:#1a1a1a;border:1px solid #2c2c2c;border-radius:8px;padding:16px;margin-bottom:24px;font-size:13px;}
 .summary strong{color:${broken.length ? "#ce8f8f" : "#8fce8f"};}
 h2{font-size:13px;text-transform:capitalize;color:#e8c547;margin:20px 0 8px;border-bottom:1px solid #2c2c2c;padding-bottom:6px;}
 ul{list-style:none;padding:0;margin:0;}
-li{font-size:13px;padding:8px 0;border-bottom:1px solid #1e1e1e;display:flex;justify-content:space-between;gap:12px;}
+li{font-size:13px;padding:10px 0;border-bottom:1px solid #1e1e1e;display:flex;justify-content:space-between;align-items:center;gap:12px;}
+li.is-decommissioned{opacity:0.4;}
 .fname{color:#f0ede6;}
-.key{color:#9a958a;font-family:monospace;font-size:11px;word-break:break-all;text-align:right;}
+.key{color:#9a958a;font-family:monospace;font-size:11px;word-break:break-all;}
+.decom-btn{flex-shrink:0;background:#0e0e0e;border:1px solid #5a2c2c;color:#ce8f8f;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;white-space:nowrap;}
+.decom-btn:hover{border-color:#ce8f8f;}
 </style></head><body>
-<h1>Font R2 Diagnostic</h1>
+<h1>Font R2 Diagnostic <span class="ver">${WORKER_VERSION}</span></h1>
 <p class="sub"><a href="/admin/fonts">&larr; back to font review</a></p>
 <div class="summary">
   Checked ${checked} approved fonts against R2.
@@ -3381,6 +3405,33 @@ li{font-size:13px;padding:8px 0;border-bottom:1px solid #1e1e1e;display:flex;jus
     : `<strong>All clear</strong> -- every approved font's r2_key resolves in R2.`}
 </div>
 ${categoryBlocks || ""}
+<script>
+document.querySelectorAll('.decom-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    btn.disabled = true;
+    btn.textContent = 'Decommissioning...';
+    try {
+      const res = await fetch('/admin/fonts/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ font_id: id, approved: false })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('row_' + id).classList.add('is-decommissioned');
+        btn.textContent = 'Decommissioned';
+      } else {
+        btn.textContent = 'Error: ' + (data.error || 'failed');
+        btn.disabled = false;
+      }
+    } catch (err) {
+      btn.textContent = 'Error: ' + String(err);
+      btn.disabled = false;
+    }
+  });
+});
+</script>
 </body></html>`;
       return new Response(html, { headers: { "Content-Type": "text/html;charset=utf-8" } });
     }
