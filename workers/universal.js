@@ -1,8 +1,28 @@
 // ================================================================
-// ZVAKHO Universal Worker — v38 (6 new archetypes with real graphic
-// elements -- laurel, ribbon, seal, split panel, lockup, pattern tile)
+// ZVAKHO Universal Worker — v39 (typography polish pass -- Phase 1 of 3
+// on the "better design" push: typography, then icons, then curated
+// design-language recipes)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
+//
+// v39: 4 archetypes that were bare (no supporting micro-copy at all) now
+// carry real structural text -- same no-invented-copy principle already
+// established elsewhere (bootleg_stack's EST. year, ornate_tagline's
+// tag-or-tagline fallback):
+//   - wordmark: small "SINCE <year>" or city label beneath the word --
+//     matches the "oversized minimalism" register directly (huge word,
+//     tiny real supporting text, no icon).
+//   - weight_contrast_word: same small label treatment.
+//   - laurel_badge: the previously-bare rule line now carries "EST.
+//     <year>" -- a real heritage-badge convention, not decoration for
+//     its own sake.
+//   - stamp_seal: a curved "SINCE <year>" label along the inner ring,
+//     same textPath technique circle_badge already proved. Replaced a
+//     small dot decoration that would have visually collided with it.
+// Deliberately did NOT touch monogram_mark, split_panel, or pattern_tile
+// -- those are minimal/graphic-forward by design; adding text would
+// dilute what makes them work, not improve them.
+// Verified all 4 by rendering real geometry locally before shipping.
 //
 // v38: direct response to "this is just text in circle/square frames" --
 // fair critique. Of the original 11 archetypes, only 2 (circle_badge,
@@ -3360,10 +3380,21 @@ document.querySelectorAll('.toggle-btn').forEach(btn => {
       const w = 600, h = 300;
       const fontSize = autoFitFontSize(text, w - 60);
       const weight = primaryFont.weight_class || 700;
+      // Small supporting label beneath -- matches the "oversized
+      // minimalism" register (huge word, tiny real supporting text, no
+      // icon) directly. Only ever real structural data (city, or a
+      // founded year with a safe current-year fallback, same pattern
+      // bootleg_stack already established) -- never invented copy.
+      const label = meta.city
+        ? String(meta.city).toUpperCase()
+        : `SINCE ${meta.foundedYear || new Date().getFullYear()}`;
       const inner = `
-    <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle"
+    <text x="${w / 2}" y="${h / 2 - 8}" text-anchor="middle" dominant-baseline="middle"
           style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
-          font-size="${fontSize}">${escapeXML(text)}</text>`;
+          font-size="${fontSize}">${escapeXML(text)}</text>
+    <text x="${w / 2}" y="${h / 2 + fontSize * 0.55}" text-anchor="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:400;" fill="${ink}"
+          font-size="13" letter-spacing="0.28em">${escapeXML(label)}</text>`;
       return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
     }
 
@@ -3655,17 +3686,23 @@ document.querySelectorAll('.toggle-btn').forEach(btn => {
     async function renderWeightContrastWord(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache) {
       const bg = inkAndBg(ink);
       const [partA, partB] = splitWordForWeightContrast(String(brandName).toUpperCase());
-      const w = 600, h = 200;
+      const w = 600, h = 240;
       const fontSize = autoFitFontSize(partA + partB, w - 80);
       const isVariable = !!primaryFont.variable;
       const heavyWeight = isVariable ? 800 : (primaryFont.weight_class || 700);
       const lightWeight = isVariable ? 300 : (primaryFont.weight_class || 700);
       const lightFill = isVariable ? ink : (ink === "#ffffff" ? "#a8a396" : "#8a8578");
+      const label = meta.city
+        ? String(meta.city).toUpperCase()
+        : `SINCE ${meta.foundedYear || new Date().getFullYear()}`;
       const inner = `
-    <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle"
+    <text x="${w / 2}" y="${h / 2 - 12}" text-anchor="middle" dominant-baseline="middle"
           font-size="${fontSize}"><tspan
           style="font-family:'${primaryFont.family_name}';font-weight:${heavyWeight};" fill="${ink}">${escapeXML(partA)}</tspan><tspan
-          style="font-family:'${primaryFont.family_name}';font-weight:${lightWeight};" fill="${lightFill}">${escapeXML(partB)}</tspan></text>`;
+          style="font-family:'${primaryFont.family_name}';font-weight:${lightWeight};" fill="${lightFill}">${escapeXML(partB)}</tspan></text>
+    <text x="${w / 2}" y="${h / 2 + fontSize * 0.5}" text-anchor="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:400;" fill="${ink}"
+          font-size="12" letter-spacing="0.26em">${escapeXML(label)}</text>`;
       const fontEntry = isVariable
         ? { family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weightRange: [100, 900] }
         : { family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight: primaryFont.weight_class || 700 };
@@ -3707,8 +3744,11 @@ document.querySelectorAll('.toggle-btn').forEach(btn => {
     <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle"
           style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
           font-size="${fontSize}">${escapeXML(text)}</text>
-    <line x1="${cx - 70}" y1="${cy + 34}" x2="${cx + 70}" y2="${cy + 34}" stroke="${ink}" stroke-width="1"/>`;
-      return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
+    <line x1="${cx - 70}" y1="${cy + 34}" x2="${cx + 70}" y2="${cy + 34}" stroke="${ink}" stroke-width="1"/>
+    <text x="${cx}" y="${cy + 56}" text-anchor="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:400;" fill="${ink}"
+          font-size="13" letter-spacing="0.22em">EST. ${meta.foundedYear || new Date().getFullYear()}</text>`;
+      return identitySvgDoc(env, w, h + 30, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
     }
 
     // 13. RIBBON BANNER -- text on a fishtail-notched banner shape.
@@ -3751,14 +3791,19 @@ document.querySelectorAll('.toggle-btn').forEach(btn => {
         const x2 = cx + (R + 16) * Math.cos(rad), y2 = cy + (R + 16) * Math.sin(rad);
         ticks.push(`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${ink}" stroke-width="2"/>`);
       }
+      const stampPathId = `stamplabel_${Math.random().toString(36).slice(2, 8)}`;
+      const stampLabel = `SINCE ${meta.foundedYear || new Date().getFullYear()}`;
       const inner = `
     ${ticks.join("")}
     <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${ink}" stroke-width="2.5"/>
     <circle cx="${cx}" cy="${cy}" r="${r2}" fill="none" stroke="${ink}" stroke-width="1"/>
+    <path id="${stampPathId}" d="M ${cx - r2 + 24} ${cy + 10} A ${r2 - 24} ${r2 - 24} 0 0 0 ${cx + r2 - 24} ${cy + 10}" fill="none"/>
+    <text style="font-family:'${primaryFont.family_name}';font-weight:400;" fill="${ink}" font-size="11" letter-spacing="0.2em">
+      <textPath href="#${stampPathId}" startOffset="50%" text-anchor="middle">${escapeXML(stampLabel)}</textPath>
+    </text>
     <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle"
           style="font-family:'${primaryFont.family_name}';font-weight:${weight};" fill="${ink}"
-          font-size="${fontSize}">${escapeXML(text)}</text>
-    <circle cx="${cx}" cy="${cy + fontSize * 0.9}" r="4" fill="${ink}"/>`;
+          font-size="${fontSize}">${escapeXML(text)}</text>`;
       return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
     }
 
