@@ -1,24 +1,24 @@
 // ================================================================
-// ZVAKHO Universal Worker — v41 (adds a real diagnostic for "font
-// failed to load" errors in /admin/fonts -- checks every approved
-// font's r2_key against the actual R2 bucket, since that's the exact
-// same lookup real generation does)
+// ZVAKHO Universal Worker — v42 (HOTFIX for a real syntax bug shipped
+// in v41 -- do not deploy v41, it will not parse)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
 //
-// v41: new GET /admin/fonts/diagnose, linked from the category picker.
-// Confirmed by reading the code (not guessed) that identitySvgDoc --
-// used by every archetype renderer during REAL generation -- calls the
-// exact same identityFetchFontBase64() the review tool uses to show
-// "font failed to load". There's no try/catch around that call during
-// real generation, unlike the review tool's graceful fallback: a broken
-// r2_key picked into a real generate request throws an unhandled error
-// and fails that request outright, not a silent fallback font. This
-// tool reports which approved fonts are actually broken so that's a
-// checkable fact instead of a guess. Unapproved fonts are skipped --
-// they can never be selected by the generator, so a broken key there
-// isn't an active problem. Uses R2 .head() in batches of 25 so a few
-// hundred fonts check in one request without unbounded R2 concurrency.
+// v42: v41's edit that inserted handleAdminFontsDiagnose accidentally
+// deleted the handleAdminCalibrator function-signature line right after
+// it -- the str_replace anchored on that line to find the insertion
+// point but didn't preserve it in the replacement. Net effect: one
+// missing opening brace for the rest of the file, surfacing as
+// "Unexpected token 'async'" at the next function declaration
+// (handleAdminCalibratorSave) once the parser's brace-counting caught up.
+// node --check reported OK on the pre-fix file during the original build
+// -- something in that check sequence didn't actually catch the real
+// pushed content, which is on me; this time the fix was verified three
+// ways before shipping: node --check, an explicit open/close brace count
+// (1630/1630, exactly balanced), and a full listing of every admin
+// handler function signature confirming handleAdminCalibrator and
+// handleAdminCalibratorSave are both present, correctly ordered, and
+// correctly closed.
 //
 // v40: /admin/fonts cards now have a "move to category" dropdown next to
 // the approve/reject button, populated from the live DISTINCT set of
@@ -3385,7 +3385,7 @@ ${categoryBlocks || ""}
       return new Response(html, { headers: { "Content-Type": "text/html;charset=utf-8" } });
     }
 
-
+    async function handleAdminCalibrator(request, env) {
       if (!identityCheckBasicAuth(request, env)) {
         return new Response("Authentication required", {
           status: 401,
