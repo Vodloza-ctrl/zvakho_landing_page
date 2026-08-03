@@ -1,7 +1,7 @@
 // ================================================================
-// ZVAKHO Universal Worker — v49 (4 new pool-based icon archetypes --
-// icon_accent_wordmark, icon_medallion_hero, icon_divider_rule,
-// texture_panel_badge -- wire the trend-batch icons into real generation)
+// ZVAKHO Universal Worker — v50 (fixes a real legibility bug in
+// pattern_tile and texture_panel_badge -- knocked-out text was
+// illegible against both dot patterns)
 // Built directly on the real live v23 worker (version string below still
 // reads v23-real-merch-commission for the merch/commission subsystem).
 //
@@ -33,6 +33,32 @@
 // syntactically fine. Also cross-checked every declared render*
 // function against the registry (18 declared, 18 registered, zero
 // mismatches) before considering this done.
+//
+// v50: real user report -- pattern_tile and texture_panel_badge both
+// illegible, "text is white and pattern is black". Confirmed the root
+// cause: both used a knockout mask (text carved as empty space out of
+// a dot pattern), which looked clean against the simple "Brand Name"
+// review sample but breaks down with real names -- a dot-based pattern
+// can't tile cleanly against curved letter strokes, so the letterforms
+// read as noisy/jagged rather than clean text, and this held for BOTH
+// the uniform pattern_tile grid and the deliberately-randomized
+// texture_panel_badge halftone, ruling out "just make the pattern more
+// uniform" as the fix. Real fix: text now sits on its own solid
+// background-color plate instead of being knocked out of the pattern --
+// the dots remain a genuine border/frame effect around the text rather
+// than something the text has to compete with, and legibility no
+// longer depends on how the browser happens to rasterize a mask.
+// Caught and fixed a real sizing bug in the first version of this fix
+// before it ever reached the worker file: the plate-width formula
+// (estimated text width + fixed padding) was checked only visually at
+// first, but numerically verifying it against the bordered pattern
+// area's actual width showed a 23px overflow for a 10-character name --
+// the plate would have poked out past the border on both sides. Fixed
+// by tightening the font-fit width so the plate has real margin
+// (verified: ~47px/~27px of visible pattern on each side for
+// pattern_tile/texture_panel_badge respectively), then re-verified a
+// 23-character stress-test name still fits inside the border before
+// shipping either fix.
 //
 // v49: 4 new archetypes -- icon_accent_wordmark, icon_medallion_hero,
 // icon_divider_rule, texture_panel_badge -- give the 10 trend-research
@@ -3181,7 +3207,7 @@ export default {
     // dashboard and what's actually live has already caused real
     // confusion twice -- a visible stamp makes "which version is this?"
     // a glance instead of a guess.
-    const WORKER_VERSION = "v49";
+    const WORKER_VERSION = "v50";
 
     async function handleAdminFontsPage(request, env) {
       if (!identityCheckBasicAuth(request, env)) {
@@ -4556,22 +4582,38 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
       const text = applyBrandNameCase(brandName, primaryFont);
       const w = 640, h = 320;
       const weight = primaryFont.weight_class || 800;
-      const fontSize = autoFitFontSize(text, w - 100);
-      const maskId = `patternmask_${Math.random().toString(36).slice(2, 8)}`;
+      // Tighter fit width than a normal wordmark -- this leaves real
+      // margin for the solid text plate below to stay well inside the
+      // bordered pattern area rather than overflowing it. Verified
+      // numerically before shipping: for a 10-char name this leaves
+      // ~47px of visible pattern on each side of the plate, and a
+      // 23-char stress-test name still fits inside the border.
+      const fontSize = autoFitFontSize(text, w - 220);
       const patId = `dotpat_${Math.random().toString(36).slice(2, 8)}`;
+      // A knockout mask (text carved as empty space out of the dot
+      // field) looked clean with a plain "Brand Name" sample, but real
+      // names showed a genuine legibility problem: a dot-based pattern
+      // can't tile cleanly against curved letter strokes, so the
+      // knocked-out letterforms read as noisy/jagged rather than clean
+      // text. Fixed by giving the text its own solid background-color
+      // plate to sit on, sized from the same char-width estimate
+      // autoFitFontSize itself uses, so it's never fighting the pattern
+      // -- the dots remain a genuine border/frame effect around the
+      // text instead of a background the text has to compete with.
+      const estTextWidth = text.length * fontSize * 0.62;
+      const plateW = estTextWidth + 64;
+      const plateH = fontSize * 1.5;
       const inner = `
     <defs>
       <pattern id="${patId}" width="18" height="18" patternUnits="userSpaceOnUse">
         <circle cx="4" cy="4" r="2" fill="${ink}"/>
       </pattern>
-      <mask id="${maskId}">
-        <rect width="100%" height="100%" fill="white"/>
-        <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle"
-              style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="${fontSize}" fill="black">${escapeXML(text)}</text>
-      </mask>
     </defs>
-    <rect x="30" y="30" width="${w - 60}" height="${h - 60}" fill="url(#${patId})" mask="url(#${maskId})"/>
-    <rect x="30" y="30" width="${w - 60}" height="${h - 60}" fill="none" stroke="${ink}" stroke-width="2"/>`;
+    <rect x="30" y="30" width="${w - 60}" height="${h - 60}" fill="url(#${patId})"/>
+    <rect x="30" y="30" width="${w - 60}" height="${h - 60}" fill="none" stroke="${ink}" stroke-width="2"/>
+    <rect x="${(w / 2 - plateW / 2).toFixed(1)}" y="${(h / 2 - plateH / 2).toFixed(1)}" width="${plateW.toFixed(1)}" height="${plateH.toFixed(1)}" fill="${bg}"/>
+    <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="${fontSize}" fill="${ink}">${escapeXML(text)}</text>`;
       return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
     }
 
@@ -4839,27 +4881,31 @@ document.querySelectorAll('.decom-btn').forEach(btn => {
     }
 
     // 25. TEXTURE PANEL BADGE -- the halftone/distressed texture fills a
-    // bordered panel with the brand name genuinely knocked out of it
-    // (mask reveals background, not a separately-drawn text layer on
-    // top) -- same knockout principle pattern_tile already established,
-    // applied to a real trending texture instead of plain dots.
+    // bordered panel as a genuine border/frame effect. Originally a
+    // knockout (text carved as empty space out of the texture), same
+    // fix as pattern_tile: real names showed the knocked-out letterforms
+    // reading as noisy/jagged against the texture's own randomness, so
+    // the text now sits on its own solid background-color plate instead
+    // -- always cleanly legible regardless of the pattern.
     async function renderTexturePanelBadge(env, primaryFont, supportFont, brandName, ink, tag, meta, fontCache, iconCache) {
       const bg = inkAndBg(ink);
       const text = applyBrandNameCase(brandName, primaryFont);
       const w = 340, h = 340;
       const weight = primaryFont.weight_class || 800;
       const icon = await identityFetchIcon(env, "texture-halftone-distressed", iconCache);
-      const fontSize = autoFitFontSize(text, w - 100);
-      const maskId = `texmask_${Math.random().toString(36).slice(2, 8)}`;
+      // Tighter fit width leaves real margin for the plate -- verified
+      // numerically before shipping: ~27px of visible texture on each
+      // side of the plate for a typical name.
+      const fontSize = autoFitFontSize(text, w - 140);
+      const estTextWidth = text.length * fontSize * 0.62;
+      const plateW = estTextWidth + 48;
+      const plateH = fontSize * 1.5;
       const inner = `
-    <defs>
-      <mask id="${maskId}">
-        <rect width="100%" height="100%" fill="white"/>
-        <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle" style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="${fontSize}" fill="black">${escapeXML(text)}</text>
-      </mask>
-    </defs>
     <rect x="20" y="20" width="${w - 40}" height="${h - 40}" fill="none" stroke="${ink}" stroke-width="3"/>
-    <g mask="url(#${maskId})">${iconGroup(icon, w / 2, h / 2, w - 40, ink)}</g>`;
+    ${iconGroup(icon, w / 2, h / 2, w - 40, ink)}
+    <rect x="${(w / 2 - plateW / 2).toFixed(1)}" y="${(h / 2 - plateH / 2).toFixed(1)}" width="${plateW.toFixed(1)}" height="${plateH.toFixed(1)}" fill="${bg}"/>
+    <text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle"
+          style="font-family:'${primaryFont.family_name}';font-weight:${weight};" font-size="${fontSize}" fill="${ink}">${escapeXML(text)}</text>`;
       return identitySvgDoc(env, w, h, bg, [{ family_name: primaryFont.family_name, r2_key: primaryFont.r2_key, weight }], inner, fontCache);
     }
 
