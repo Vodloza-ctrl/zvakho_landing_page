@@ -1,203 +1,518 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ZVAKHO – Sitemap & Links</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: #0b0b0b;
-      color: #f5f1ea;
-      padding: 40px 20px;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-    h1 { font-size: 36px; font-weight: 800; margin-bottom: 8px; }
-    h1 span { color: #d4a574; }
-    p.sub { color: #a89e91; margin-bottom: 32px; font-size: 16px; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 16px;
-    }
-    .card {
-      background: #1c1814;
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
-      padding: 16px 18px;
-      transition: 0.15s;
-    }
-    .card:hover {
-      border-color: #d4a574;
-      transform: translateY(-2px);
-    }
-    .card .label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #766c62;
-      margin-bottom: 4px;
-    }
-    .card a {
-      font-size: 15px;
-      font-weight: 600;
-      color: #d4a574;
-      text-decoration: none;
-      word-break: break-all;
-    }
-    .card a:hover { text-decoration: underline; }
-    .card .status {
-      font-size: 12px;
-      color: #a89e91;
-      margin-top: 4px;
-    }
-    .status.ok { color: #6fbb72; }
-    .status.redirect { color: #f5a400; }
-    .status.blank { color: #ff8b78; }
-    .footer {
-      margin-top: 40px;
-      font-size: 13px;
-      color: #766c62;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      padding-top: 20px;
-    }
-    .footer code {
-      background: #141210;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      color: #a89e91;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ZVAKHO — Type a name. Get a brand.</title>
+<meta name="description" content="ZVAKHO turns your brand name into real, print-ready artwork in seconds — wordmarks, badges, monograms. Print it, sell it, get paid directly. Built for Zimbabwe." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#F5F0E8;
+    --paper-warm:#EFE7D8;
+    --ink:#161311;
+    --ink-soft:#4a433c;
+    --orange:#E8541C;
+    --orange-dark:#C4430F;
+    --indigo:#1B2E4D;
+    --gold:#F0B429;
+    --line:#DDD4C3;
+    --max:1180px;
+    --radius:4px;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Work Sans',sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:'Fraunces',serif; font-weight:600; line-height:1.08; letter-spacing:-0.01em; }
+  a{ color:inherit; }
+  .wrap{ max-width:var(--max); margin:0 auto; padding:0 28px; }
+  img,svg{ display:block; max-width:100%; }
+
+  /* registration-mark motif: used sparingly as a structural device tied
+     to actual print production, not decoration */
+  .regmark{ position:relative; width:16px; height:16px; flex-shrink:0; }
+  .regmark::before,.regmark::after{ content:''; position:absolute; background:currentColor; }
+  .regmark::before{ top:50%; left:0; width:100%; height:1px; transform:translateY(-50%); }
+  .regmark::after{ left:50%; top:0; height:100%; width:1px; transform:translateX(-50%); }
+  .regmark-circle{ position:absolute; inset:2px; border:1px solid currentColor; border-radius:50%; }
+
+  /* ---------- header ---------- */
+  header{ position:sticky; top:0; z-index:50; background:rgba(245,240,232,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); }
+  .nav{ display:flex; align-items:center; justify-content:space-between; padding:18px 28px; max-width:var(--max); margin:0 auto; }
+  .logo{ font-family:'Fraunces',serif; font-weight:700; font-size:20px; letter-spacing:-0.01em; }
+  .navlinks{ display:flex; gap:32px; font-size:14px; font-weight:500; }
+  .navlinks a{ text-decoration:none; color:var(--ink-soft); transition:color .15s; margin-right:32px; }
+  .navlinks a:last-child{ margin-right:0; }
+  .navlinks a:hover{ color:var(--ink); }
+  .navcta{ background:var(--ink); color:var(--paper); padding:10px 20px; border-radius:var(--radius); font-size:14px; font-weight:600; text-decoration:none; }
+  .navcta:hover{ background:var(--orange); }
+  @media (max-width:820px){ .navlinks{ display:none; } }
+
+  /* ---------- hero ---------- */
+  .hero{ padding:88px 0 60px; }
+  .hero-single{ max-width:720px; margin:0 auto; text-align:center; }
+  .hero-single .lead{ margin-left:auto; margin-right:auto; }
+
+  /* ---------- real artist showcase strip ---------- */
+  .artist-strip{ padding:48px 0 0; }
+  .artist-strip-label{ text-align:center; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:20px; }
+  .artist-cards{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+  .artist-card{ display:block; width:260px; text-decoration:none; color:inherit; border-radius:10px; overflow:hidden; border:1px solid var(--line); background:var(--paper-warm); transition:transform .15s, box-shadow .15s; }
+  .artist-card:hover{ transform:translateY(-3px); box-shadow:0 10px 24px rgba(22,19,17,.1); }
+  .artist-card-img{ aspect-ratio:1; overflow:hidden; background:#e5ddc9; }
+  .artist-card-img img{ width:100%; height:100%; object-fit:cover; }
+  .artist-card-foot{ display:flex; align-items:center; gap:10px; padding:12px 14px; }
+  .artist-avatar{ width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid var(--paper); background:var(--line); flex-shrink:0; }
+  .artist-card-foot span{ font-weight:600; font-size:14px; }
+  @media (max-width:720px){ .artist-card{ width:calc(50% - 8px); } }
+  .eyebrow{ display:flex; align-items:center; gap:10px; color:var(--orange-dark); font-size:13px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin-bottom:22px; }
+  .hero h1{ font-size:clamp(44px,7vw,76px); font-weight:700; letter-spacing:-0.02em; margin-bottom:22px; }
+  .hero h1 em{ font-style:normal; color:var(--orange); }
+  .hero p.lead{ font-size:19px; color:var(--ink-soft); max-width:480px; margin-bottom:32px; }
+  .cta-row{ display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+  .btn{ display:inline-block; padding:15px 26px; border-radius:var(--radius); font-weight:700; font-size:15px; text-decoration:none; transition:transform .12s, background .15s; }
+  .btn:hover{ transform:translateY(-1px); }
+  .btn-primary{ background:var(--orange); color:#fff; }
+  .btn-primary:hover{ background:var(--orange-dark); }
+  .btn-ghost{ border:1.5px solid var(--ink); color:var(--ink); }
+  .btn-ghost:hover{ background:var(--ink); color:var(--paper); }
+  .hero-note{ margin-top:18px; font-size:13px; color:var(--ink-soft); }
+
+  /* hero showcase panel -- the signature element: real generated marks,
+     not stock imagery standing in for the product */
+  .hero-showcase{ position:relative; }
+  .showcase-card{ background:var(--paper-warm); border:1px solid var(--line); border-radius:8px; padding:20px; position:relative; }
+  .showcase-grid{ display:flex; gap:12px; }
+  .showcase-col-big{ flex:1.1; }
+  .showcase-col-small{ flex:1; display:flex; flex-direction:column; gap:12px; }
+  .showcase-tile{ background:#F5F0E8; border-radius:4px; overflow:hidden; border:1px solid var(--line); height:192px; display:flex; align-items:center; justify-content:center; }
+  .showcase-col-small .showcase-tile{ height:90px; }
+  .showcase-tile img{ width:100%; height:100%; object-fit:contain; padding:10px; }
+  .showcase-tile .inline-mark{ width:100%; height:100%; padding:10px; display:flex; align-items:center; justify-content:center; box-sizing:border-box; }
+  .showcase-tile .inline-mark svg{ width:100%; height:100%; }
+  .showcase-caption{ margin-top:16px; display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink-soft); }
+  .showcase-caption .regmark{ color:var(--orange); }
+
+  /* ---------- marquee strip ---------- */
+  .strip{ background:var(--ink); color:var(--paper); padding:14px 0; overflow:hidden; white-space:nowrap; }
+  .strip span{ display:inline-block; font-size:13px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; padding:0 24px; }
+  .strip span::after{ content:'•'; margin-left:24px; color:var(--orange); }
+
+  /* ---------- section shared ---------- */
+  section{ padding:88px 0; }
+  .section-head{ max-width:640px; margin-bottom:52px; }
+  .kicker{ display:flex; align-items:center; gap:10px; color:var(--orange-dark); font-size:13px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin-bottom:14px; }
+  .section-head h2{ font-size:clamp(28px,4vw,42px); margin-bottom:16px; }
+  .section-head p{ font-size:17px; color:var(--ink-soft); }
+
+  /* ---------- how it works ---------- */
+  .steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:0; border-top:1px solid var(--line); }
+  @media (max-width:820px){ .steps{ grid-template-columns:1fr; } }
+  .step{ padding:32px 28px 32px 0; border-right:1px solid var(--line); position:relative; }
+  .step:last-child{ border-right:none; }
+  @media (max-width:820px){ .step{ border-right:none; border-bottom:1px solid var(--line); padding:28px 0; } }
+  .step-num{ font-family:'Fraunces',serif; font-size:15px; font-weight:600; color:var(--orange); margin-bottom:14px; }
+  .step h3{ font-size:21px; margin-bottom:10px; }
+  .step p{ color:var(--ink-soft); font-size:15px; }
+
+  /* ---------- why grid ---------- */
+  .why-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:2px; background:var(--line); border:1px solid var(--line); }
+  @media (max-width:820px){ .why-grid{ grid-template-columns:1fr; } }
+  .why-card{ background:var(--paper); padding:34px 28px; }
+  .why-card .regmark{ color:var(--orange); margin-bottom:20px; }
+  .why-card h3{ font-size:19px; margin-bottom:10px; }
+  .why-card p{ color:var(--ink-soft); font-size:14.5px; }
+
+  /* ---------- print zones / upload teaser ---------- */
+  .split{ display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center; }
+  @media (max-width:920px){ .split{ grid-template-columns:1fr; } }
+  .mock-shirt{ background:var(--paper-warm); border:1px solid var(--line); border-radius:8px; padding:32px; display:flex; gap:20px; justify-content:center; }
+
+  /* ---------- FAQ ---------- */
+  .faq-list{ max-width:760px; }
+  .faq-item{ border-bottom:1px solid var(--line); padding:20px 0; }
+  .faq-item summary{ font-weight:600; font-size:16px; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:16px; }
+  .faq-item summary::-webkit-details-marker{ display:none; }
+  .faq-item summary::after{ content:'+'; font-family:'Fraunces',serif; font-size:22px; color:var(--orange); flex-shrink:0; transition:transform .2s; }
+  .faq-item[open] summary::after{ transform:rotate(45deg); }
+  .faq-item p{ margin-top:12px; color:var(--ink-soft); font-size:15px; line-height:1.6; }
+
+  /* chat mockup -- deliberately uses the site's own palette, not
+     WhatsApp's actual green/logo, since this illustrates the concept
+     of chat-based ordering rather than claiming to be a literal
+     WhatsApp screenshot */
+  .chat-mock{ background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:var(--shadow, 0 8px 24px rgba(22,19,17,.08)); }
+  .chat-header{ background:var(--indigo); color:#fff; padding:16px 18px; display:flex; align-items:center; gap:12px; }
+  .chat-avatar{ width:36px; height:36px; border-radius:50%; background:var(--orange); flex-shrink:0; }
+  .chat-name{ font-weight:700; font-size:14px; }
+  .chat-status{ font-size:12px; color:#c9d2df; }
+  .chat-body{ padding:20px 18px; display:flex; flex-direction:column; gap:10px; background:var(--paper); min-height:220px; }
+  .bubble{ max-width:78%; padding:10px 14px; border-radius:14px; font-size:14px; line-height:1.4; }
+  .bubble-in{ align-self:flex-start; background:#fff; border:1px solid var(--line); border-bottom-left-radius:4px; }
+  .bubble-out{ align-self:flex-end; background:var(--orange); color:#fff; border-bottom-right-radius:4px; }
+  .bubble-paid{ background:var(--indigo); }
+  .shirt-svg{ width:130px; }
+  .feature-list{ list-style:none; margin-top:24px; }
+  .feature-list li{ display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); font-size:15px; color:var(--ink-soft); }
+  .feature-list li:last-child{ border-bottom:none; }
+  .feature-list .regmark{ color:var(--orange); margin-top:3px; }
+
+  /* ---------- wholesale ---------- */
+  .wholesale{ background:var(--indigo); color:var(--paper); border-radius:10px; padding:56px 48px; display:grid; grid-template-columns:1.3fr 1fr; gap:40px; align-items:center; }
+  @media (max-width:820px){ .wholesale{ grid-template-columns:1fr; padding:40px 26px; } }
+  .wholesale h2{ color:#fff; font-size:clamp(26px,3.6vw,36px); margin-bottom:14px; }
+  .wholesale p{ color:#c9d2df; font-size:16px; max-width:440px; }
+  .wholesale .btn-primary{ background:var(--gold); color:var(--indigo); }
+  .wholesale .btn-primary:hover{ background:#e0a41f; }
+
+  /* ---------- footer ---------- */
+  footer{ border-top:1px solid var(--line); padding:56px 0 32px; }
+  .footer-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:40px; margin-bottom:48px; }
+  @media (max-width:720px){ .footer-grid{ grid-template-columns:1fr; gap:32px; } }
+  .footer-grid h4{ font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:16px; }
+  .footer-grid ul{ list-style:none; }
+  .footer-grid li{ margin-bottom:10px; font-size:14.5px; }
+  .footer-grid a{ text-decoration:none; color:var(--ink-soft); }
+  .footer-grid a:hover{ color:var(--orange-dark); }
+  .footer-bottom{ display:flex; justify-content:space-between; align-items:center; padding-top:24px; border-top:1px solid var(--line); font-size:13px; color:var(--ink-soft); flex-wrap:wrap; gap:12px; }
+
+  ::selection{ background:var(--orange); color:#fff; }
+  a:focus-visible, button:focus-visible{ outline:2px solid var(--orange); outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce){ html{ scroll-behavior:auto; } .btn{ transition:none; } }
+</style>
 </head>
 <body>
-  <h1>ZVAKHO <span>• Sitemap</span></h1>
-  <p class="sub">All public URLs for testing and navigation. Click any link to open.</p>
 
-  <div class="grid">
-
-    <!-- Main Marketing -->
-    <div class="card">
-      <div class="label">Home (Marketing)</div>
-      <a href="/home" target="_blank">/home</a>
-      <div class="status ok">✅ Should load</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Root (main domain)</div>
-      <a href="/" target="_blank">/</a>
-      <div class="status redirect">🔄 Redirects to /home (JS)</div>
-    </div>
-
-    <!-- Auth -->
-    <div class="card">
-      <div class="label">Login</div>
-      <a href="/login" target="_blank">/login</a>
-      <div class="status ok">✅ Should load login page</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Signup</div>
-      <a href="/signup" target="_blank">/signup</a>
-      <div class="status ok">✅ Should load signup page</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Verify Email</div>
-      <a href="/verified" target="_blank">/verified</a>
-      <div class="status ok">✅ Verification success page</div>
-    </div>
-
-    <!-- Dashboards -->
-    <div class="card">
-      <div class="label">Dashboard (Brand)</div>
-      <a href="/dashboard" target="_blank">/dashboard</a>
-      <div class="status ok">✅ Should load dashboard (requires login)</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Admin</div>
-      <a href="/admin" target="_blank">/admin</a>
-      <div class="status ok">✅ Should load admin panel (requires admin role)</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Legacy Dashboard</div>
-      <a href="/app/" target="_blank">/app/</a>
-      <div class="status blank">⚠️ Currently redirecting – check _redirects</div>
-    </div>
-
-    <!-- Store -->
-    <div class="card">
-      <div class="label">Store (Root)</div>
-      <a href="https://zvakho.co.zw/?artist=mdusevan" target="_blank">/?artist=mdusevan</a>
-      <div class="status ok">✅ Store with query param</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Store (Subdomain)</div>
-      <a href="https://mdusevan.zvakho.co.zw/" target="_blank">mdusevan.zvakho.co.zw</a>
-      <div class="status ok">✅ Artist store (Mdu Sevan)</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Store (Vusa Mangena)</div>
-      <a href="https://vusamangena.zvakho.co.zw/" target="_blank">vusamangena.zvakho.co.zw</a>
-      <div class="status ok">✅ Artist store</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Store (Absoll)</div>
-      <a href="https://absoll.zvakho.co.zw/" target="_blank">absoll.zvakho.co.zw</a>
-      <div class="status ok">✅ Artist store</div>
-    </div>
-
-    <!-- Legal -->
-    <div class="card">
-      <div class="label">Terms</div>
-      <a href="/terms" target="_blank">/terms</a>
-      <div class="status ok">✅ Should load</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Privacy</div>
-      <a href="/privacy" target="_blank">/privacy</a>
-      <div class="status ok">✅ Should load</div>
-    </div>
-
-    <!-- API / Worker -->
-    <div class="card">
-      <div class="label">API Base</div>
-      <a href="https://zvakho-workers-universal.yasibomedia.workers.dev/" target="_blank">Worker URL</a>
-      <div class="status ok">✅ JSON response</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Artist List (API)</div>
-      <a href="https://zvakho-workers-universal.yasibomedia.workers.dev/artists" target="_blank">/artists</a>
-      <div class="status ok">✅ JSON list</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Store Config (API)</div>
-      <a href="https://zvakho-workers-universal.yasibomedia.workers.dev/store-config?artist=MDUSEVAN" target="_blank">/store-config?artist=MDUSEVAN</a>
-      <div class="status ok">✅ JSON config</div>
-    </div>
-
+<header>
+  <div class="nav">
+    <div class="logo">ZVAKHO</div>
+    <nav class="navlinks">
+      <a href="#how">How it works</a>
+      <a href="#showcase">Showcase</a>
+      <a href="#stores">Start earning</a>
+      <a href="#faq">FAQ</a>
+      <a href="#wholesale">Wholesale</a>
+    </nav>
+    <a href="#start" class="navcta">Start free</a>
   </div>
+</header>
 
-  <div class="footer">
-    <p>📌 Notes:</p>
-    <ul style="padding-left:20px; margin-top:4px; color:#a89e91; line-height:1.8;">
-      <li>Some pages may require <strong>authentication</strong> (e.g., <code>/dashboard</code>, <code>/admin</code>).</li>
-      <li>The <strong>main domain root</strong> <code>/</code> redirects to <code>/home</code> via JavaScript (in <code>index.html</code>).</li>
-      <li><strong>Subdomains</strong> (e.g., <code>mdusevan.zvakho.co.zw</code>) serve the store (<code>index.html</code>) without redirecting.</li>
-      <li>If a page is <strong>blank</strong>, check the browser console for errors, and verify the file exists in <code>/public/</code>.</li>
-      <li>The legacy dashboard at <code>/app/</code> may need a separate <code>_redirects</code> rule (currently it's being caught by <code>/* /index.html</code>).</li>
-    </ul>
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-single">
+      <h1>Become a brand<br>owner in <em>10 minutes.</em></h1>
+      <p class="lead">Upload your art, or let ZVAKHO design it for you — then sell from your own store.</p>
+      <div class="cta-row" style="justify-content:center;">
+        <a href="#start" class="btn btn-primary">Become a brand owner — free</a>
+      </div>
+      <p class="hero-note">No design skills. No upfront cost.</p>
+    </div>
   </div>
+</section>
+
+<section class="artist-strip">
+  <div class="wrap">
+    <p class="artist-strip-label">Real brand owners, already selling on ZVAKHO</p>
+    <div class="artist-cards">
+      <a href="#" class="artist-card">
+        <div class="artist-card-img"><img src="https://assets.zvakho.co.zw/artists/ABSOLL/merch/tshirt_bootleg_001/black.webp" alt="Absoll merchandise" loading="lazy" /></div>
+        <div class="artist-card-foot">
+          <img class="artist-avatar" src="https://assets.zvakho.co.zw/artists/ABSOLL/profile/profile.webp" alt="Absoll" loading="lazy" />
+          <span>Absoll</span>
+        </div>
+      </a>
+      <a href="#" class="artist-card">
+        <div class="artist-card-img"><img src="https://assets.zvakho.co.zw/artists/MDUSEVAN/merch/tshirt_sevanites_001/black.webp" alt="Mdu Sevan merchandise" loading="lazy" /></div>
+        <div class="artist-card-foot">
+          <img class="artist-avatar" src="https://assets.zvakho.co.zw/artists/MDUSEVAN/profile/profile.webp" alt="Mdu Sevan" loading="lazy" />
+          <span>Mdu Sevan</span>
+        </div>
+      </a>
+      <a href="#" class="artist-card">
+        <div class="artist-card-img"><img src="https://assets.zvakho.co.zw/artists/VUSAMANGENA/merch/tshirt_ungu_thixo_001/white.webp" alt="Vusa Mangena merchandise" loading="lazy" /></div>
+        <div class="artist-card-foot">
+          <img class="artist-avatar" src="https://assets.zvakho.co.zw/artists/VUSAMANGENA/profile/profile.webp" alt="Vusa Mangena" loading="lazy" />
+          <span>Vusa Mangena</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<div class="strip" aria-hidden="true">
+  <span>DTF PRINT-READY</span><span>VINYL PRINT-READY</span><span>DIRECT ECOCASH &amp; PAYNOW PAYOUTS</span><span>WHATSAPP-NATIVE</span><span>BUILT IN BULAWAYO</span><span>DTF PRINT-READY</span><span>VINYL PRINT-READY</span><span>DIRECT ECOCASH &amp; PAYNOW PAYOUTS</span><span>WHATSAPP-NATIVE</span><span>BUILT IN BULAWAYO</span>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="kicker"><span class="regmark"><span class="regmark-circle"></span></span> How it works</div>
+      <h2>From a name to a sellable shirt, in three steps.</h2>
+      <p>No brief, no back-and-forth with a designer, no week of waiting.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Type your name</h3>
+        <p>Tell us your brand name and pick the register that fits — streetwear, elegant, vintage, athletic, and more.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>We generate real artwork</h3>
+        <p>Real fonts, real icons, dozens of layouts, genuinely combined — not one template with your name swapped in.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Print it, sell it, get paid</h3>
+        <p>Choose DTF or vinyl, front or back. Connect your own Paynow account — the money goes straight to you, not through us.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="generator-demo">
+  <div class="wrap">
+    <div class="section-head" style="text-align:center; margin-left:auto; margin-right:auto;">
+      <div class="kicker" style="justify-content:center;"><span class="regmark"><span class="regmark-circle"></span></span> Real generated output</div>
+      <h2>One name in. Real artwork out.</h2>
+      <p>These are five actual outputs from the ZVAKHO generator, not mockups standing in for the product.</p>
+    </div>
+    <div style="max-width:640px; margin:0 auto;">
+
+        <div class="showcase-card">
+          <div class="showcase-grid">
+            <div class="showcase-col-big">
+              <div class="showcase-tile"><span class="inline-mark"><svg role="img" aria-label="Generated laurel badge mark for Hollow & Rome" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#F5F0E8"/><path d="M100.0,176.0 L116.7,175.2 L133.0,170.7 L148.1,162.7 L161.3,151.4 L171.8,137.4 L179.2,121.2 L182.9,103.6 L182.7,85.4 L178.5,67.5 L170.4,50.7 L158.8,35.9 L144.0,23.8" fill="none" stroke="#1B2E4D" stroke-width="2.5" stroke-linecap="round"/><g fill="#1B2E4D"><g transform="translate(100.0,176.0) rotate(360.0)"><path d="M0,0 Q12.600000000000001,-5.5440000000000005 25.200000000000003,0 Q12.600000000000001,5.5440000000000005 0,0 Z"/><path d="M2,0 L23.200000000000003,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(116.7,175.2) rotate(347.5)"><path d="M0,0 Q12.05,-5.3020000000000005 24.1,0 Q12.05,5.3020000000000005 0,0 Z"/><path d="M2,0 L22.1,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(133.0,170.7) rotate(335.0)"><path d="M0,0 Q11.5,-5.06 23,0 Q11.5,5.06 0,0 Z"/><path d="M2,0 L21,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(148.1,162.7) rotate(322.5)"><path d="M0,0 Q10.950000000000001,-4.8180000000000005 21.900000000000002,0 Q10.950000000000001,4.8180000000000005 0,0 Z"/><path d="M2,0 L19.900000000000002,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(161.3,151.4) rotate(310.0)"><path d="M0,0 Q10.4,-4.5760000000000005 20.8,0 Q10.4,4.5760000000000005 0,0 Z"/><path d="M2,0 L18.8,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(171.8,137.4) rotate(297.5)"><path d="M0,0 Q9.85,-4.334 19.7,0 Q9.85,4.334 0,0 Z"/><path d="M2,0 L17.7,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(179.2,121.2) rotate(285.0)"><path d="M0,0 Q9.3,-4.0920000000000005 18.6,0 Q9.3,4.0920000000000005 0,0 Z"/><path d="M2,0 L16.6,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(182.9,103.6) rotate(272.5)"><path d="M0,0 Q8.75,-3.85 17.5,0 Q8.75,3.85 0,0 Z"/><path d="M2,0 L15.5,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(182.7,85.4) rotate(260.0)"><path d="M0,0 Q8.2,-3.6079999999999997 16.4,0 Q8.2,3.6079999999999997 0,0 Z"/><path d="M2,0 L14.399999999999999,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(178.5,67.5) rotate(247.5)"><path d="M0,0 Q7.6499999999999995,-3.3659999999999997 15.299999999999999,0 Q7.6499999999999995,3.3659999999999997 0,0 Z"/><path d="M2,0 L13.299999999999999,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(170.4,50.7) rotate(235.0)"><path d="M0,0 Q7.1,-3.1239999999999997 14.2,0 Q7.1,3.1239999999999997 0,0 Z"/><path d="M2,0 L12.2,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(158.8,35.9) rotate(222.5)"><path d="M0,0 Q6.550000000000001,-2.882 13.100000000000001,0 Q6.550000000000001,2.882 0,0 Z"/><path d="M2,0 L11.100000000000001,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(144.0,23.8) rotate(210.0)"><path d="M0,0 Q6,-2.64 12,0 Q6,2.64 0,0 Z"/><path d="M2,0 L10,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g></g><path d="M100.0,176.0 L116.7,175.2 L133.0,170.7 L148.1,162.7 L161.3,151.4 L171.8,137.4 L179.2,121.2 L182.9,103.6 L182.7,85.4 L178.5,67.5 L170.4,50.7 L158.8,35.9 L144.0,23.8" fill="none" stroke="#1B2E4D" stroke-width="2.5" stroke-linecap="round"/><g fill="#1B2E4D"><g transform="translate(100.0,176.0) rotate(0.0)"><path d="M0,0 Q12.600000000000001,-5.5440000000000005 25.200000000000003,0 Q12.600000000000001,5.5440000000000005 0,0 Z"/><path d="M2,0 L23.200000000000003,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(116.7,175.2) rotate(12.5)"><path d="M0,0 Q12.05,-5.3020000000000005 24.1,0 Q12.05,5.3020000000000005 0,0 Z"/><path d="M2,0 L22.1,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(133.0,170.7) rotate(25.0)"><path d="M0,0 Q11.5,-5.06 23,0 Q11.5,5.06 0,0 Z"/><path d="M2,0 L21,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(148.1,162.7) rotate(37.5)"><path d="M0,0 Q10.950000000000001,-4.8180000000000005 21.900000000000002,0 Q10.950000000000001,4.8180000000000005 0,0 Z"/><path d="M2,0 L19.900000000000002,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(161.3,151.4) rotate(50.0)"><path d="M0,0 Q10.4,-4.5760000000000005 20.8,0 Q10.4,4.5760000000000005 0,0 Z"/><path d="M2,0 L18.8,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(171.8,137.4) rotate(62.5)"><path d="M0,0 Q9.85,-4.334 19.7,0 Q9.85,4.334 0,0 Z"/><path d="M2,0 L17.7,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(179.2,121.2) rotate(75.0)"><path d="M0,0 Q9.3,-4.0920000000000005 18.6,0 Q9.3,4.0920000000000005 0,0 Z"/><path d="M2,0 L16.6,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(182.9,103.6) rotate(87.5)"><path d="M0,0 Q8.75,-3.85 17.5,0 Q8.75,3.85 0,0 Z"/><path d="M2,0 L15.5,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(182.7,85.4) rotate(100.0)"><path d="M0,0 Q8.2,-3.6079999999999997 16.4,0 Q8.2,3.6079999999999997 0,0 Z"/><path d="M2,0 L14.399999999999999,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(178.5,67.5) rotate(112.5)"><path d="M0,0 Q7.6499999999999995,-3.3659999999999997 15.299999999999999,0 Q7.6499999999999995,3.3659999999999997 0,0 Z"/><path d="M2,0 L13.299999999999999,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(170.4,50.7) rotate(125.0)"><path d="M0,0 Q7.1,-3.1239999999999997 14.2,0 Q7.1,3.1239999999999997 0,0 Z"/><path d="M2,0 L12.2,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(158.8,35.9) rotate(137.5)"><path d="M0,0 Q6.550000000000001,-2.882 13.100000000000001,0 Q6.550000000000001,2.882 0,0 Z"/><path d="M2,0 L11.100000000000001,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g><g transform="translate(144.0,23.8) rotate(150.0)"><path d="M0,0 Q6,-2.64 12,0 Q6,2.64 0,0 Z"/><path d="M2,0 L10,0" stroke="#F5F0E8" stroke-width="1" fill="none"/></g></g>
+    <text x="100" y="92" text-anchor="middle" font-family="Fraunces,serif" font-weight="600" font-size="22" fill="#1B2E4D">Hollow &amp; Rome</text>
+    <line x1="70" y1="108" x2="130" y2="108" stroke="#1B2E4D" stroke-width="1"/>
+    <text x="100" y="124" text-anchor="middle" font-family="Work Sans,sans-serif" font-size="9" letter-spacing="2" fill="#1B2E4D">EST. 2026</text></svg></span></div>
+            </div>
+            <div class="showcase-col-small">
+              <div class="showcase-tile"><span class="inline-mark"><svg role="img" aria-label="Generated interlocking monogram mark" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#F5F0E8"/>
+    <defs><mask id="m1"><rect width="100%" height="100%" fill="white"/>
+    <text x="60" y="138" font-family="Fraunces,serif" font-weight="300" font-size="110" fill="black">M</text></mask></defs>
+    <text x="60" y="138" font-family="Fraunces,serif" font-weight="300" font-size="110" fill="#E8541C">M</text>
+    <g mask="url(#m1)"><text x="90" y="138" font-family="Work Sans,sans-serif" font-weight="800" font-size="110" fill="#E8541C">B</text></g></svg></span></div>
+              <div class="showcase-tile"><span class="inline-mark"><svg role="img" aria-label="Generated Y2K sparkle wordmark for Sidewalk Co" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#F5F0E8"/>
+    <path d="M100.0,32.0 L103.5,60.5 L132.0,64.0 L103.5,67.5 L100.0,96.0 L96.5,67.5 L68.0,64.0 L96.5,60.5 Z" fill="#161311"/>
+    <text x="100" y="128" text-anchor="middle" font-family="Work Sans,sans-serif" font-weight="800" font-size="26" fill="#161311">SIDEWALK CO</text>
+    <text x="100" y="150" text-anchor="middle" font-family="Work Sans,sans-serif" font-size="9" letter-spacing="3" fill="#161311">STREETWEAR CO.</text></svg></span></div>
+            </div>
+            <div class="showcase-col-small">
+              <div class="showcase-tile"><span class="inline-mark"><svg role="img" aria-label="Generated seal medallion mark for Meridian" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><rect width="100%" height="100%" fill="#F5F0E8"/>
+    <circle cx="100" cy="100" r="70" fill="none" stroke="#1B2E4D" stroke-width="4"/><circle cx="178.0" cy="100.0" r="9" fill="#1B2E4D"/><circle cx="172.1" cy="129.8" r="9" fill="#1B2E4D"/><circle cx="155.2" cy="155.2" r="9" fill="#1B2E4D"/><circle cx="129.8" cy="172.1" r="9" fill="#1B2E4D"/><circle cx="100.0" cy="178.0" r="9" fill="#1B2E4D"/><circle cx="70.2" cy="172.1" r="9" fill="#1B2E4D"/><circle cx="44.8" cy="155.2" r="9" fill="#1B2E4D"/><circle cx="27.9" cy="129.8" r="9" fill="#1B2E4D"/><circle cx="22.0" cy="100.0" r="9" fill="#1B2E4D"/><circle cx="27.9" cy="70.2" r="9" fill="#1B2E4D"/><circle cx="44.8" cy="44.8" r="9" fill="#1B2E4D"/><circle cx="70.2" cy="27.9" r="9" fill="#1B2E4D"/><circle cx="100.0" cy="22.0" r="9" fill="#1B2E4D"/><circle cx="129.8" cy="27.9" r="9" fill="#1B2E4D"/><circle cx="155.2" cy="44.8" r="9" fill="#1B2E4D"/><circle cx="172.1" cy="70.2" r="9" fill="#1B2E4D"/>
+    <path id="st1" d="M 54 106 A 46 46 0 0 1 146 106" fill="none"/>
+    <text font-family="Fraunces,serif" font-weight="600" font-size="15" letter-spacing="2" fill="#1B2E4D">
+      <textPath href="#st1" xlink:href="#st1" startOffset="50%" text-anchor="middle">MERIDIAN</textPath></text>
+    <text x="100" y="118" text-anchor="middle" font-family="Work Sans,sans-serif" font-size="9" letter-spacing="2" fill="#1B2E4D">SINCE 2026</text></svg></span></div>
+              <div class="showcase-tile"><span class="inline-mark"><svg role="img" aria-label="Generated minimal wordmark for Muzinda" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#F5F0E8"/>
+    <text x="100" y="94" text-anchor="middle" font-family="Fraunces,serif" font-weight="600" font-size="40" fill="#161311">MUZINDA</text>
+    <text x="100" y="118" text-anchor="middle" font-family="Work Sans,sans-serif" font-size="9" letter-spacing="3" fill="#161311">HARARE, ZIMBABWE</text></svg></span></div>
+            </div>
+          </div>
+          <div class="showcase-caption">
+            <span>5 real marks. One generator. Every one different.</span>
+            <span class="regmark"><span class="regmark-circle"></span></span>
+          </div>
+        </div>
+      
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--paper-warm);">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="kicker"><span class="regmark"><span class="regmark-circle"></span></span> Why ZVAKHO</div>
+      <h2>Built for people starting today, not launching in Q3.</h2>
+    </div>
+    <div class="why-grid">
+      <div class="why-card">
+        <span class="regmark"><span class="regmark-circle"></span></span>
+        <h3>No designer needed</h3>
+        <p>A complete brand mark from just your name.</p>
+      </div>
+      <div class="why-card">
+        <span class="regmark"><span class="regmark-circle"></span></span>
+        <h3>Your money, direct</h3>
+        <p>Every sale pays straight into your own account.</p>
+      </div>
+      <div class="why-card">
+        <span class="regmark"><span class="regmark-circle"></span></span>
+        <h3>Built for Zimbabwe</h3>
+        <p>ZiG, EcoCash, WhatsApp — built here, not bolted on.</p>
+      </div>
+      <div class="why-card">
+        <span class="regmark"><span class="regmark-circle"></span></span>
+        <h3>Real print-ready quality</h3>
+        <p>Checked before it prints. Every time.</p>
+      </div>
+      <div class="why-card">
+        <span class="regmark"><span class="regmark-circle"></span></span>
+        <h3>Upgrade whenever</h3>
+        <p>Works today. Nothing here locks you in later.</p>
+      </div>
+      <div class="why-card">
+        <span class="regmark"><span class="regmark-circle"></span></span>
+        <h3>Wholesale, when you scale</h3>
+        <p>Bulk production, ready when you outgrow one at a time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="showcase">
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <div class="kicker"><span class="regmark"><span class="regmark-circle"></span></span> Print zones</div>
+        <h2 style="font-size:clamp(26px,3.6vw,36px); margin-bottom:16px;">Front, back, and everything in between.</h2>
+        <p style="color:var(--ink-soft); font-size:16px; margin-bottom:8px;">See your mark on the actual shirt before you commit to it — front placement, back placement, and real mockups generated from your artwork.</p>
+        <ul class="feature-list">
+          <li><span class="regmark"><span class="regmark-circle"></span></span> Upload your own artwork, or use what ZVAKHO generates</li>
+          <li><span class="regmark"><span class="regmark-circle"></span></span> Reposition, resize, and rescale inside the real print area</li>
+          <li><span class="regmark"><span class="regmark-circle"></span></span> Front and back mockups, generated automatically</li>
+        </ul>
+      </div>
+      <div class="mock-shirt">
+        <svg class="shirt-svg" viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg">
+          <path d="M30,10 L45,4 Q60,14 75,4 L90,10 L110,28 L98,44 L90,38 L90,140 L30,140 L30,38 L22,44 L10,28 Z" fill="#F5F0E8" stroke="#161311" stroke-width="2"/>
+          <rect x="48" y="46" width="24" height="30" fill="none" stroke="#E8541C" stroke-width="1" stroke-dasharray="3 2"/>
+        </svg>
+        <svg class="shirt-svg" viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg">
+          <path d="M30,10 L45,4 Q60,10 75,4 L90,10 L110,28 L98,44 L90,38 L90,140 L30,140 L30,38 L22,44 L10,28 Z" fill="#F5F0E8" stroke="#161311" stroke-width="2"/>
+          <rect x="42" y="20" width="36" height="34" fill="none" stroke="#E8541C" stroke-width="1" stroke-dasharray="3 2"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="stores" style="background:var(--paper-warm);">
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <div class="kicker"><span class="regmark"><span class="regmark-circle"></span></span> Your business, not just a shirt</div>
+        <h2 style="font-size:clamp(28px,4vw,42px); margin-bottom:16px;">A brand is nice. A business pays rent.</h2>
+        <p style="color:var(--ink-soft); font-size:17px; margin-bottom:8px;">Every brand on ZVAKHO comes with a real store and a WhatsApp storefront — start taking orders the moment your design is ready. You need a name and a phone. That's it.</p>
+        <ul class="feature-list">
+          <li><span class="regmark"><span class="regmark-circle"></span></span> <span><strong style="color:var(--ink);">Sell through WhatsApp.</strong> Customers message you directly — no app, nothing to download.</span></li>
+          <li><span class="regmark"><span class="regmark-circle"></span></span> <span><strong style="color:var(--ink);">Your own online store.</strong> A real storefront with your name on it — not buried in someone else's marketplace.</span></li>
+          <li><span class="regmark"><span class="regmark-circle"></span></span> <span><strong style="color:var(--ink);">Money goes straight to you.</strong> Every sale pays into your own Paynow or EcoCash account.</span></li>
+        </ul>
+        <div class="cta-row" style="margin-top:28px;">
+          <a href="#" class="btn btn-primary">Set up your storefront</a>
+          <a href="#" class="btn btn-ghost">See an example store</a>
+        </div>
+      </div>
+      <div class="chat-mock">
+        <div class="chat-header">
+          <div class="chat-avatar"></div>
+          <div>
+            <div class="chat-name">Your Brand</div>
+            <div class="chat-status">via WhatsApp Business</div>
+          </div>
+        </div>
+        <div class="chat-body">
+          <div class="bubble bubble-in">Hi! Is the black hoodie still available in M?</div>
+          <div class="bubble bubble-out">Yes! M is available 👌 It's $18, I can have it ready by Friday</div>
+          <div class="bubble bubble-in">Perfect, I'll take it</div>
+          <div class="bubble bubble-out bubble-paid">Payment received ✅ Order confirmed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" style="background:var(--paper-warm);">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="kicker"><span class="regmark"><span class="regmark-circle"></span></span> Before you start</div>
+      <h2>Questions people actually ask.</h2>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>Do I need any design experience?</summary>
+        <p>No. Type your brand name, pick a register that fits — streetwear, elegant, vintage, athletic, and more — and ZVAKHO generates real artwork from real fonts and icons. If you can already design, you can also upload your own artwork instead.</p>
+      </details>
+      <details class="faq-item">
+        <summary>What does it actually cost to start?</summary>
+        <p>Generating your brand identity is free. You only spend money when you're actually printing and selling — there's no monthly fee just to have a store sitting there, and no inventory to buy upfront.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Do I need to buy stock or hold inventory?</summary>
+        <p>No. Shirts are printed after a customer orders, not before. You're never sitting on boxes of stock you're hoping will sell.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How do I actually get paid?</summary>
+        <p>Connect your own Paynow or EcoCash account. When a customer pays, it goes straight there — ZVAKHO never holds your money or sits in the middle of the transaction.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Can I use my own logo instead of a generated one?</summary>
+        <p>Yes. Upload your own artwork any time, and reposition, resize, or rescale it inside the real print area before it goes to production.</p>
+      </details>
+      <details class="faq-item">
+        <summary>What if I want to sell in bulk, not one shirt at a time?</summary>
+        <p>That's what wholesale is for — see below. Bulk production runs bring your per-unit cost down once you're past one-at-a-time orders.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="wholesale">
+  <div class="wrap">
+    <div class="wholesale">
+      <div>
+        <h2>Selling in real volume? Let's talk wholesale.</h2>
+        <p>Once you're past one-shirt-at-a-time, bulk production runs bring your per-unit cost down. Get in touch and we'll walk you through it.</p>
+      </div>
+      <div class="cta-row">
+        <a href="mailto:hello@zvakho.co.zw" class="btn btn-primary">Talk to us about wholesale</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <div class="logo" style="margin-bottom:14px;">ZVAKHO</div>
+        <p style="color:var(--ink-soft); font-size:14.5px; max-width:280px;">Type a name. Get a brand. Print it, sell it, get paid — built in Bulawayo, for Zimbabwe.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#showcase">Print zones</a></li>
+          <li><a href="#stores">Start earning</a></li>
+          <li><a href="#faq">FAQ</a></li>
+          <li><a href="#wholesale">Wholesale</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Get in touch</h4>
+        <ul>
+          <li><a href="mailto:hello@zvakho.co.zw">hello@zvakho.co.zw</a></li>
+          <li><a href="tel:0716173131">0716 173 131</a></li>
+          <li><a href="https://wa.me/263719362231">WhatsApp +263 719 362 231</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 ZVAKHO. Built in Bulawayo, Zimbabwe.</span>
+      <span>Every mark on this page was generated by ZVAKHO — not stock art.</span>
+    </div>
+  </div>
+</footer>
+
 </body>
 </html>
