@@ -45,6 +45,7 @@ coverage/
 
 # Environment files (if any)
 .env.production
-.env.stagingwrangler.toml
-node_modules/
-.env
+.env.staging
+
+# Wrangler config (contains bindings/vars - use wrangler.toml.example as a template instead)
+wrangler.toml
