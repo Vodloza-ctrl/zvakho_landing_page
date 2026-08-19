@@ -1,0 +1,25 @@
+# Secrets - never commit!
+.dev.vars
+.env
+.env.local
+.env.*.local
+wrangler.toml
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Wrangler / Cloudflare local state
+.wrangler/
+.wrangler.tmp/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Misc
+*.sqlite
+*.sqlite-journal
+*.db
